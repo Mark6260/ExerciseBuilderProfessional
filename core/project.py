@@ -1,19 +1,24 @@
 import json
 from pathlib import Path
 
+from core.exercise import Exercise
+
 
 class Project:
-    def __init__(self, name="Untitled Exercise Project"):
+    def __init__(self, name="Untitled Project"):
         self.name = name
         self.exercises = []
 
-    def add_exercise(self, exercise):
+    def add_exercise(self, exercise: Exercise):
         self.exercises.append(exercise)
 
     def save(self, filename):
         project_data = {
             "name": self.name,
-            "exercises": self.exercises
+            "exercises": [
+                exercise.to_dict()
+                for exercise in self.exercises
+            ]
         }
 
         with open(filename, "w", encoding="utf-8") as file:
@@ -29,7 +34,11 @@ class Project:
         with open(filename, "r", encoding="utf-8") as file:
             project_data = json.load(file)
 
-        project = cls(project_data.get("name", "Untitled Exercise Project"))
-        project.exercises = project_data.get("exercises", [])
+        project = cls(project_data.get("name", "Untitled Project"))
+
+        project.exercises = [
+            Exercise.from_dict(item)
+            for item in project_data.get("exercises", [])
+        ]
 
         return project

@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QAction
 
 from core.project import Project
+from core.word_parser import WordParser
 
 
 class MainWindow(QMainWindow):
@@ -51,11 +52,16 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(self.exit_action)
 
+        import_menu = self.menuBar().addMenu("Import")
+        self.import_word_action = QAction("Word Document...", self)
+        import_menu.addAction(self.import_word_action)
+
         self.new_action.triggered.connect(self.new_project)
         self.open_action.triggered.connect(self.open_project)
         self.save_action.triggered.connect(self.save_project)
         self.save_as_action.triggered.connect(self.save_project_as)
         self.exit_action.triggered.connect(self.close)
+        self.import_word_action.triggered.connect(self.import_word_document)
 
     def create_toolbar(self):
         toolbar = QToolBar("Main")
@@ -161,3 +167,35 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Project saved")
         except Exception as error:
             QMessageBox.critical(self, "Save Project Error", str(error))
+
+    def import_word_document(self):
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open Word Document",
+            "",
+            "Word Documents (*.docx)"
+        )
+
+        if not filename:
+            return
+
+        try:
+            parser = WordParser(filename)
+            parser.open()
+
+            info = parser.get_summary()
+
+            QMessageBox.information(
+    self,
+    "Document Information",
+    f"Paragraphs: {info['paragraphs']}\n"
+    f"Tables: {info['tables']}\n"
+    f"Injects Found: {info['injects']}"
+)
+
+        except Exception as error:
+            QMessageBox.critical(
+                self,
+                "Import Error",
+                str(error)
+            )
