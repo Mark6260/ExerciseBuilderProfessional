@@ -43,24 +43,35 @@ class WordParser:
     
     def get_injects(self):
         """
-        Create a simple Inject object for every inject found.
-        For now we only populate the inject number.
+        Extract basic inject information from the Master Events List table.
         """
 
         injects = []
 
-        number = 1
+        if not self.document.tables:
+            return injects
 
-        for table in self.document.tables:
-            text = table.cell(0, 0).text.strip()
+        mel_table = self.document.tables[0]
 
-            if re.match(r"^No\.\s+\d+", text):
-                inject = Inject(
-                    number=number,
-                    title=f"Inject {number}"
-                )
+        for row in mel_table.rows[1:]:
+            cells = row.cells
 
-                injects.append(inject)
-                number += 1
+            if len(cells) < 5:
+                continue
+
+            number_text = cells[0].text.strip()
+
+            if not number_text.isdigit():
+                continue
+
+            inject = Inject(
+                number=int(number_text),
+                exercise_time=cells[1].text.strip(),
+                phase=cells[2].text.strip(),
+                title=cells[3].text.strip(),
+                category=cells[4].text.strip(),
+            )
+
+            injects.append(inject)
 
         return injects
