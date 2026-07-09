@@ -1,5 +1,6 @@
 import re
 from docx import Document
+from core.inject import Inject
 
 
 class WordParser:
@@ -39,3 +40,27 @@ class WordParser:
                             count += 1
 
         return count
+    
+    def get_injects(self):
+        """
+        Create a simple Inject object for every inject found.
+        For now we only populate the inject number.
+        """
+
+        injects = []
+
+        number = 1
+
+        for table in self.document.tables:
+            text = table.cell(0, 0).text.strip()
+
+            if re.match(r"^No\.\s+\d+", text):
+                inject = Inject(
+                    number=number,
+                    title=f"Inject {number}"
+                )
+
+                injects.append(inject)
+                number += 1
+
+        return injects

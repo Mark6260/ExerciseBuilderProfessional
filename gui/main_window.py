@@ -85,17 +85,15 @@ class MainWindow(QMainWindow):
 
         project_group.setLayout(form)
 
-        exercise_group = QGroupBox("Exercises")
+        inject_group = QGroupBox("Injects")
         self.exercise_list = QListWidget()
 
         layout_right = QVBoxLayout()
         layout_right.addWidget(self.exercise_list)
-        exercise_group.setLayout(layout_right)
-
+        inject_group.setLayout(layout_right)
         main_layout = QHBoxLayout()
         main_layout.addWidget(project_group, 1)
-        main_layout.addWidget(exercise_group, 3)
-
+        main_layout.addWidget(inject_group, 3)
         container = QWidget()
         container.setLayout(main_layout)
         self.setCentralWidget(container)
@@ -183,15 +181,16 @@ class MainWindow(QMainWindow):
             parser = WordParser(filename)
             parser.open()
 
-            info = parser.get_summary()
+            injects = parser.get_injects()
+
+            self.current_project.exercises = injects
+            self.update_project_view()
 
             QMessageBox.information(
-    self,
-    "Document Information",
-    f"Paragraphs: {info['paragraphs']}\n"
-    f"Tables: {info['tables']}\n"
-    f"Injects Found: {info['injects']}"
-)
+                self,
+                "Import Complete",
+                f"Imported {len(injects)} injects."
+            )
 
         except Exception as error:
             QMessageBox.critical(
