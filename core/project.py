@@ -1,24 +1,37 @@
 import json
 from pathlib import Path
 
-from core.exercise import Exercise
+from core.inject import Inject
 
 
 class Project:
     def __init__(self, name="Untitled Project"):
         self.name = name
-        self.exercises = []
+        self.injects: list[Inject] = []
 
-    def add_exercise(self, exercise: Exercise):
-        self.exercises.append(exercise)
+    def add_inject(self, inject: Inject):
+        self.injects.append(inject)
 
     def save(self, filename):
         project_data = {
             "name": self.name,
-            "exercises": [
-                exercise.to_dict()
-                for exercise in self.exercises
-            ]
+            "injects": [
+                {
+                    "number": inject.number,
+                    "title": inject.title,
+                    "exercise_time": inject.exercise_time,
+                    "phase": inject.phase,
+                    "source": inject.source,
+                    "method": inject.method,
+                    "audience": inject.audience,
+                    "category": inject.category,
+                    "inject_text": inject.inject_text,
+                    "expected_action": inject.expected_action,
+                    "facilitator_notes": inject.facilitator_notes,
+                    "attachments": inject.attachments,
+                }
+                for inject in self.injects
+            ],
         }
 
         with open(filename, "w", encoding="utf-8") as file:
@@ -36,9 +49,27 @@ class Project:
 
         project = cls(project_data.get("name", "Untitled Project"))
 
-        project.exercises = [
-            Exercise.from_dict(item)
-            for item in project_data.get("exercises", [])
+        saved_items = project_data.get(
+            "injects",
+            project_data.get("exercises", []),
+        )
+
+        project.injects = [
+            Inject(
+                number=item.get("number", 0),
+                title=item.get("title", ""),
+                exercise_time=item.get("exercise_time", ""),
+                phase=item.get("phase", ""),
+                source=item.get("source", ""),
+                method=item.get("method", ""),
+                audience=item.get("audience", ""),
+                category=item.get("category", ""),
+                inject_text=item.get("inject_text", ""),
+                expected_action=item.get("expected_action", ""),
+                facilitator_notes=item.get("facilitator_notes", ""),
+                attachments=item.get("attachments", []),
+            )
+            for item in saved_items
         ]
 
         return project
