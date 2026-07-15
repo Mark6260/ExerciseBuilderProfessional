@@ -6,7 +6,6 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
-    QListWidget,
     QMainWindow,
     QMessageBox,
     QScrollArea,
@@ -19,6 +18,8 @@ from PySide6.QtWidgets import (
 
 from core.project import Project
 from core.word_parser import WordParser
+from gui.panels.master_events_list_panel import MasterEventsListPanel
+from gui.panels.project_panel import ProjectPanel
 
 
 class MainWindow(QMainWindow):
@@ -57,7 +58,6 @@ class MainWindow(QMainWindow):
         file_menu.addAction(self.exit_action)
 
         import_menu = self.menuBar().addMenu("Import")
-
         self.import_word_action = QAction("Exercise Pack from Word...", self)
         import_menu.addAction(self.import_word_action)
 
@@ -81,59 +81,27 @@ class MainWindow(QMainWindow):
         toolbar.addAction(self.import_word_action)
 
     def create_layout(self):
-        project_panel = self.create_project_panel()
-        inject_list_panel = self.create_inject_list_panel()
-        current_inject_panel = self.create_current_inject_panel()
+        self.project_panel = ProjectPanel()
 
-        main_layout = QHBoxLayout()
-        main_layout.addWidget(project_panel, 1)
-        main_layout.addWidget(inject_list_panel, 2)
-        main_layout.addWidget(current_inject_panel, 4)
+        self.mel_panel = MasterEventsListPanel()
+        self.mel_panel.inject_selected.connect(self.show_inject_details)
+
+        inject_details_panel = self.create_inject_details_panel()
+
+        layout = QHBoxLayout()
+        layout.addWidget(self.project_panel, 1)
+        layout.addWidget(self.mel_panel, 2)
+        layout.addWidget(inject_details_panel, 4)
 
         container = QWidget()
-        container.setLayout(main_layout)
-
+        container.setLayout(layout)
         self.setCentralWidget(container)
 
-    def create_project_panel(self):
-        project_group = QGroupBox("Project")
-        project_form = QFormLayout()
-
-        self.project_name = QLabel("-")
-        self.project_author = QLabel("-")
-        self.project_location = QLabel("-")
-
-        self.project_name.setWordWrap(True)
-        self.project_location.setWordWrap(True)
-
-        project_form.addRow("Name:", self.project_name)
-        project_form.addRow("Author:", self.project_author)
-        project_form.addRow("File:", self.project_location)
-
-        project_group.setLayout(project_form)
-
-        return project_group
-
-    def create_inject_list_panel(self):
-        inject_group = QGroupBox("Injects")
-        inject_layout = QVBoxLayout()
-
-        self.inject_list = QListWidget()
-        self.inject_list.currentRowChanged.connect(
-            self.show_inject_details
-        )
-
-        inject_layout.addWidget(self.inject_list)
-        inject_group.setLayout(inject_layout)
-
-        return inject_group
-
-    def create_current_inject_panel(self):
-        current_inject_group = QGroupBox("Current Inject")
+    def create_inject_details_panel(self):
+        group = QGroupBox("Inject Details")
 
         content_widget = QWidget()
-        content_layout = QVBoxLayout()
-        content_widget.setLayout(content_layout)
+        layout = QVBoxLayout(content_widget)
 
         self.detail_title = QLabel("No inject selected")
         title_font = QFont()
@@ -143,16 +111,12 @@ class MainWindow(QMainWindow):
         self.detail_title.setWordWrap(True)
 
         self.detail_due = QLabel("Due: -")
-        due_font = QFont()
-        due_font.setPointSize(12)
-        due_font.setBold(True)
-        self.detail_due.setFont(due_font)
 
-        content_layout.addWidget(self.detail_title)
-        content_layout.addWidget(self.detail_due)
+        layout.addWidget(self.detail_title)
+        layout.addWidget(self.detail_due)
 
-        metadata_group = QGroupBox("Overview")
-        metadata_form = QFormLayout()
+        overview_group = QGroupBox("Overview")
+        overview_form = QFormLayout()
 
         self.detail_phase = QLabel("-")
         self.detail_category = QLabel("-")
@@ -160,70 +124,40 @@ class MainWindow(QMainWindow):
         self.detail_method = QLabel("-")
         self.detail_audience = QLabel("-")
 
-        self.detail_phase.setWordWrap(True)
-        self.detail_category.setWordWrap(True)
-        self.detail_source.setWordWrap(True)
-        self.detail_method.setWordWrap(True)
-        self.detail_audience.setWordWrap(True)
+        overview_form.addRow("Phase:", self.detail_phase)
+        overview_form.addRow("Category:", self.detail_category)
+        overview_form.addRow("Source:", self.detail_source)
+        overview_form.addRow("Method:", self.detail_method)
+        overview_form.addRow("Audience:", self.detail_audience)
 
-        metadata_form.addRow("Phase:", self.detail_phase)
-        metadata_form.addRow("Category:", self.detail_category)
-        metadata_form.addRow("Source:", self.detail_source)
-        metadata_form.addRow("Method:", self.detail_method)
-        metadata_form.addRow("Audience:", self.detail_audience)
+        overview_group.setLayout(overview_form)
+        layout.addWidget(overview_group)
 
-        metadata_group.setLayout(metadata_form)
-        content_layout.addWidget(metadata_group)
-
-        content_layout.addWidget(self.create_section_heading("Content"))
-
-        self.detail_content = QTextEdit()
-        self.detail_content.setReadOnly(True)
-        self.detail_content.setPlaceholderText(
-            "The inject content will appear here."
+        self.detail_content = self.create_text_section(
+            layout,
+            "Content",
+            180,
         )
-        self.detail_content.setMinimumHeight(180)
-
-        content_layout.addWidget(self.detail_content)
-
-        content_layout.addWidget(
-            self.create_section_heading("Expected Action")
+        self.detail_expected_action = self.create_text_section(
+            layout,
+            "Expected Action",
+            110,
+        )
+        self.detail_facilitator_notes = self.create_text_section(
+            layout,
+            "Facilitator Notes",
+            110,
         )
 
-        self.detail_expected_action = QTextEdit()
-        self.detail_expected_action.setReadOnly(True)
-        self.detail_expected_action.setPlaceholderText(
-            "The expected action will appear here."
-        )
-        self.detail_expected_action.setMinimumHeight(110)
-
-        content_layout.addWidget(self.detail_expected_action)
-
-        content_layout.addWidget(
-            self.create_section_heading("Facilitator Notes")
-        )
-
-        self.detail_facilitator_notes = QTextEdit()
-        self.detail_facilitator_notes.setReadOnly(True)
-        self.detail_facilitator_notes.setPlaceholderText(
-            "Facilitator notes will appear here."
-        )
-        self.detail_facilitator_notes.setMinimumHeight(110)
-
-        content_layout.addWidget(self.detail_facilitator_notes)
-
-        content_layout.addWidget(
-            self.create_section_heading("Attachments")
-        )
+        layout.addWidget(self.create_heading("Attachments"))
 
         self.detail_attachments = QLabel("None")
         self.detail_attachments.setWordWrap(True)
         self.detail_attachments.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
-
-        content_layout.addWidget(self.detail_attachments)
-        content_layout.addStretch()
+        layout.addWidget(self.detail_attachments)
+        layout.addStretch()
 
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
@@ -231,41 +165,42 @@ class MainWindow(QMainWindow):
 
         group_layout = QVBoxLayout()
         group_layout.addWidget(scroll_area)
+        group.setLayout(group_layout)
 
-        current_inject_group.setLayout(group_layout)
+        return group
 
-        return current_inject_group
+    def create_text_section(self, layout, heading, minimum_height):
+        layout.addWidget(self.create_heading(heading))
+
+        text_box = QTextEdit()
+        text_box.setReadOnly(True)
+        text_box.setMinimumHeight(minimum_height)
+
+        layout.addWidget(text_box)
+
+        return text_box
 
     @staticmethod
-    def create_section_heading(text):
-        heading = QLabel(text)
+    def create_heading(text):
+        label = QLabel(text)
 
         font = QFont()
         font.setPointSize(11)
         font.setBold(True)
 
-        heading.setFont(font)
-
-        return heading
+        label.setFont(font)
+        return label
 
     def update_project_view(self):
-        self.project_name.setText(self.current_project.name)
-        self.project_author.setText("-")
-        self.project_location.setText(self.current_file or "-")
+        self.project_panel.update_project(
+            name=self.current_project.name,
+            filename=self.current_file,
+        )
 
-        self.inject_list.clear()
+        self.mel_panel.set_injects(self.current_project.injects)
 
-        for inject in self.current_project.injects:
-            item_text = (
-                f"{inject.exercise_time} — {inject.title}"
-                if inject.exercise_time
-                else str(inject)
-            )
-
-            self.inject_list.addItem(item_text)
-
-        if self.inject_list.count() > 0:
-            self.inject_list.setCurrentRow(0)
+        if self.current_project.injects:
+            self.mel_panel.list_widget.setCurrentRow(0)
         else:
             self.clear_inject_details()
 
@@ -276,13 +211,11 @@ class MainWindow(QMainWindow):
     def clear_inject_details(self):
         self.detail_title.setText("No inject selected")
         self.detail_due.setText("Due: -")
-
         self.detail_phase.setText("-")
         self.detail_category.setText("-")
         self.detail_source.setText("-")
         self.detail_method.setText("-")
         self.detail_audience.setText("-")
-
         self.detail_content.clear()
         self.detail_expected_action.clear()
         self.detail_facilitator_notes.clear()
@@ -298,43 +231,32 @@ class MainWindow(QMainWindow):
         self.detail_title.setText(
             inject.title or f"Inject {inject.number}"
         )
-
         self.detail_due.setText(
             f"Due: {inject.exercise_time or '-'}"
         )
-
         self.detail_phase.setText(inject.phase or "-")
         self.detail_category.setText(inject.category or "-")
         self.detail_source.setText(inject.source or "-")
         self.detail_method.setText(inject.method or "-")
         self.detail_audience.setText(inject.audience or "-")
-
-        self.detail_content.setPlainText(
-            inject.inject_text or ""
-        )
-
+        self.detail_content.setPlainText(inject.inject_text or "")
         self.detail_expected_action.setPlainText(
             inject.expected_action or ""
         )
-
         self.detail_facilitator_notes.setPlainText(
             inject.facilitator_notes or ""
         )
 
-        if inject.attachments:
-            attachment_text = "\n".join(
-                f"• {attachment}"
-                for attachment in inject.attachments
-            )
-        else:
-            attachment_text = "None"
-
-        self.detail_attachments.setText(attachment_text)
+        attachments = (
+            "\n".join(f"• {item}" for item in inject.attachments)
+            if inject.attachments
+            else "None"
+        )
+        self.detail_attachments.setText(attachments)
 
     def new_project(self):
         self.current_project = Project()
         self.current_file = None
-
         self.update_project_view()
         self.statusBar().showMessage("New project created")
 
@@ -352,10 +274,8 @@ class MainWindow(QMainWindow):
         try:
             self.current_project = Project.load(filename)
             self.current_file = filename
-
             self.update_project_view()
             self.statusBar().showMessage("Project opened")
-
         except Exception as error:
             QMessageBox.critical(
                 self,
@@ -389,10 +309,8 @@ class MainWindow(QMainWindow):
         try:
             self.current_project.save(filename)
             self.current_file = filename
-
             self.update_project_view()
             self.statusBar().showMessage("Project saved")
-
         except Exception as error:
             QMessageBox.critical(
                 self,
@@ -415,27 +333,16 @@ class MainWindow(QMainWindow):
             parser = WordParser(filename)
             parser.open()
 
-            injects = parser.get_injects()
-
-            self.current_project.injects = injects
-
-            if injects:
-                self.current_project.name = (
-                    self._suggest_project_name(filename)
-                )
-
+            self.current_project.injects = parser.get_injects()
+            self.current_project.name = self._suggest_project_name(filename)
             self.current_file = None
 
             self.update_project_view()
 
-            self.statusBar().showMessage(
-                f"Imported {len(injects)} injects"
-            )
-
             QMessageBox.information(
                 self,
                 "Import Complete",
-                f"Imported {len(injects)} injects.",
+                f"Imported {len(self.current_project.injects)} injects.",
             )
 
         except Exception as error:

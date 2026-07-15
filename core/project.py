@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from core.inject import Inject
+from core.inject import Inject, InjectStatus
 
 
 class Project:
@@ -29,6 +29,7 @@ class Project:
                     "expected_action": inject.expected_action,
                     "facilitator_notes": inject.facilitator_notes,
                     "attachments": inject.attachments,
+                    "status": inject.status.value,
                 }
                 for inject in self.injects
             ],
@@ -68,8 +69,19 @@ class Project:
                 expected_action=item.get("expected_action", ""),
                 facilitator_notes=item.get("facilitator_notes", ""),
                 attachments=item.get("attachments", []),
+                status=cls._parse_status(
+                    item.get("status", InjectStatus.PLANNED.value)
+                ),
             )
             for item in saved_items
         ]
 
         return project
+
+    @staticmethod
+    def _parse_status(value):
+        for status in InjectStatus:
+            if status.value == value:
+                return status
+
+        return InjectStatus.PLANNED
