@@ -134,3 +134,16 @@ Everything else is simply a tool to achieve that.
 **Exercise Director**
 
 **Better prepared today. Stronger tomorrow.**
+## Our Commitment
+
+Exercise Director will always be designed with one question in mind:
+
+"Will this help someone run a better exercise?"
+
+If the answer is yes, we will build it.
+
+If the answer is no, we won't.
+
+Every feature, every screen and every report should help organisations prepare with confidence, deliver professionally and improve continuously.
+
+That is our commitment.
