@@ -15,3 +15,6 @@ class ExerciseObjective:
     supporting_injects: list[int] = field(default_factory=list)
 
     achieved: bool | None = None
+
+    def __str__(self):
+        return self.title

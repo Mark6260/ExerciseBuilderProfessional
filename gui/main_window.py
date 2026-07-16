@@ -1,5 +1,6 @@
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QMainWindow,
@@ -7,15 +8,18 @@ from PySide6.QtWidgets import (
     QStatusBar,
     QTabWidget,
     QToolBar,
+    QVBoxLayout,
     QWidget,
 )
 
 from core.assurance import ExerciseAssurance
 from core.project import Project
 from core.word_parser import WordParser
+from gui.dialogs.objective_dialog import ObjectiveDialog
 from gui.panels.assurance_panel import AssurancePanel
 from gui.panels.inject_details_panel import InjectDetailsPanel
 from gui.panels.master_events_list_panel import MasterEventsListPanel
+from gui.panels.objectives_panel import ObjectivesPanel
 from gui.panels.project_panel import ProjectPanel
 
 
@@ -85,12 +89,17 @@ class MainWindow(QMainWindow):
 
     def create_layout(self):
         self.project_panel = ProjectPanel()
+        self.objectives_panel = ObjectivesPanel()
         self.mel_panel = MasterEventsListPanel()
         self.inject_details_panel = InjectDetailsPanel()
         self.assurance_panel = AssurancePanel()
 
         self.mel_panel.inject_selected.connect(
             self.show_inject_details
+        )
+
+        self.objectives_panel.add_objective_requested.connect(
+            self.add_objective
         )
 
         self.assurance_panel.open_workspace_requested.connect(
@@ -100,9 +109,15 @@ class MainWindow(QMainWindow):
         workspace = QWidget()
         workspace_layout = QHBoxLayout(workspace)
 
-        workspace_layout.addWidget(self.project_panel, 1)
-        workspace_layout.addWidget(self.mel_panel, 2)
-        workspace_layout.addWidget(self.inject_details_panel, 4)
+        left_column = QWidget()
+        left_layout = QVBoxLayout(left_column)
+
+        left_layout.addWidget(self.project_panel, 1)
+        left_layout.addWidget(self.objectives_panel, 2)
+
+        workspace_layout.addWidget(left_column, 2)
+        workspace_layout.addWidget(self.mel_panel, 3)
+        workspace_layout.addWidget(self.inject_details_panel, 6)
 
         self.tabs = QTabWidget()
 
@@ -122,6 +137,10 @@ class MainWindow(QMainWindow):
         self.project_panel.update_project(
             name=self.current_project.name,
             filename=self.current_file,
+        )
+
+        self.objectives_panel.set_objectives(
+            self.current_project.objectives
         )
 
         self.mel_panel.set_injects(
@@ -146,6 +165,24 @@ class MainWindow(QMainWindow):
         results = assurance.check()
 
         self.assurance_panel.show_results(results)
+
+    def add_objective(self):
+        dialog = ObjectiveDialog(self)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        objective = dialog.objective()
+        self.current_project.add_objective(objective)
+
+        self.objectives_panel.set_objectives(
+            self.current_project.objectives
+        )
+        self.update_assurance()
+
+        self.statusBar().showMessage(
+            f"Objective added: {objective.title}"
+        )
 
     def clear_inject_details(self):
         panel = self.inject_details_panel
@@ -208,7 +245,6 @@ class MainWindow(QMainWindow):
         self.current_file = None
 
         self.update_project_view()
-
         self.statusBar().showMessage("New project created")
 
     def open_project(self):

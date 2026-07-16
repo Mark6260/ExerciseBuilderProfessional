@@ -10,15 +10,29 @@ class Project:
         self.name = name
 
         self.injects: list[Inject] = []
-
         self.objectives: list[ExerciseObjective] = []
 
     def add_inject(self, inject: Inject):
         self.injects.append(inject)
 
+    def add_objective(self, objective: ExerciseObjective):
+        self.objectives.append(objective)
+
     def save(self, filename):
         project_data = {
             "name": self.name,
+
+            "objectives": [
+                {
+                    "title": objective.title,
+                    "description": objective.description,
+                    "success_criteria": objective.success_criteria,
+                    "supporting_injects": objective.supporting_injects,
+                    "achieved": objective.achieved,
+                }
+                for objective in self.objectives
+            ],
+
             "injects": [
                 {
                     "number": inject.number,
@@ -52,9 +66,30 @@ class Project:
         with open(filename, "r", encoding="utf-8") as file:
             project_data = json.load(file)
 
-        project = cls(project_data.get("name", "Untitled Project"))
+        project = cls(
+            project_data.get("name", "Untitled Project")
+        )
 
-        saved_items = project_data.get(
+        saved_objectives = project_data.get("objectives", [])
+
+        project.objectives = [
+            ExerciseObjective(
+                title=item.get("title", ""),
+                description=item.get("description", ""),
+                success_criteria=item.get(
+                    "success_criteria",
+                    [],
+                ),
+                supporting_injects=item.get(
+                    "supporting_injects",
+                    [],
+                ),
+                achieved=item.get("achieved"),
+            )
+            for item in saved_objectives
+        ]
+
+        saved_injects = project_data.get(
             "injects",
             project_data.get("exercises", []),
         )
@@ -71,13 +106,19 @@ class Project:
                 category=item.get("category", ""),
                 inject_text=item.get("inject_text", ""),
                 expected_action=item.get("expected_action", ""),
-                facilitator_notes=item.get("facilitator_notes", ""),
+                facilitator_notes=item.get(
+                    "facilitator_notes",
+                    "",
+                ),
                 attachments=item.get("attachments", []),
                 status=cls._parse_status(
-                    item.get("status", InjectStatus.PLANNED.value)
+                    item.get(
+                        "status",
+                        InjectStatus.PLANNED.value,
+                    )
                 ),
             )
-            for item in saved_items
+            for item in saved_injects
         ]
 
         return project
