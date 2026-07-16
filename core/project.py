@@ -2,12 +2,16 @@ import json
 from pathlib import Path
 
 from core.inject import Inject, InjectStatus
+from core.objective import ExerciseObjective
 
 
 class Project:
     def __init__(self, name="Untitled Project"):
         self.name = name
+
         self.injects: list[Inject] = []
+
+        self.objectives: list[ExerciseObjective] = []
 
     def add_inject(self, inject: Inject):
         self.injects.append(inject)
