@@ -167,7 +167,10 @@ class MainWindow(QMainWindow):
         self.assurance_panel.show_results(results)
 
     def add_objective(self):
-        dialog = ObjectiveDialog(self)
+        dialog = ObjectiveDialog(
+            self.current_project.injects,
+            self,
+        )
 
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
