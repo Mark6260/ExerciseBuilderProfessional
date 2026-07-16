@@ -31,11 +31,13 @@ class ExerciseAssurance:
         findings = []
 
         findings.extend(self.check_project())
+        findings.extend(self.check_objectives())
         findings.extend(self.check_injects())
 
         return {
             "project_name": self.project.name,
             "inject_count": len(self.project.injects),
+            "objective_count": len(self.project.objectives),
             "finding_count": len(findings),
             "findings": findings,
         }
@@ -68,6 +70,27 @@ class ExerciseAssurance:
                     recommendation=(
                         "Import or create the Master Events List before "
                         "delivery."
+                    ),
+                )
+            )
+
+        return findings
+
+    def check_objectives(self):
+        findings = []
+
+        if not self.project.objectives:
+            findings.append(
+                AssuranceFinding(
+                    severity="Advisory",
+                    category="Exercise Design",
+                    item="Exercise objectives",
+                    message=(
+                        "No exercise objectives have been defined."
+                    ),
+                    recommendation=(
+                        "Define one or more measurable objectives that "
+                        "describe what the exercise is intended to achieve."
                     ),
                 )
             )
