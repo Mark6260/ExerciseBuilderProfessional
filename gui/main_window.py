@@ -5,12 +5,15 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QStatusBar,
+    QTabWidget,
     QToolBar,
     QWidget,
 )
 
+from core.assurance import ExerciseAssurance
 from core.project import Project
 from core.word_parser import WordParser
+from gui.panels.assurance_panel import AssurancePanel
 from gui.panels.inject_details_panel import InjectDetailsPanel
 from gui.panels.master_events_list_panel import MasterEventsListPanel
 from gui.panels.project_panel import ProjectPanel
@@ -84,20 +87,36 @@ class MainWindow(QMainWindow):
         self.project_panel = ProjectPanel()
         self.mel_panel = MasterEventsListPanel()
         self.inject_details_panel = InjectDetailsPanel()
+        self.assurance_panel = AssurancePanel()
 
         self.mel_panel.inject_selected.connect(
             self.show_inject_details
         )
 
-        layout = QHBoxLayout()
-        layout.addWidget(self.project_panel, 1)
-        layout.addWidget(self.mel_panel, 2)
-        layout.addWidget(self.inject_details_panel, 4)
+        self.assurance_panel.open_workspace_requested.connect(
+            lambda: self.tabs.setCurrentIndex(1)
+        )
 
-        container = QWidget()
-        container.setLayout(layout)
+        workspace = QWidget()
+        workspace_layout = QHBoxLayout(workspace)
 
-        self.setCentralWidget(container)
+        workspace_layout.addWidget(self.project_panel, 1)
+        workspace_layout.addWidget(self.mel_panel, 2)
+        workspace_layout.addWidget(self.inject_details_panel, 4)
+
+        self.tabs = QTabWidget()
+
+        self.tabs.addTab(
+            self.assurance_panel,
+            "Exercise Assurance",
+        )
+
+        self.tabs.addTab(
+            workspace,
+            "Exercise Workspace",
+        )
+
+        self.setCentralWidget(self.tabs)
 
     def update_project_view(self):
         self.project_panel.update_project(
@@ -114,9 +133,19 @@ class MainWindow(QMainWindow):
         else:
             self.clear_inject_details()
 
+        self.update_assurance()
+
         self.setWindowTitle(
             f"Exercise Director — {self.current_project.name}"
         )
+
+        self.tabs.setCurrentIndex(0)
+
+    def update_assurance(self):
+        assurance = ExerciseAssurance(self.current_project)
+        results = assurance.check()
+
+        self.assurance_panel.show_results(results)
 
     def clear_inject_details(self):
         panel = self.inject_details_panel
@@ -179,6 +208,7 @@ class MainWindow(QMainWindow):
         self.current_file = None
 
         self.update_project_view()
+
         self.statusBar().showMessage("New project created")
 
     def open_project(self):
