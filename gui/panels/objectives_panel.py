@@ -3,6 +3,7 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QLabel,
     QListWidget,
+    QListWidgetItem,
     QPushButton,
     QVBoxLayout,
 )
@@ -41,6 +42,10 @@ class ObjectivesPanel(QGroupBox):
         self.setLayout(layout)
 
     def set_objectives(self, objectives):
+        """
+        Display all exercise objectives and the injects that assess them.
+        """
+
         self.objectives_list.clear()
 
         if not objectives:
@@ -56,9 +61,30 @@ class ObjectivesPanel(QGroupBox):
         for number, objective in enumerate(objectives, start=1):
             title = objective.title.strip() or "Untitled objective"
 
-            self.objectives_list.addItem(
-                f"{number}. {title}"
+            supporting_injects = getattr(
+                objective,
+                "supporting_injects",
+                [],
             )
+
+            if supporting_injects:
+                inject_lines = "\n".join(
+                    f"    • Inject {inject_number}"
+                    for inject_number in supporting_injects
+                )
+            else:
+                inject_lines = (
+                    "    No injects currently assess this objective."
+                )
+
+            item_text = (
+                f"{number}. {title}\n"
+                f"Injects that assess this objective:\n"
+                f"{inject_lines}"
+            )
+
+            item = QListWidgetItem(item_text)
+            self.objectives_list.addItem(item)
 
     def clear(self):
         self.summary.setText(
