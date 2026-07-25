@@ -168,9 +168,10 @@ class MainWindow(QMainWindow):
 
     def add_objective(self):
         dialog = ObjectiveDialog(
-            self.current_project.injects,
-            self,
-        )
+    self.current_project.injects,
+    self.current_project.doctrine_references,
+    self,
+)
 
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return

@@ -108,4 +108,8 @@ Professional judgement remains at the centre of every exercise.
 
 ---
 
+Exercise Director is built on the belief that preparedness is not an accident. It is the result of deliberate design, sound doctrine, thoughtful instruction, honest assessment and continuous improvement. Software cannot create good instructors, but it can strengthen and support them in preparing people and teams for the realities of operations.
+
+---
+
 **Better prepared today. Stronger tomorrow.**

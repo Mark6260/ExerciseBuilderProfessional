@@ -13,6 +13,8 @@ class ExerciseObjective:
     success_criteria: list[str] = field(default_factory=list)
 
     supporting_injects: list[int] = field(default_factory=list)
+    
+    supporting_doctrine: list[str] = field(default_factory=list)
 
     achieved: bool | None = None
 
