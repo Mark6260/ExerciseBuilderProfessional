@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from core.doctrine import DoctrineReference
 from core.inject import Inject, InjectStatus
 from core.objective import ExerciseObjective
 
@@ -11,12 +12,19 @@ class Project:
 
         self.injects: list[Inject] = []
         self.objectives: list[ExerciseObjective] = []
+        self.doctrine_references: list[DoctrineReference] = []
 
     def add_inject(self, inject: Inject):
         self.injects.append(inject)
 
     def add_objective(self, objective: ExerciseObjective):
         self.objectives.append(objective)
+
+    def add_doctrine_reference(
+        self,
+        doctrine_reference: DoctrineReference,
+    ):
+        self.doctrine_references.append(doctrine_reference)
 
     def save(self, filename):
         project_data = {
