@@ -58,7 +58,7 @@ Assurance
 
 Operational Readiness
 
-If that thread cannot be demonstrated, the exercise should be questioned.
+If that thread cannot be demonstrated, the exercise design should be questioned.
 
 ---
 
@@ -93,6 +93,18 @@ One brick.
 One test.
 
 One commit.
+
+---
+
+## The Role of Exercise Director
+
+Exercise Director is designed to augment professional judgement.
+
+It does not replace the experience, expertise or responsibility of instructors and Exercise Directors.
+
+Instead, it strengthens and supports decision-making by providing clear traceability from doctrine, through learning objectives and exercise design, to evidence-based assurance.
+
+Professional judgement remains at the centre of every exercise.
 
 ---
 

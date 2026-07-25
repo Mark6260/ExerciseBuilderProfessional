@@ -30,6 +30,18 @@ class Project:
         project_data = {
             "name": self.name,
 
+            "doctrine_references": [
+                {
+                    "title": doctrine.title,
+                    "reference": doctrine.reference,
+                    "version": doctrine.version,
+                    "organisation": doctrine.organisation,
+                    "description": doctrine.description,
+                    "location": doctrine.location,
+                }
+                for doctrine in self.doctrine_references
+            ],
+
             "objectives": [
                 {
                     "title": objective.title,
@@ -77,6 +89,23 @@ class Project:
         project = cls(
             project_data.get("name", "Untitled Project")
         )
+
+        saved_doctrine_references = project_data.get(
+            "doctrine_references",
+            [],
+        )
+
+        project.doctrine_references = [
+            DoctrineReference(
+                title=item.get("title", ""),
+                reference=item.get("reference", ""),
+                version=item.get("version", ""),
+                organisation=item.get("organisation", ""),
+                description=item.get("description", ""),
+                location=item.get("location", ""),
+            )
+            for item in saved_doctrine_references
+        ]
 
         saved_objectives = project_data.get("objectives", [])
 
