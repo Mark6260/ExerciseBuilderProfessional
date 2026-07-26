@@ -15,10 +15,15 @@ from PySide6.QtWidgets import (
 from core.assurance import ExerciseAssurance
 from core.project import Project
 from core.word_parser import WordParser
+from gui.dialogs.exercise_definition_dialog import (
+    ExerciseDefinitionDialog,
+)
 from gui.dialogs.objective_dialog import ObjectiveDialog
 from gui.panels.assurance_panel import AssurancePanel
 from gui.panels.inject_details_panel import InjectDetailsPanel
-from gui.panels.master_events_list_panel import MasterEventsListPanel
+from gui.panels.master_events_list_panel import (
+    MasterEventsListPanel,
+)
 from gui.panels.objectives_panel import ObjectivesPanel
 from gui.panels.project_panel import ProjectPanel
 
@@ -69,7 +74,9 @@ class MainWindow(QMainWindow):
         self.new_action.triggered.connect(self.new_project)
         self.open_action.triggered.connect(self.open_project)
         self.save_action.triggered.connect(self.save_project)
-        self.save_as_action.triggered.connect(self.save_project_as)
+        self.save_as_action.triggered.connect(
+            self.save_project_as
+        )
         self.exit_action.triggered.connect(self.close)
         self.import_word_action.triggered.connect(
             self.import_word_document
@@ -117,7 +124,10 @@ class MainWindow(QMainWindow):
 
         workspace_layout.addWidget(left_column, 2)
         workspace_layout.addWidget(self.mel_panel, 3)
-        workspace_layout.addWidget(self.inject_details_panel, 6)
+        workspace_layout.addWidget(
+            self.inject_details_panel,
+            6,
+        )
 
         self.tabs = QTabWidget()
 
@@ -161,17 +171,19 @@ class MainWindow(QMainWindow):
         self.tabs.setCurrentIndex(0)
 
     def update_assurance(self):
-        assurance = ExerciseAssurance(self.current_project)
+        assurance = ExerciseAssurance(
+            self.current_project
+        )
         results = assurance.check()
 
         self.assurance_panel.show_results(results)
 
     def add_objective(self):
         dialog = ObjectiveDialog(
-    self.current_project.injects,
-    self.current_project.doctrine_references,
-    self,
-)
+            self.current_project.injects,
+            self.current_project.doctrine_references,
+            self,
+        )
 
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
@@ -182,6 +194,7 @@ class MainWindow(QMainWindow):
         self.objectives_panel.set_objectives(
             self.current_project.objectives
         )
+
         self.update_assurance()
 
         self.statusBar().showMessage(
@@ -206,7 +219,10 @@ class MainWindow(QMainWindow):
         panel.attachments.setText("None")
 
     def show_inject_details(self, row):
-        if row < 0 or row >= len(self.current_project.injects):
+        if (
+            row < 0
+            or row >= len(self.current_project.injects)
+        ):
             self.clear_inject_details()
             return
 
@@ -216,6 +232,7 @@ class MainWindow(QMainWindow):
         panel.title.setText(
             inject.title or f"Inject {inject.number}"
         )
+
         panel.due.setText(
             f"Due: {inject.exercise_time or '-'}"
         )
@@ -226,10 +243,14 @@ class MainWindow(QMainWindow):
         panel.method.setText(inject.method or "-")
         panel.audience.setText(inject.audience or "-")
 
-        panel.content.setPlainText(inject.inject_text or "")
+        panel.content.setPlainText(
+            inject.inject_text or ""
+        )
+
         panel.expected.setPlainText(
             inject.expected_action or ""
         )
+
         panel.notes.setPlainText(
             inject.facilitator_notes or ""
         )
@@ -245,11 +266,22 @@ class MainWindow(QMainWindow):
         panel.attachments.setText(attachment_text)
 
     def new_project(self):
+        dialog = ExerciseDefinitionDialog(self)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            self.statusBar().showMessage(
+                "New exercise creation cancelled"
+            )
+            return
+
         self.current_project = Project()
         self.current_file = None
 
         self.update_project_view()
-        self.statusBar().showMessage("New project created")
+
+        self.statusBar().showMessage(
+            "New exercise created"
+        )
 
     def open_project(self):
         filename, _ = QFileDialog.getOpenFileName(
@@ -267,7 +299,9 @@ class MainWindow(QMainWindow):
             self.current_file = filename
 
             self.update_project_view()
-            self.statusBar().showMessage("Project opened")
+            self.statusBar().showMessage(
+                "Project opened"
+            )
 
         except Exception as error:
             QMessageBox.critical(
@@ -304,7 +338,9 @@ class MainWindow(QMainWindow):
             self.current_file = filename
 
             self.update_project_view()
-            self.statusBar().showMessage("Project saved")
+            self.statusBar().showMessage(
+                "Project saved"
+            )
 
         except Exception as error:
             QMessageBox.critical(
@@ -328,22 +364,30 @@ class MainWindow(QMainWindow):
             parser = WordParser(filename)
             parser.open()
 
-            self.current_project.injects = parser.get_injects()
-            self.current_project.name = self._suggest_project_name(
-                filename
+            self.current_project.injects = (
+                parser.get_injects()
             )
+
+            self.current_project.name = (
+                self._suggest_project_name(filename)
+            )
+
             self.current_file = None
 
             self.update_project_view()
 
+            inject_count = len(
+                self.current_project.injects
+            )
+
             self.statusBar().showMessage(
-                f"Imported {len(self.current_project.injects)} injects"
+                f"Imported {inject_count} injects"
             )
 
             QMessageBox.information(
                 self,
                 "Import Complete",
-                f"Imported {len(self.current_project.injects)} injects.",
+                f"Imported {inject_count} injects.",
             )
 
         except Exception as error:
