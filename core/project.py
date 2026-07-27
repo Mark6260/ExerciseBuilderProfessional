@@ -4,15 +4,21 @@ from pathlib import Path
 from core.doctrine import DoctrineReference
 from core.inject import Inject, InjectStatus
 from core.objective import ExerciseObjective
+from core.readiness import OperationalRequirement
+from core.apprentice import ApprenticeNotebook
 
 
 class Project:
     def __init__(self, name="Untitled Project"):
         self.name = name
+        
+        self.operational_requirement = OperationalRequirement()
+        self.apprentice_notebook = ApprenticeNotebook()
 
         self.injects: list[Inject] = []
         self.objectives: list[ExerciseObjective] = []
         self.doctrine_references: list[DoctrineReference] = []
+   
 
     def add_inject(self, inject: Inject):
         self.injects.append(inject)

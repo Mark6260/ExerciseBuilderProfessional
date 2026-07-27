@@ -18,6 +18,9 @@ from core.word_parser import WordParser
 from gui.dialogs.exercise_definition_dialog import (
     ExerciseDefinitionDialog,
 )
+from gui.dialogs.apprentice_dialog import (
+    ApprenticeDialog,
+)
 from gui.dialogs.objective_dialog import ObjectiveDialog
 from gui.panels.assurance_panel import AssurancePanel
 from gui.panels.inject_details_panel import InjectDetailsPanel
@@ -46,6 +49,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Ready")
 
         self.update_project_view()
+        self.show_apprentice()
 
     def create_menu(self):
         file_menu = self.menuBar().addMenu("File")
@@ -122,11 +126,11 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(self.project_panel, 1)
         left_layout.addWidget(self.objectives_panel, 2)
 
-        workspace_layout.addWidget(left_column, 2)
-        workspace_layout.addWidget(self.mel_panel, 3)
+        workspace_layout.addWidget(left_column, 4)
+        workspace_layout.addWidget(self.mel_panel, 4)
         workspace_layout.addWidget(
             self.inject_details_panel,
-            6,
+            7,
         )
 
         self.tabs = QTabWidget()
@@ -144,31 +148,20 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.tabs)
 
     def update_project_view(self):
-        self.project_panel.update_project(
-            name=self.current_project.name,
-            filename=self.current_file,
+        requirement = (
+        self.current_project.operational_requirement
+    )
+    def show_apprentice(self):
+        dialog = ApprenticeDialog(self)
+        
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            self.statusBar().showMessage(
+            "The Apprentice is standing by"
         )
+        return
 
-        self.objectives_panel.set_objectives(
-            self.current_project.objectives
-        )
+        self.new_project()
 
-        self.mel_panel.set_injects(
-            self.current_project.injects
-        )
-
-        if self.current_project.injects:
-            self.mel_panel.list_widget.setCurrentRow(0)
-        else:
-            self.clear_inject_details()
-
-        self.update_assurance()
-
-        self.setWindowTitle(
-            f"Exercise Director — {self.current_project.name}"
-        )
-
-        self.tabs.setCurrentIndex(0)
 
     def update_assurance(self):
         assurance = ExerciseAssurance(
@@ -263,24 +256,73 @@ class MainWindow(QMainWindow):
         else:
             attachment_text = "None"
 
-        panel.attachments.setText(attachment_text)
+            panel.attachments.setText(attachment_text)
 
     def new_project(self):
+        apprentice = ApprenticeDialog(self)
+
+        if apprentice.exec() != QDialog.DialogCode.Accepted:
+            self.statusBar().showMessage(
+                "The Apprentice is standing by"
+            )
+            return
+
         dialog = ExerciseDefinitionDialog(self)
 
         if dialog.exec() != QDialog.DialogCode.Accepted:
             self.statusBar().showMessage(
-                "New exercise creation cancelled"
+                "Operational readiness analysis cancelled"
             )
             return
 
-        self.current_project = Project()
+        project = Project()
+
+        requirement = project.operational_requirement
+        readiness = requirement.readiness
+
+        readiness.required_state = (
+            dialog.target_readiness()
+        )
+
+        requirement.operational_driver = (
+            dialog.operational_requirement()
+        )
+
+        readiness.current_state = (
+            dialog.current_readiness()
+        )
+
+        readiness.required_standard = (
+            dialog.required_standard()
+        )
+
+        readiness.readiness_gap = (
+            dialog.readiness_gap()
+        )
+
+        requirement.description = (
+            dialog.training_audience()
+        )
+
+        requirement.success_criteria = (
+            dialog.learning_opportunities()
+        )
+
+        self.current_project = project
         self.current_file = None
 
         self.update_project_view()
 
         self.statusBar().showMessage(
-            "New exercise created"
+            "New operational readiness case created"
+        )
+
+    def open_project(self):
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open Project",
+            "",
+            "Exercise Director Project (*.json)",
         )
 
     def open_project(self):
