@@ -6,6 +6,7 @@ from core.inject import Inject, InjectStatus
 from core.objective import ExerciseObjective
 from core.readiness import OperationalRequirement
 from core.readiness.readiness import OperationalReadiness
+from core.readiness.readiness_gap import ReadinessGap
 from core.apprentice import ApprenticeNotebook
 
 
@@ -33,6 +34,8 @@ class Project:
         self.doctrine_references.append(doctrine_reference)
 
     def save(self, filename):
+        readiness_gap = self.operational_requirement.readiness.readiness_gap
+
         project_data = {
             "name": self.name,
 
@@ -60,9 +63,18 @@ class Project:
                     "required_standard": (
                         self.operational_requirement.readiness.required_standard
                     ),
-                    "readiness_gap": (
-                        self.operational_requirement.readiness.readiness_gap
-                    ),
+
+                    "readiness_gap": {
+                        "required_standard": readiness_gap.required_standard,
+                        "current_state": readiness_gap.current_state,
+                        "shortfall": readiness_gap.shortfall,
+                        "consequence": readiness_gap.consequence,
+                        "preparation_requirement": (
+                            readiness_gap.preparation_requirement
+                        ),
+                        "rationale": readiness_gap.rationale,
+                    },
+
                     "rationale": (
                         self.operational_requirement.readiness.rationale
                     ),
@@ -139,13 +151,58 @@ class Project:
             {},
         )
 
+        saved_gap = saved_readiness.get(
+            "readiness_gap",
+            {},
+        )
+
+        # Backwards compatibility:
+        # Older project files stored readiness_gap as a simple string.
+        if isinstance(saved_gap, str):
+            readiness_gap = ReadinessGap(
+                shortfall=saved_gap
+            )
+        else:
+            readiness_gap = ReadinessGap(
+                required_standard=saved_gap.get(
+                    "required_standard",
+                    "",
+                ),
+                current_state=saved_gap.get(
+                    "current_state",
+                    "",
+                ),
+                shortfall=saved_gap.get(
+                    "shortfall",
+                    "",
+                ),
+                consequence=saved_gap.get(
+                    "consequence",
+                    "",
+                ),
+                preparation_requirement=saved_gap.get(
+                    "preparation_requirement",
+                    "",
+                ),
+                rationale=saved_gap.get(
+                    "rationale",
+                    "",
+                ),
+            )
+
         project.operational_requirement = OperationalRequirement(
-            title=saved_operational_requirement.get("title", ""),
+            title=saved_operational_requirement.get(
+                "title",
+                "",
+            ),
             description=saved_operational_requirement.get(
                 "description",
                 "",
             ),
-            sponsor=saved_operational_requirement.get("sponsor", ""),
+            sponsor=saved_operational_requirement.get(
+                "sponsor",
+                "",
+            ),
             operational_driver=saved_operational_requirement.get(
                 "operational_driver",
                 "",
@@ -170,10 +227,7 @@ class Project:
                     "required_standard",
                     "",
                 ),
-                readiness_gap=saved_readiness.get(
-                    "readiness_gap",
-                    "",
-                ),
+                readiness_gap=readiness_gap,
                 rationale=saved_readiness.get(
                     "rationale",
                     "",

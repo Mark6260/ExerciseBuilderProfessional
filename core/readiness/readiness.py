@@ -1,4 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from .readiness_gap import ReadinessGap
 
 
 @dataclass
@@ -14,6 +16,8 @@ class OperationalReadiness:
 
     required_standard: str = ""
 
-    readiness_gap: str = ""
+    readiness_gap: ReadinessGap = field(
+        default_factory=ReadinessGap
+    )
 
     rationale: str = ""
