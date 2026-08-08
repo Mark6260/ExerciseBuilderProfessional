@@ -8,6 +8,7 @@ from core.readiness import OperationalRequirement
 from core.readiness.readiness import OperationalReadiness
 from core.readiness.readiness_gap import ReadinessGap
 from core.apprentice import ApprenticeNotebook
+from core.evidence import EvidenceRecord, EvidenceType
 
 
 class Project:
@@ -20,6 +21,7 @@ class Project:
         self.injects: list[Inject] = []
         self.objectives: list[ExerciseObjective] = []
         self.doctrine_references: list[DoctrineReference] = []
+        self.evidence_records: list[EvidenceRecord] = []
 
     def add_inject(self, inject: Inject):
         self.injects.append(inject)
@@ -30,8 +32,10 @@ class Project:
     def add_doctrine_reference(
         self,
         doctrine_reference: DoctrineReference,
-    ):
+        ):
         self.doctrine_references.append(doctrine_reference)
+    def add_evidence(self, evidence: EvidenceRecord):
+        self.evidence_records.append(evidence)
 
     def save(self, filename):
         readiness_gap = self.operational_requirement.readiness.readiness_gap
@@ -102,6 +106,22 @@ class Project:
                     "achieved": objective.achieved,
                 }
                 for objective in self.objectives
+            ],
+
+            "evidence_records": [
+                {
+                    "title": evidence.title,
+                    "evidence_type": evidence.evidence_type.value,
+                    "description": evidence.description,
+                    "source": evidence.source,
+                    "related_standard": evidence.related_standard,
+                    "related_objective": evidence.related_objective,
+                    "related_inject": evidence.related_inject,
+                    "recorded_by": evidence.recorded_by,
+                    "recorded_at": evidence.recorded_at,
+                    "reference": evidence.reference,
+                }
+                for evidence in self.evidence_records
             ],
 
             "injects": [
@@ -274,6 +294,49 @@ class Project:
             for item in saved_objectives
         ]
 
+        saved_evidence_records = project_data.get(
+            "evidence_records",
+            [],
+        )
+
+        project.evidence_records = [
+            EvidenceRecord(
+                title=item.get("title", ""),
+                evidence_type=cls._parse_evidence_type(
+                    item.get(
+                        "evidence_type",
+                        EvidenceType.OBSERVATION.value,
+                    )
+                ),
+                description=item.get("description", ""),
+                source=item.get("source", ""),
+                related_standard=item.get(
+                    "related_standard",
+                    "",
+                ),
+                related_objective=item.get(
+                    "related_objective",
+                    "",
+                ),
+                related_inject=item.get(
+                    "related_inject"
+                ),
+                recorded_by=item.get(
+                    "recorded_by",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+                reference=item.get(
+                    "reference",
+                    "",
+                ),
+            )
+            for item in saved_evidence_records
+        ]
+
         saved_injects = project_data.get(
             "injects",
             project_data.get("exercises", []),
@@ -318,7 +381,60 @@ class Project:
             for item in saved_injects
         ]
 
+
+        saved_evidence_records = project_data.get(
+            "evidence_records",
+            [],
+        )
+
+        project.evidence_records = [
+            EvidenceRecord(
+                title=item.get("title", ""),
+                evidence_type=cls._parse_evidence_type(
+                    item.get(
+                        "evidence_type",
+                        EvidenceType.OBSERVATION.value,
+                    )
+                ),
+                description=item.get("description", ""),
+                source=item.get("source", ""),
+                related_standard=item.get(
+                    "related_standard",
+                    "",
+                ),
+                related_objective=item.get(
+                    "related_objective",
+                    "",
+                ),
+                related_inject=item.get(
+                    "related_inject"
+                ),
+                recorded_by=item.get(
+                    "recorded_by",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+                reference=item.get(
+                    "reference",
+                    "",
+                ),
+            )
+            for item in saved_evidence_records
+        ]
+
         return project
+
+    @staticmethod
+    def _parse_evidence_type(value):
+        for evidence_type in EvidenceType:
+            if evidence_type.value == value:
+                return evidence_type
+
+        return EvidenceType.OTHER
+
 
     @staticmethod
     def _parse_status(value):
