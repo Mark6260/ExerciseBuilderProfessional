@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from uuid import uuid4
 
 
 class AssessmentOutcome(Enum):
@@ -23,11 +24,15 @@ class AssessmentRecord:
     inject_number: int
     objective_title: str
 
+    assessment_id: str = field(
+        default_factory=lambda: str(uuid4())
+    )
+
     outcome: AssessmentOutcome = AssessmentOutcome.NOT_ASSESSED
 
     evidence_ids: list[str] = field(
-    default_factory=list
-)
+        default_factory=list
+    )
 
     comments: str = ""
 

@@ -11,6 +11,11 @@ from core.apprentice import ApprenticeNotebook
 from core.evidence import EvidenceRecord, EvidenceType
 from uuid import uuid4
 from core.assessment import AssessmentRecord, AssessmentOutcome
+from core.readiness.readiness_decision import (
+    AssessmentExceptionReason,
+    ReadinessDecision,
+    ReadinessDecisionOutcome,
+)
 
 
 class Project:
@@ -25,6 +30,7 @@ class Project:
         self.doctrine_references: list[DoctrineReference] = []
         self.evidence_records: list[EvidenceRecord] = []
         self.assessment_records: list[AssessmentRecord] = []
+        self.readiness_decisions: list[ReadinessDecision] = []
 
     def add_inject(self, inject: Inject):
         self.injects.append(inject)
@@ -41,6 +47,11 @@ class Project:
         self.evidence_records.append(evidence)
     def add_assessment(self, assessment: AssessmentRecord):
         self.assessment_records.append(assessment)
+    def add_readiness_decision(
+        self,
+        decision: ReadinessDecision,
+    ):
+        self.readiness_decisions.append(decision)
 
     def save(self, filename):
         readiness_gap = self.operational_requirement.readiness.readiness_gap
@@ -132,6 +143,7 @@ class Project:
 
                     "assessment_records": [
                 {
+                    "assessment_id": assessment.assessment_id,
                     "inject_number": assessment.inject_number,
                     "objective_title": assessment.objective_title,
                     "outcome": assessment.outcome.value,
@@ -141,6 +153,29 @@ class Project:
                     "recorded_at": assessment.recorded_at,
                 }
                 for assessment in self.assessment_records
+            ],
+
+            "readiness_decisions": [
+                {
+                    "decision_id": decision.decision_id,
+                    "outcome": decision.outcome.value,
+                    "assessment_ids": decision.assessment_ids,
+                    "rationale": decision.rationale,
+                    "limitations": decision.limitations,
+                    "required_action": decision.required_action,
+                    "decision_maker": decision.decision_maker,
+                    "decision_authority": decision.decision_authority,
+                    "recorded_at": decision.recorded_at,
+                    "exception_reason": (
+                        decision.exception_reason.value
+                        if decision.exception_reason
+                        else None
+                    ),
+                    "exception_explanation": (
+                        decision.exception_explanation
+                    ),
+                }
+                for decision in self.readiness_decisions
             ],
 
             "injects": [
@@ -367,6 +402,7 @@ class Project:
 
         project.assessment_records = [
             AssessmentRecord(
+                assessment_id=item.get("assessment_id", ""),
                 inject_number=item.get(
                     "inject_number",
                     0,
@@ -400,6 +436,70 @@ class Project:
             )
             for item in saved_assessment_records
         ]
+
+        for assessment in project.assessment_records:
+            if not assessment.assessment_id:
+                assessment.assessment_id = str(uuid4())
+
+        saved_readiness_decisions = project_data.get(
+            "readiness_decisions",
+            [],
+        )
+
+        project.readiness_decisions = [
+            ReadinessDecision(
+                decision_id=item.get(
+                    "decision_id",
+                    "",
+                ),
+                outcome=cls._parse_readiness_decision_outcome(
+                    item.get(
+                        "outcome",
+                        ReadinessDecisionOutcome.NOT_ASSESSED.value,
+                    )
+                ),
+                assessment_ids=item.get(
+                    "assessment_ids",
+                    [],
+                ),
+                rationale=item.get(
+                    "rationale",
+                    "",
+                ),
+                limitations=item.get(
+                    "limitations",
+                    "",
+                ),
+                required_action=item.get(
+                    "required_action",
+                    "",
+                ),
+                decision_maker=item.get(
+                    "decision_maker",
+                    "",
+                ),
+                decision_authority=item.get(
+                    "decision_authority",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+                exception_reason=cls._parse_assessment_exception_reason(
+                    item.get("exception_reason")
+                ),
+                exception_explanation=item.get(
+                    "exception_explanation",
+                    "",
+                ),
+            )
+            for item in saved_readiness_decisions
+        ]
+
+        for decision in project.readiness_decisions:
+            if not decision.decision_id:
+                decision.decision_id = str(uuid4())
 
         saved_injects = project_data.get(
             "injects",
@@ -459,6 +559,25 @@ class Project:
                 return outcome
 
         return AssessmentOutcome.NOT_ASSESSED
+
+    @staticmethod
+    def _parse_readiness_decision_outcome(value):
+        for outcome in ReadinessDecisionOutcome:
+            if outcome.value == value:
+                return outcome
+
+        return ReadinessDecisionOutcome.NOT_ASSESSED
+
+    @staticmethod
+    def _parse_assessment_exception_reason(value):
+        if not value:
+            return None
+
+        for reason in AssessmentExceptionReason:
+            if reason.value == value:
+                return reason
+
+        return AssessmentExceptionReason.OTHER
 
     @staticmethod
     def _parse_evidence_type(value):
