@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
+from uuid import uuid4
 
 
 class EvidenceType(Enum):
@@ -22,6 +23,10 @@ class EvidenceRecord:
     Evidence records what was observed, measured or produced.
     It does not itself determine readiness.
     """
+
+    evidence_id: str = field(
+        default_factory=lambda: str(uuid4())
+    )
 
     title: str = ""
 

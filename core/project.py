@@ -9,6 +9,8 @@ from core.readiness.readiness import OperationalReadiness
 from core.readiness.readiness_gap import ReadinessGap
 from core.apprentice import ApprenticeNotebook
 from core.evidence import EvidenceRecord, EvidenceType
+from uuid import uuid4
+from core.assessment import AssessmentRecord, AssessmentOutcome
 
 
 class Project:
@@ -22,6 +24,7 @@ class Project:
         self.objectives: list[ExerciseObjective] = []
         self.doctrine_references: list[DoctrineReference] = []
         self.evidence_records: list[EvidenceRecord] = []
+        self.assessment_records: list[AssessmentRecord] = []
 
     def add_inject(self, inject: Inject):
         self.injects.append(inject)
@@ -36,6 +39,8 @@ class Project:
         self.doctrine_references.append(doctrine_reference)
     def add_evidence(self, evidence: EvidenceRecord):
         self.evidence_records.append(evidence)
+    def add_assessment(self, assessment: AssessmentRecord):
+        self.assessment_records.append(assessment)
 
     def save(self, filename):
         readiness_gap = self.operational_requirement.readiness.readiness_gap
@@ -110,6 +115,7 @@ class Project:
 
             "evidence_records": [
                 {
+                    "evidence_id": evidence.evidence_id,
                     "title": evidence.title,
                     "evidence_type": evidence.evidence_type.value,
                     "description": evidence.description,
@@ -122,6 +128,19 @@ class Project:
                     "reference": evidence.reference,
                 }
                 for evidence in self.evidence_records
+            ],
+
+                    "assessment_records": [
+                {
+                    "inject_number": assessment.inject_number,
+                    "objective_title": assessment.objective_title,
+                    "outcome": assessment.outcome.value,
+                    "evidence_ids": assessment.evidence_ids,
+                    "comments": assessment.comments,
+                    "assessor": assessment.assessor,
+                    "recorded_at": assessment.recorded_at,
+                }
+                for assessment in self.assessment_records
             ],
 
             "injects": [
@@ -301,6 +320,7 @@ class Project:
 
         project.evidence_records = [
             EvidenceRecord(
+                evidence_id=item.get("evidence_id", ""),
                 title=item.get("title", ""),
                 evidence_type=cls._parse_evidence_type(
                     item.get(
@@ -335,6 +355,50 @@ class Project:
                 ),
             )
             for item in saved_evidence_records
+        ]
+        for evidence in project.evidence_records:
+            if not evidence.evidence_id:
+                evidence.evidence_id = str(uuid4())
+
+        saved_assessment_records = project_data.get(
+            "assessment_records",
+            [],
+        )
+
+        project.assessment_records = [
+            AssessmentRecord(
+                inject_number=item.get(
+                    "inject_number",
+                    0,
+                ),
+                objective_title=item.get(
+                    "objective_title",
+                    "",
+                ),
+                outcome=cls._parse_assessment_outcome(
+                    item.get(
+                        "outcome",
+                        AssessmentOutcome.NOT_ASSESSED.value,
+                    )
+                ),
+                evidence_ids=item.get(
+                    "evidence_ids",
+                    [],
+                ),
+                comments=item.get(
+                    "comments",
+                    "",
+                ),
+                assessor=item.get(
+                    "assessor",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+            )
+            for item in saved_assessment_records
         ]
 
         saved_injects = project_data.get(
@@ -387,45 +451,14 @@ class Project:
             [],
         )
 
-        project.evidence_records = [
-            EvidenceRecord(
-                title=item.get("title", ""),
-                evidence_type=cls._parse_evidence_type(
-                    item.get(
-                        "evidence_type",
-                        EvidenceType.OBSERVATION.value,
-                    )
-                ),
-                description=item.get("description", ""),
-                source=item.get("source", ""),
-                related_standard=item.get(
-                    "related_standard",
-                    "",
-                ),
-                related_objective=item.get(
-                    "related_objective",
-                    "",
-                ),
-                related_inject=item.get(
-                    "related_inject"
-                ),
-                recorded_by=item.get(
-                    "recorded_by",
-                    "",
-                ),
-                recorded_at=item.get(
-                    "recorded_at",
-                    "",
-                ),
-                reference=item.get(
-                    "reference",
-                    "",
-                ),
-            )
-            for item in saved_evidence_records
-        ]
-
         return project
+    @staticmethod
+    def _parse_assessment_outcome(value):
+        for outcome in AssessmentOutcome:
+            if outcome.value == value:
+                return outcome
+
+        return AssessmentOutcome.NOT_ASSESSED
 
     @staticmethod
     def _parse_evidence_type(value):
