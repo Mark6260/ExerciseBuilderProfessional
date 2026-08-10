@@ -11,10 +11,26 @@ from core.apprentice import ApprenticeNotebook
 from core.evidence import EvidenceRecord, EvidenceType
 from uuid import uuid4
 from core.assessment import AssessmentRecord, AssessmentOutcome
+from core.improvement.finding import Finding, FindingType
+from core.improvement.recommendation import (
+    Recommendation,
+    RecommendationDisposition,
+    RecommendationType,
+)
+from core.improvement.action import (
+    ActionPriority,
+    ActionStatus,
+    ImprovementAction,
+)
+from core.improvement.training_opportunity import (
+    TrainingOpportunity,
+    TrainingOpportunityStatus,
+)
 from core.readiness.readiness_decision import (
     AssessmentExceptionReason,
     ReadinessDecision,
     ReadinessDecisionOutcome,
+
 )
 
 
@@ -31,6 +47,10 @@ class Project:
         self.evidence_records: list[EvidenceRecord] = []
         self.assessment_records: list[AssessmentRecord] = []
         self.readiness_decisions: list[ReadinessDecision] = []
+        self.findings: list[Finding] = []
+        self.recommendations: list[Recommendation] = []
+        self.improvement_actions: list[ImprovementAction] = []
+        self.training_opportunities: list[TrainingOpportunity] = []
 
     def add_inject(self, inject: Inject):
         self.injects.append(inject)
@@ -47,11 +67,33 @@ class Project:
         self.evidence_records.append(evidence)
     def add_assessment(self, assessment: AssessmentRecord):
         self.assessment_records.append(assessment)
+
     def add_readiness_decision(
         self,
         decision: ReadinessDecision,
     ):
         self.readiness_decisions.append(decision)
+
+    def add_finding(self, finding: Finding):
+        self.findings.append(finding)
+
+    def add_recommendation(
+        self,
+        recommendation: Recommendation,
+    ):
+        self.recommendations.append(recommendation)
+
+    def add_improvement_action(
+        self,
+        action: ImprovementAction,
+    ):
+        self.improvement_actions.append(action)
+
+    def add_training_opportunity(
+        self,
+        opportunity: TrainingOpportunity,
+    ):
+        self.training_opportunities.append(opportunity)
 
     def save(self, filename):
         readiness_gap = self.operational_requirement.readiness.readiness_gap
@@ -178,6 +220,113 @@ class Project:
                 for decision in self.readiness_decisions
             ],
 
+            "findings": [
+                {
+                    "finding_id": finding.finding_id,
+                    "title": finding.title,
+                    "finding_type": finding.finding_type.value,
+                    "description": finding.description,
+                    "related_decision_id": (
+                        finding.related_decision_id
+                    ),
+                    "related_assessment_ids": (
+                        finding.related_assessment_ids
+                    ),
+                    "related_evidence_ids": (
+                        finding.related_evidence_ids
+                    ),
+                    "recorded_by": finding.recorded_by,
+                    "recorded_at": finding.recorded_at,
+                }
+                for finding in self.findings
+            ],
+            "recommendations": [
+                {
+                    "recommendation_id": recommendation.recommendation_id,
+                    "title": recommendation.title,
+                    "recommendation_type": (
+                        recommendation.recommendation_type.value
+                    ),
+                    "description": recommendation.description,
+                    "related_finding_ids": (
+                        recommendation.related_finding_ids
+                    ),
+                    "disposition": recommendation.disposition.value,
+                    "disposition_rationale": (
+                        recommendation.disposition_rationale
+                    ),
+                    "disposition_by": recommendation.disposition_by,
+                    "disposition_authority": (
+                        recommendation.disposition_authority
+                    ),
+                    "disposition_at": recommendation.disposition_at,
+                    "recommended_by": recommendation.recommended_by,
+                    "recorded_at": recommendation.recorded_at,
+                }
+                for recommendation in self.recommendations
+            ],
+
+            "improvement_actions": [
+                {
+                    "action_id": action.action_id,
+                    "title": action.title,
+                    "description": action.description,
+                    "related_recommendation_ids": (
+                        action.related_recommendation_ids
+                    ),
+                    "related_finding_ids": (
+                        action.related_finding_ids
+                    ),
+                    "owner": action.owner,
+                    "priority": action.priority.value,
+                    "target_date": action.target_date,
+                    "status": action.status.value,
+                    "completion_notes": action.completion_notes,
+                    "completion_evidence_ids": (
+                        action.completion_evidence_ids
+                    ),
+                    "authorised_by": action.authorised_by,
+                    "authorised_at": action.authorised_at,
+                    "completed_by": action.completed_by,
+                    "completed_at": action.completed_at,
+                }
+                for action in self.improvement_actions
+            ],
+            "training_opportunities": [
+                {
+                    "opportunity_id": opportunity.opportunity_id,
+                    "title": opportunity.title,
+                    "organisation": opportunity.organisation,
+                    "description": opportunity.description,
+                    "start_date": opportunity.start_date,
+                    "end_date": opportunity.end_date,
+                    "location": opportunity.location,
+                    "status": opportunity.status.value,
+                    "related_finding_ids": (
+                        opportunity.related_finding_ids
+                    ),
+                    "related_recommendation_ids": (
+                        opportunity.related_recommendation_ids
+                    ),
+                    "related_action_ids": (
+                        opportunity.related_action_ids
+                    ),
+                    "suitability_rationale": (
+                        opportunity.suitability_rationale
+                    ),
+                    "access_confirmed": opportunity.access_confirmed,
+                    "assessment_arrangements_confirmed": (
+                        opportunity.assessment_arrangements_confirmed
+                    ),
+                    "point_of_contact": opportunity.point_of_contact,
+                    "identified_by": opportunity.identified_by,
+                    "identified_at": opportunity.identified_at,
+                    "validated_by": opportunity.validated_by,
+                    "validated_at": opportunity.validated_at,
+                }
+                for opportunity in self.training_opportunities
+            ],
+
             "injects": [
                 {
                     "number": inject.number,
@@ -263,6 +412,84 @@ class Project:
                     "",
                 ),
             )
+        saved_improvement_actions = project_data.get(
+            "improvement_actions",
+            [],
+        )
+
+        project.improvement_actions = [
+            ImprovementAction(
+                action_id=item.get(
+                    "action_id",
+                    "",
+                ),
+                title=item.get(
+                    "title",
+                    "",
+                ),
+                description=item.get(
+                    "description",
+                    "",
+                ),
+                related_recommendation_ids=item.get(
+                    "related_recommendation_ids",
+                    [],
+                ),
+                related_finding_ids=item.get(
+                    "related_finding_ids",
+                    [],
+                ),
+                owner=item.get(
+                    "owner",
+                    "",
+                ),
+                priority=cls._parse_action_priority(
+                    item.get(
+                        "priority",
+                        ActionPriority.MEDIUM.value,
+                    )
+                ),
+                target_date=item.get(
+                    "target_date",
+                    "",
+                ),
+                status=cls._parse_action_status(
+                    item.get(
+                        "status",
+                        ActionStatus.NOT_STARTED.value,
+                    )
+                ),
+                completion_notes=item.get(
+                    "completion_notes",
+                    "",
+                ),
+                completion_evidence_ids=item.get(
+                    "completion_evidence_ids",
+                    [],
+                ),
+                authorised_by=item.get(
+                    "authorised_by",
+                    "",
+                ),
+                authorised_at=item.get(
+                    "authorised_at",
+                    "",
+                ),
+                completed_by=item.get(
+                    "completed_by",
+                    "",
+                ),
+                completed_at=item.get(
+                    "completed_at",
+                    "",
+                ),
+            )
+            for item in saved_improvement_actions
+        ]
+
+        for action in project.improvement_actions:
+            if not action.action_id:
+                action.action_id = str(uuid4())
 
         project.operational_requirement = OperationalRequirement(
             title=saved_operational_requirement.get(
@@ -313,7 +540,98 @@ class Project:
             "doctrine_references",
             [],
         )
+        saved_training_opportunities = project_data.get(
+            "training_opportunities",
+            [],
+        )
 
+        project.training_opportunities = [
+            TrainingOpportunity(
+                opportunity_id=item.get(
+                    "opportunity_id",
+                    "",
+                ),
+                title=item.get(
+                    "title",
+                    "",
+                ),
+                organisation=item.get(
+                    "organisation",
+                    "",
+                ),
+                description=item.get(
+                    "description",
+                    "",
+                ),
+                start_date=item.get(
+                    "start_date",
+                    "",
+                ),
+                end_date=item.get(
+                    "end_date",
+                    "",
+                ),
+                location=item.get(
+                    "location",
+                    "",
+                ),
+                status=cls._parse_training_opportunity_status(
+                    item.get(
+                        "status",
+                        TrainingOpportunityStatus.POTENTIAL.value,
+                    )
+                ),
+                related_finding_ids=item.get(
+                    "related_finding_ids",
+                    [],
+                ),
+                related_recommendation_ids=item.get(
+                    "related_recommendation_ids",
+                    [],
+                ),
+                related_action_ids=item.get(
+                    "related_action_ids",
+                    [],
+                ),
+                suitability_rationale=item.get(
+                    "suitability_rationale",
+                    "",
+                ),
+                access_confirmed=item.get(
+                    "access_confirmed",
+                    False,
+                ),
+                assessment_arrangements_confirmed=item.get(
+                    "assessment_arrangements_confirmed",
+                    False,
+                ),
+                point_of_contact=item.get(
+                    "point_of_contact",
+                    "",
+                ),
+                identified_by=item.get(
+                    "identified_by",
+                    "",
+                ),
+                identified_at=item.get(
+                    "identified_at",
+                    "",
+                ),
+                validated_by=item.get(
+                    "validated_by",
+                    "",
+                ),
+                validated_at=item.get(
+                    "validated_at",
+                    "",
+                ),
+            )
+            for item in saved_training_opportunities
+        ]
+
+        for opportunity in project.training_opportunities:
+            if not opportunity.opportunity_id:
+                opportunity.opportunity_id = str(uuid4())
         project.doctrine_references = [
             DoctrineReference(
                 title=item.get("title", ""),
@@ -505,6 +823,124 @@ class Project:
             "injects",
             project_data.get("exercises", []),
         )
+        saved_findings = project_data.get(
+            "findings",
+            [],
+        )
+
+        project.findings = [
+            Finding(
+                finding_id=item.get(
+                    "finding_id",
+                    "",
+                ),
+                title=item.get(
+                    "title",
+                    "",
+                ),
+                finding_type=cls._parse_finding_type(
+                    item.get(
+                        "finding_type",
+                        FindingType.OBSERVATION.value,
+                    )
+                ),
+                description=item.get(
+                    "description",
+                    "",
+                ),
+                related_decision_id=item.get(
+                    "related_decision_id",
+                    "",
+                ),
+                related_assessment_ids=item.get(
+                    "related_assessment_ids",
+                    [],
+                ),
+                related_evidence_ids=item.get(
+                    "related_evidence_ids",
+                    [],
+                ),
+                recorded_by=item.get(
+                    "recorded_by",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+            )
+            for item in saved_findings
+        ]
+
+        for finding in project.findings:
+            if not finding.finding_id:
+                finding.finding_id = str(uuid4())
+        saved_recommendations = project_data.get(
+            "recommendations",
+            [],
+        )
+
+        project.recommendations = [
+            Recommendation(
+                recommendation_id=item.get(
+                    "recommendation_id",
+                    "",
+                ),
+                title=item.get(
+                    "title",
+                    "",
+                ),
+                recommendation_type=cls._parse_recommendation_type(
+                    item.get(
+                        "recommendation_type",
+                        RecommendationType.IMPROVEMENT.value,
+                    )
+                ),
+                description=item.get(
+                    "description",
+                    "",
+                ),
+                related_finding_ids=item.get(
+                    "related_finding_ids",
+                    [],
+                ),
+                disposition=cls._parse_recommendation_disposition(
+                    item.get(
+                        "disposition",
+                        RecommendationDisposition.NOT_REVIEWED.value,
+                    )
+                ),
+                disposition_rationale=item.get(
+                    "disposition_rationale",
+                    "",
+                ),
+                disposition_by=item.get(
+                    "disposition_by",
+                    "",
+                ),
+                disposition_authority=item.get(
+                    "disposition_authority",
+                    "",
+                ),
+                disposition_at=item.get(
+                    "disposition_at",
+                    "",
+                ),
+                recommended_by=item.get(
+                    "recommended_by",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+            )
+            for item in saved_recommendations
+        ]
+
+        for recommendation in project.recommendations:
+            if not recommendation.recommendation_id:
+                recommendation.recommendation_id = str(uuid4())
 
         project.injects = [
             Inject(
@@ -587,6 +1023,52 @@ class Project:
 
         return EvidenceType.OTHER
 
+    @staticmethod
+    def _parse_finding_type(value):
+        for finding_type in FindingType:
+            if finding_type.value == value:
+                return finding_type
+
+        return FindingType.OTHER
+    @staticmethod
+    def _parse_recommendation_type(value):
+        for recommendation_type in RecommendationType:
+            if recommendation_type.value == value:
+                return recommendation_type
+
+        return RecommendationType.OTHER
+
+    @staticmethod
+    def _parse_recommendation_disposition(value):
+        for disposition in RecommendationDisposition:
+            if disposition.value == value:
+                return disposition
+
+        return RecommendationDisposition.NOT_REVIEWED
+
+    @staticmethod
+    def _parse_action_priority(value):
+        for priority in ActionPriority:
+            if priority.value == value:
+                return priority
+
+        return ActionPriority.MEDIUM
+
+    @staticmethod
+    def _parse_action_status(value):
+        for status in ActionStatus:
+            if status.value == value:
+                return status
+
+        return ActionStatus.NOT_STARTED
+
+    @staticmethod
+    def _parse_training_opportunity_status(value):
+        for status in TrainingOpportunityStatus:
+            if status.value == value:
+                return status
+
+        return TrainingOpportunityStatus.POTENTIAL
 
     @staticmethod
     def _parse_status(value):
