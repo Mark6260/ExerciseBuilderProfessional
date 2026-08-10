@@ -32,6 +32,11 @@ from core.readiness.readiness_decision import (
     ReadinessDecisionOutcome,
 
 )
+from core.opportunity.candidate_opportunity import (
+    CandidateOpportunity,
+    CandidateStatus,
+    OpportunitySourceType,
+)
 
 
 class Project:
@@ -51,6 +56,7 @@ class Project:
         self.recommendations: list[Recommendation] = []
         self.improvement_actions: list[ImprovementAction] = []
         self.training_opportunities: list[TrainingOpportunity] = []
+        self.candidate_opportunities: list[CandidateOpportunity] = []
 
     def add_inject(self, inject: Inject):
         self.injects.append(inject)
@@ -95,6 +101,11 @@ class Project:
     ):
         self.training_opportunities.append(opportunity)
 
+    def add_candidate_opportunity(
+        self,
+        candidate: CandidateOpportunity,
+    ):
+        self.candidate_opportunities.append(candidate)
     def save(self, filename):
         readiness_gap = self.operational_requirement.readiness.readiness_gap
 
@@ -325,6 +336,42 @@ class Project:
                     "validated_at": opportunity.validated_at,
                 }
                 for opportunity in self.training_opportunities
+            ],
+            "candidate_opportunities": [
+                {
+                    "candidate_id": candidate.candidate_id,
+                    "title": candidate.title,
+                    "organisation": candidate.organisation,
+                    "description": candidate.description,
+                    "start_date": candidate.start_date,
+                    "end_date": candidate.end_date,
+                    "location": candidate.location,
+                    "source_type": candidate.source_type.value,
+                    "source_name": candidate.source_name,
+                    "source_reference": candidate.source_reference,
+                    "status": candidate.status.value,
+                    "related_finding_ids": (
+                        candidate.related_finding_ids
+                    ),
+                    "related_recommendation_ids": (
+                        candidate.related_recommendation_ids
+                    ),
+                    "related_action_ids": (
+                        candidate.related_action_ids
+                    ),
+                    "relevance_reasons": (
+                        candidate.relevance_reasons
+                    ),
+                    "review_reason": candidate.review_reason,
+                    "review_notes": candidate.review_notes,
+                    "reviewed_by": candidate.reviewed_by,
+                    "reviewed_at": candidate.reviewed_at,
+                    "identified_at": candidate.identified_at,
+                    "promoted_opportunity_id": (
+                        candidate.promoted_opportunity_id
+                    ),
+                }
+                for candidate in self.candidate_opportunities
             ],
 
             "injects": [
@@ -648,6 +695,109 @@ class Project:
             "objectives",
             [],
         )
+
+        saved_candidate_opportunities = project_data.get(
+            "candidate_opportunities",
+            [],
+        )
+
+        project.candidate_opportunities = [
+            CandidateOpportunity(
+                candidate_id=item.get(
+                    "candidate_id",
+                    "",
+                ),
+                title=item.get(
+                    "title",
+                    "",
+                ),
+                organisation=item.get(
+                    "organisation",
+                    "",
+                ),
+                description=item.get(
+                    "description",
+                    "",
+                ),
+                start_date=item.get(
+                    "start_date",
+                    "",
+                ),
+                end_date=item.get(
+                    "end_date",
+                    "",
+                ),
+                location=item.get(
+                    "location",
+                    "",
+                ),
+                source_type=cls._parse_opportunity_source_type(
+                    item.get(
+                        "source_type",
+                        OpportunitySourceType.OTHER.value,
+                    )
+                ),
+                source_name=item.get(
+                    "source_name",
+                    "",
+                ),
+                source_reference=item.get(
+                    "source_reference",
+                    "",
+                ),
+                status=cls._parse_candidate_status(
+                    item.get(
+                        "status",
+                        CandidateStatus.DISCOVERED.value,
+                    )
+                ),
+                related_finding_ids=item.get(
+                    "related_finding_ids",
+                    [],
+                ),
+                related_recommendation_ids=item.get(
+                    "related_recommendation_ids",
+                    [],
+                ),
+                related_action_ids=item.get(
+                    "related_action_ids",
+                    [],
+                ),
+                relevance_reasons=item.get(
+                    "relevance_reasons",
+                    [],
+                ),
+                review_reason=item.get(
+                    "review_reason",
+                    "",
+                ),
+                review_notes=item.get(
+                    "review_notes",
+                    "",
+                ),
+                reviewed_by=item.get(
+                    "reviewed_by",
+                    "",
+                ),
+                reviewed_at=item.get(
+                    "reviewed_at",
+                    "",
+                ),
+                identified_at=item.get(
+                    "identified_at",
+                    "",
+                ),
+                promoted_opportunity_id=item.get(
+                    "promoted_opportunity_id",
+                    "",
+                ),
+            )
+            for item in saved_candidate_opportunities
+        ]
+
+        for candidate in project.candidate_opportunities:
+            if not candidate.candidate_id:
+                candidate.candidate_id = str(uuid4())
 
         project.objectives = [
             ExerciseObjective(
@@ -1069,6 +1219,22 @@ class Project:
                 return status
 
         return TrainingOpportunityStatus.POTENTIAL
+
+    @staticmethod
+    def _parse_opportunity_source_type(value):
+        for source_type in OpportunitySourceType:
+            if source_type.value == value:
+                return source_type
+
+        return OpportunitySourceType.OTHER
+
+    @staticmethod
+    def _parse_candidate_status(value):
+        for status in CandidateStatus:
+            if status.value == value:
+                return status
+
+        return CandidateStatus.DISCOVERED
 
     @staticmethod
     def _parse_status(value):
