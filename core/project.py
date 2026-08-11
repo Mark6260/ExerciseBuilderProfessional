@@ -1,4 +1,4 @@
-import json
+﻿import json
 from pathlib import Path
 
 from core.doctrine import DoctrineReference
@@ -30,12 +30,23 @@ from core.readiness.readiness_decision import (
     AssessmentExceptionReason,
     ReadinessDecision,
     ReadinessDecisionOutcome,
-
 )
 from core.opportunity.candidate_opportunity import (
     CandidateOpportunity,
     CandidateStatus,
     OpportunitySourceType,
+)
+from core.opportunity.discovery_requirement import (
+    DiscoveryRequirement,
+)
+from core.opportunity.planned_activity import (
+    PlannedActivity,
+    PlannedActivitySourceType,
+)
+from core.opportunity.planning_source import (
+    PlanningSource,
+    PlanningSourceStatus,
+    PlanningSourceType,
 )
 
 
@@ -57,6 +68,9 @@ class Project:
         self.improvement_actions: list[ImprovementAction] = []
         self.training_opportunities: list[TrainingOpportunity] = []
         self.candidate_opportunities: list[CandidateOpportunity] = []
+        self.discovery_requirements: list[DiscoveryRequirement] = []
+        self.planning_sources: list[PlanningSource] = []
+        self.planned_activities: list[PlannedActivity] = []
 
     def add_inject(self, inject: Inject):
         self.injects.append(inject)
@@ -106,6 +120,25 @@ class Project:
         candidate: CandidateOpportunity,
     ):
         self.candidate_opportunities.append(candidate)
+
+    def add_discovery_requirement(
+        self,
+        requirement: DiscoveryRequirement,
+    ):
+        self.discovery_requirements.append(requirement)
+
+    def add_planning_source(
+        self,
+        source: PlanningSource,
+    ):
+        self.planning_sources.append(source)
+
+    def add_planned_activity(
+        self,
+        activity: PlannedActivity,
+    ):
+        self.planned_activities.append(activity)
+
     def save(self, filename):
         readiness_gap = self.operational_requirement.readiness.readiness_gap
 
@@ -372,6 +405,89 @@ class Project:
                     ),
                 }
                 for candidate in self.candidate_opportunities
+            ],
+
+                        "planning_sources": [
+                {
+                    "source_id": source.source_id,
+                    "name": source.name,
+                    "organisation": source.organisation,
+                    "source_type": source.source_type.value,
+                    "description": source.description,
+                    "reference": source.reference,
+                    "status": source.status.value,
+                    "authorised_for_discovery": (
+                        source.authorised_for_discovery
+                    ),
+                    "authorised_by": source.authorised_by,
+                    "authority": source.authority,
+                    "authorised_at": source.authorised_at,
+                    "authorisation_notes": (
+                        source.authorisation_notes
+                    ),
+                    "suspended_by": source.suspended_by,
+                    "suspended_at": source.suspended_at,
+                    "suspension_reason": (
+                        source.suspension_reason
+                    ),
+                    "withdrawn_by": source.withdrawn_by,
+                    "withdrawn_at": source.withdrawn_at,
+                    "withdrawal_reason": (
+                        source.withdrawal_reason
+                    ),
+                }
+                for source in self.planning_sources
+            ],
+
+            "planned_activities": [
+                {
+                    "activity_id": activity.activity_id,
+                    "title": activity.title,
+                    "organisation": activity.organisation,
+                    "description": activity.description,
+                    "start_date": activity.start_date,
+                    "end_date": activity.end_date,
+                    "location": activity.location,
+                    "source_type": activity.source_type.value,
+                    "source_name": activity.source_name,
+                    "source_reference": (
+                        activity.source_reference
+                    ),
+                    "activity_tags": activity.activity_tags,
+                    "capability_tags": (
+                        activity.capability_tags
+                    ),
+                    "participants": activity.participants,
+                }
+                for activity in self.planned_activities
+            ],
+
+            "discovery_requirements": [
+                {
+                    "requirement_id": requirement.requirement_id,
+                    "title": requirement.title,
+                    "description": requirement.description,
+                    "capability_area": requirement.capability_area,
+                    "required_activities": (
+                        requirement.required_activities
+                    ),
+                    "desired_evidence": (
+                        requirement.desired_evidence
+                    ),
+                    "keywords": requirement.keywords,
+                    "earliest_date": requirement.earliest_date,
+                    "latest_date": requirement.latest_date,
+                    "related_finding_ids": (
+                        requirement.related_finding_ids
+                    ),
+                    "related_recommendation_ids": (
+                        requirement.related_recommendation_ids
+                    ),
+                    "related_action_ids": (
+                        requirement.related_action_ids
+                    ),
+                }
+                for requirement in self.discovery_requirements
             ],
 
             "injects": [
@@ -799,6 +915,230 @@ class Project:
             if not candidate.candidate_id:
                 candidate.candidate_id = str(uuid4())
 
+
+        saved_planning_sources = project_data.get(
+            "planning_sources",
+            [],
+        )
+
+        project.planning_sources = [
+            PlanningSource(
+                source_id=item.get(
+                    "source_id",
+                    "",
+                ),
+                name=item.get(
+                    "name",
+                    "",
+                ),
+                organisation=item.get(
+                    "organisation",
+                    "",
+                ),
+                source_type=cls._parse_planning_source_type(
+                    item.get(
+                        "source_type",
+                        PlanningSourceType.OTHER.value,
+                    )
+                ),
+                description=item.get(
+                    "description",
+                    "",
+                ),
+                reference=item.get(
+                    "reference",
+                    "",
+                ),
+                status=cls._parse_planning_source_status(
+                    item.get(
+                        "status",
+                        PlanningSourceStatus.PROPOSED.value,
+                    )
+                ),
+                authorised_for_discovery=item.get(
+                    "authorised_for_discovery",
+                    False,
+                ),
+                authorised_by=item.get(
+                    "authorised_by",
+                    "",
+                ),
+                authority=item.get(
+                    "authority",
+                    "",
+                ),
+                authorised_at=item.get(
+                    "authorised_at",
+                    "",
+                ),
+                authorisation_notes=item.get(
+                    "authorisation_notes",
+                    "",
+                ),
+                suspended_by=item.get(
+                    "suspended_by",
+                    "",
+                ),
+                suspended_at=item.get(
+                    "suspended_at",
+                    "",
+                ),
+                suspension_reason=item.get(
+                    "suspension_reason",
+                    "",
+                ),
+                withdrawn_by=item.get(
+                    "withdrawn_by",
+                    "",
+                ),
+                withdrawn_at=item.get(
+                    "withdrawn_at",
+                    "",
+                ),
+                withdrawal_reason=item.get(
+                    "withdrawal_reason",
+                    "",
+                ),
+            )
+            for item in saved_planning_sources
+        ]
+
+        for source in project.planning_sources:
+            if not source.source_id:
+                source.source_id = str(uuid4())
+
+        saved_discovery_requirements = project_data.get(
+            "discovery_requirements",
+            [],
+        )
+
+        project.discovery_requirements = [
+            DiscoveryRequirement(
+                requirement_id=item.get(
+                    "requirement_id",
+                    "",
+                ),
+                title=item.get(
+                    "title",
+                    "",
+                ),
+                description=item.get(
+                    "description",
+                    "",
+                ),
+                capability_area=item.get(
+                    "capability_area",
+                    "",
+                ),
+                required_activities=item.get(
+                    "required_activities",
+                    [],
+                ),
+                desired_evidence=item.get(
+                    "desired_evidence",
+                    [],
+                ),
+                keywords=item.get(
+                    "keywords",
+                    [],
+                ),
+                earliest_date=item.get(
+                    "earliest_date",
+                    "",
+                ),
+                latest_date=item.get(
+                    "latest_date",
+                    "",
+                ),
+                related_finding_ids=item.get(
+                    "related_finding_ids",
+                    [],
+                ),
+                related_recommendation_ids=item.get(
+                    "related_recommendation_ids",
+                    [],
+                ),
+                related_action_ids=item.get(
+                    "related_action_ids",
+                    [],
+                ),
+            )
+        for item in saved_discovery_requirements
+        ]
+
+        for requirement in project.discovery_requirements:
+            if not requirement.requirement_id:
+                requirement.requirement_id = str(uuid4())
+
+        saved_planned_activities = project_data.get(
+            "planned_activities",
+            [],
+        )
+
+        project.planned_activities = [
+            PlannedActivity(
+                activity_id=item.get(
+                    "activity_id",
+                    "",
+                ),
+                title=item.get(
+                    "title",
+                    "",
+                ),
+                organisation=item.get(
+                    "organisation",
+                    "",
+                ),
+                description=item.get(
+                    "description",
+                    "",
+                ),
+                start_date=item.get(
+                    "start_date",
+                    "",
+                ),
+                end_date=item.get(
+                    "end_date",
+                    "",
+                ),
+                location=item.get(
+                    "location",
+                    "",
+                ),
+                source_type=cls._parse_planned_activity_source_type(
+                    item.get(
+                        "source_type",
+                        PlannedActivitySourceType.OTHER.value,
+                    )
+                ),
+                source_name=item.get(
+                    "source_name",
+                    "",
+                ),
+                source_reference=item.get(
+                    "source_reference",
+                    "",
+                ),
+                activity_tags=item.get(
+                    "activity_tags",
+                    [],
+                ),
+                capability_tags=item.get(
+                    "capability_tags",
+                    [],
+                ),
+                participants=item.get(
+                    "participants",
+                    [],
+                ),
+            )
+            for item in saved_planned_activities
+        ]
+
+        for activity in project.planned_activities:
+            if not activity.activity_id:
+                activity.activity_id = str(uuid4())
+
         project.objectives = [
             ExerciseObjective(
                 title=item.get("title", ""),
@@ -1131,13 +1471,19 @@ class Project:
             for item in saved_injects
         ]
 
+        return project
 
         saved_evidence_records = project_data.get(
             "evidence_records",
             [],
         )
 
-        return project
+
+        # Evidence records are loaded after the project is reconstructed.
+        # The evidence block above is now handled in the main load flow,
+        # so this legacy lookup should stay out of the class-level parsing
+        # section and is not required for the load method to return.
+
     @staticmethod
     def _parse_assessment_outcome(value):
         for outcome in AssessmentOutcome:
@@ -1197,6 +1543,14 @@ class Project:
         return RecommendationDisposition.NOT_REVIEWED
 
     @staticmethod
+    def _parse_planned_activity_source_type(value):
+        for source_type in PlannedActivitySourceType:
+            if source_type.value == value:
+                return source_type
+
+        return PlannedActivitySourceType.OTHER
+
+    @staticmethod
     def _parse_action_priority(value):
         for priority in ActionPriority:
             if priority.value == value:
@@ -1243,3 +1597,19 @@ class Project:
                 return status
 
         return InjectStatus.PLANNED
+
+    @staticmethod
+    def _parse_planning_source_type(value):
+        for source_type in PlanningSourceType:
+            if source_type.value == value:
+                return source_type
+
+        return PlanningSourceType.OTHER
+
+    @staticmethod
+    def _parse_planning_source_status(value):
+        for status in PlanningSourceStatus:
+            if status.value == value:
+                return status
+
+        return PlanningSourceStatus.PROPOSED
