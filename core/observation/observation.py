@@ -35,6 +35,12 @@ class Observation:
 
     exercise_time: str = ""
     observed_at: str = ""
+    grid_reference: str = ""
+
+    latitude: float | None = None
+    longitude: float | None = None
+
+    location_description: str = ""
 
     observer_name: str = ""
     observer_role: str = ""

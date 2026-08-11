@@ -228,6 +228,12 @@ class Project:
                     "exercise_time": observation.exercise_time,
                     "observed_at": observation.observed_at,
                     "observer_name": observation.observer_name,
+                    "grid_reference": observation.grid_reference,
+                    "latitude": observation.latitude,
+                    "longitude": observation.longitude,
+                    "location_description": (
+                        observation.location_description
+                    ),
                     "observer_role": observation.observer_role,
                     "observation_type": (
                         observation.observation_type.value
@@ -1276,6 +1282,20 @@ class Project:
             ),
             observer_role=item.get(
                 "observer_role",
+                "",
+            ),
+            grid_reference=item.get(
+                "grid_reference",
+                "",
+            ),
+            latitude=item.get(
+                "latitude"
+            ),
+            longitude=item.get(
+                "longitude"
+            ),
+            location_description=item.get(
+                "location_description",
                 "",
             ),
             observation_type=cls._parse_observation_type(
