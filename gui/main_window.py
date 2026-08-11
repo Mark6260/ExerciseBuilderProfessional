@@ -1,4 +1,4 @@
-from PySide6.QtGui import QAction
+﻿from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QDialog,
     QFileDialog,
@@ -18,17 +18,21 @@ from core.word_parser import WordParser
 from gui.dialogs.exercise_definition_dialog import (
     ExerciseDefinitionDialog,
 )
+from core.observation.observer_session import ObserverSession
 from gui.dialogs.apprentice_dialog import (
     ApprenticeDialog,
 )
 from gui.dialogs.objective_dialog import ObjectiveDialog
 from gui.panels.assurance_panel import AssurancePanel
 from gui.panels.inject_details_panel import InjectDetailsPanel
-from gui.panels.master_events_list_panel import (
-    MasterEventsListPanel,
+from gui.panels.master_events_list_panel import MasterEventsListPanel
+from gui.panels.apprentice_notebook_panel import (
+    ApprenticeNotebookPanel,
 )
+
 from gui.panels.objectives_panel import ObjectivesPanel
 from gui.panels.project_panel import ProjectPanel
+from gui.panels.observer_panel import ObserverPanel
 
 
 class MainWindow(QMainWindow):
@@ -50,6 +54,7 @@ class MainWindow(QMainWindow):
 
         self.update_project_view()
         self.show_apprentice()
+        self.observer_panel = ObserverPanel()
 
     def create_menu(self):
         file_menu = self.menuBar().addMenu("File")
@@ -104,6 +109,29 @@ class MainWindow(QMainWindow):
         self.mel_panel = MasterEventsListPanel()
         self.inject_details_panel = InjectDetailsPanel()
         self.assurance_panel = AssurancePanel()
+        self.observer_panel = ObserverPanel()
+        self.observer_panel.observation_recorded.connect(
+        self._handle_observation_recorded
+    )
+        observer_session = ObserverSession(
+        observer_name="J Smith",
+        observer_role="Observer Mentor",
+    )
+
+        observer_session.start()
+        observer_session.set_current_inject(17)
+        observer_session.add_current_objective(
+            "Demonstrate safe and effective response "
+            "to a major chemical spill"
+    )
+        observer_session.set_grid_location(
+            "35U LB 412 278",
+            "North side of bridge",
+    )
+
+        self.observer_panel.set_session(
+            observer_session
+    )
 
         self.mel_panel.inject_selected.connect(
             self.show_inject_details
@@ -144,16 +172,35 @@ class MainWindow(QMainWindow):
             workspace,
             "Exercise Workspace",
         )
-
+        self.tabs.addTab(
+            self.observer_panel,
+            "Observer Mode",
+        )
         self.setCentralWidget(self.tabs)
 
+    def _handle_observation_recorded(
+        self,
+        observation,
+    ):
+        if self.current_project is None:
+            return
+
+        self.current_project.add_observation(
+            observation
+        )
+
+
+        self.statusBar().showMessage(
+            "Observation recorded",
+            3000,
+        )
     def update_project_view(self):
         requirement = (
         self.current_project.operational_requirement
     )
     def show_apprentice(self):
         dialog = ApprenticeDialog(self)
-        
+
         if dialog.exec() != QDialog.DialogCode.Accepted:
             self.statusBar().showMessage(
             "The Apprentice is standing by"
@@ -250,7 +297,7 @@ class MainWindow(QMainWindow):
 
         if inject.attachments:
             attachment_text = "\n".join(
-                f"• {attachment}"
+                f"â€¢ {attachment}"
                 for attachment in inject.attachments
             )
         else:
