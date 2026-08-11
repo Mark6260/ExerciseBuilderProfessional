@@ -92,15 +92,15 @@ class ObserverPanel(QWidget):
         )
 
         self.inject_label = QLabel(
-            "Inject: â€”"
+            "Inject: -"
         )
 
         self.activity_label = QLabel(
-            "Activity: â€”"
+            "Activity: -"
         )
 
         self.objective_label = QLabel(
-            "Objective: â€”"
+            "Objective: -"
         )
         self.objective_label.setWordWrap(True)
 
@@ -139,15 +139,15 @@ class ObserverPanel(QWidget):
         )
 
         self.grid_label = QLabel(
-            "Grid: â€”"
+            "Grid: -"
         )
 
         self.coordinates_label = QLabel(
-            "Coordinates: â€”"
+            "Coordinates: -"
         )
 
         self.location_label = QLabel(
-            "Location: â€”"
+            "Location: -"
         )
         self.location_label.setWordWrap(True)
 
@@ -290,22 +290,22 @@ class ObserverPanel(QWidget):
                 "No observer session active"
             )
             self.inject_label.setText(
-                "Inject: â€”"
+                "Inject: -"
             )
             self.activity_label.setText(
-                "Activity: â€”"
+                "Activity: -"
             )
             self.objective_label.setText(
-                "Objective: â€”"
+                "Objective: -"
             )
             self.grid_label.setText(
-                "Grid: â€”"
+                "Grid: -"
             )
             self.coordinates_label.setText(
-                "Coordinates: â€”"
+                "Coordinates: -"
             )
             self.location_label.setText(
-                "Location: â€”"
+                "Location: -"
             )
             return
 
@@ -315,7 +315,7 @@ class ObserverPanel(QWidget):
 
         if self.session.observer_role:
             observer_text += (
-                f" â€” "
+                f" - "
                 f"{self.session.observer_role}"
             )
 
@@ -331,7 +331,7 @@ class ObserverPanel(QWidget):
                 self.session.current_inject_number
                 is not None
             )
-            else "â€”"
+            else "-"
         )
 
         self.inject_label.setText(
@@ -340,7 +340,7 @@ class ObserverPanel(QWidget):
 
         activity_text = (
             self.session.current_activity_id
-            or "â€”"
+            or "-"
         )
 
         self.activity_label.setText(
@@ -354,7 +354,7 @@ class ObserverPanel(QWidget):
                 self.session.current_objective_titles
             )
         else:
-            objective_text = "â€”"
+            objective_text = "-"
 
         self.objective_label.setText(
             f"Objective: {objective_text}"
@@ -362,7 +362,7 @@ class ObserverPanel(QWidget):
 
         self.grid_label.setText(
             "Grid: "
-            f"{self.session.grid_reference or 'â€”'}"
+            f"{self.session.grid_reference or '-'}"
         )
 
         if (
@@ -375,7 +375,7 @@ class ObserverPanel(QWidget):
                 f"{self.session.longitude:.6f}"
             )
         else:
-            coordinates = "â€”"
+            coordinates = "-"
 
         self.coordinates_label.setText(
             f"Coordinates: {coordinates}"
@@ -383,7 +383,7 @@ class ObserverPanel(QWidget):
 
         self.location_label.setText(
             "Location: "
-            f"{self.session.location_description or 'â€”'}"
+            f"{self.session.location_description or '-'}"
         )
     def _selected_observation_type(
         self,
@@ -439,7 +439,7 @@ class ObserverPanel(QWidget):
 
         recent_text = (
             f"{observation.observation_type.value}"
-            f" â€” {observation.title}"
+            f" - {observation.title}"
         )
 
         self.recent_observations_list.insertItem(

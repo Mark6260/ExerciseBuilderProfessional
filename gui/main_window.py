@@ -33,6 +33,9 @@ from gui.panels.apprentice_notebook_panel import (
 from gui.panels.objectives_panel import ObjectivesPanel
 from gui.panels.project_panel import ProjectPanel
 from gui.panels.observer_panel import ObserverPanel
+from gui.panels.observation_review_panel import (
+    ObservationReviewPanel,
+)
 
 
 class MainWindow(QMainWindow):
@@ -110,6 +113,13 @@ class MainWindow(QMainWindow):
         self.inject_details_panel = InjectDetailsPanel()
         self.assurance_panel = AssurancePanel()
         self.observer_panel = ObserverPanel()
+        self.observation_review_panel = ObservationReviewPanel()
+        self.observation_review_panel.evidence_admitted.connect(
+            self._handle_evidence_admitted
+        )
+        self.observation_review_panel.set_project(
+            self.current_project
+        )
         self.observer_panel.observation_recorded.connect(
         self._handle_observation_recorded
     )
@@ -176,6 +186,11 @@ class MainWindow(QMainWindow):
             self.observer_panel,
             "Observer Mode",
         )
+
+        self.tabs.addTab(
+            self.observation_review_panel,
+            "Observation Review",
+        )
         self.setCentralWidget(self.tabs)
 
     def _handle_observation_recorded(
@@ -188,12 +203,28 @@ class MainWindow(QMainWindow):
         self.current_project.add_observation(
             observation
         )
-
+        self.observation_review_panel.refresh_observations()
 
         self.statusBar().showMessage(
             "Observation recorded",
             3000,
         )
+    def _handle_evidence_admitted(
+        self,
+        evidence,
+    ):
+        if self.current_project is None:
+            return
+
+        self.current_project.add_evidence(
+            evidence
+        )
+
+        self.statusBar().showMessage(
+            "Observation admitted as evidence",
+            3000,
+        )
+
     def update_project_view(self):
         requirement = (
         self.current_project.operational_requirement
