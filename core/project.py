@@ -48,6 +48,11 @@ from core.opportunity.planning_source import (
     PlanningSourceStatus,
     PlanningSourceType,
 )
+from core.observation.observation import (
+    Observation,
+    ObservationStatus,
+    ObservationType,
+)
 
 
 class Project:
@@ -60,6 +65,7 @@ class Project:
         self.injects: list[Inject] = []
         self.objectives: list[ExerciseObjective] = []
         self.doctrine_references: list[DoctrineReference] = []
+        self.observations: list[Observation] = []
         self.evidence_records: list[EvidenceRecord] = []
         self.assessment_records: list[AssessmentRecord] = []
         self.readiness_decisions: list[ReadinessDecision] = []
@@ -83,6 +89,12 @@ class Project:
         doctrine_reference: DoctrineReference,
         ):
         self.doctrine_references.append(doctrine_reference)
+    def add_observation(
+        self,
+        observation: Observation,
+    ):
+        self.observations.append(observation)
+
     def add_evidence(self, evidence: EvidenceRecord):
         self.evidence_records.append(evidence)
     def add_assessment(self, assessment: AssessmentRecord):
@@ -208,6 +220,41 @@ class Project:
                     "achieved": objective.achieved,
                 }
                 for objective in self.objectives
+            ],
+
+            "observations": [
+                {
+                    "observation_id": observation.observation_id,
+                    "exercise_time": observation.exercise_time,
+                    "observed_at": observation.observed_at,
+                    "observer_name": observation.observer_name,
+                    "observer_role": observation.observer_role,
+                    "observation_type": (
+                        observation.observation_type.value
+                    ),
+                    "title": observation.title,
+                    "description": observation.description,
+                    "related_inject_number": (
+                        observation.related_inject_number
+                    ),
+                    "related_objective_titles": (
+                        observation.related_objective_titles
+                    ),
+                    "related_activity_id": (
+                        observation.related_activity_id
+                    ),
+                    "evidence_ids": observation.evidence_ids,
+                    "status": observation.status.value,
+                    "recorded_at": observation.recorded_at,
+                    "reviewed_by": observation.reviewed_by,
+                    "reviewed_at": observation.reviewed_at,
+                    "withdrawal_reason": (
+                        observation.withdrawal_reason
+                    ),
+                    "withdrawn_by": observation.withdrawn_by,
+                    "withdrawn_at": observation.withdrawn_at,
+                }
+                for observation in self.observations
             ],
 
             "evidence_records": [
@@ -1199,9 +1246,104 @@ class Project:
             )
             for item in saved_evidence_records
         ]
+
         for evidence in project.evidence_records:
             if not evidence.evidence_id:
                 evidence.evidence_id = str(uuid4())
+
+        saved_observations = project_data.get(
+            "observations",
+            [],
+        )
+
+        project.observations = [
+        Observation(
+            observation_id=item.get(
+                "observation_id",
+                "",
+            ),
+            exercise_time=item.get(
+                "exercise_time",
+                "",
+            ),
+            observed_at=item.get(
+                "observed_at",
+                "",
+            ),
+            observer_name=item.get(
+                "observer_name",
+                "",
+            ),
+            observer_role=item.get(
+                "observer_role",
+                "",
+            ),
+            observation_type=cls._parse_observation_type(
+                item.get(
+                    "observation_type",
+                    ObservationType.OBSERVATION.value,
+                )
+            ),
+            title=item.get(
+                "title",
+                "",
+            ),
+            description=item.get(
+                "description",
+                "",
+            ),
+            related_inject_number=item.get(
+                "related_inject_number"
+            ),
+            related_objective_titles=item.get(
+                "related_objective_titles",
+                [],
+            ),
+            related_activity_id=item.get(
+                "related_activity_id",
+                "",
+            ),
+            evidence_ids=item.get(
+                "evidence_ids",
+                [],
+            ),
+            status=cls._parse_observation_status(
+                item.get(
+                    "status",
+                    ObservationStatus.DRAFT.value,
+                )
+            ),
+            recorded_at=item.get(
+                "recorded_at",
+                "",
+            ),
+            reviewed_by=item.get(
+                "reviewed_by",
+                "",
+            ),
+            reviewed_at=item.get(
+                "reviewed_at",
+                "",
+            ),
+            withdrawal_reason=item.get(
+                "withdrawal_reason",
+                "",
+            ),
+            withdrawn_by=item.get(
+                "withdrawn_by",
+                "",
+            ),
+            withdrawn_at=item.get(
+                "withdrawn_at",
+                "",
+            ),
+        )
+        for item in saved_observations
+    ]
+
+        for observation in project.observations:
+            if not observation.observation_id:
+                observation.observation_id = str(uuid4())
 
         saved_assessment_records = project_data.get(
             "assessment_records",
@@ -1605,6 +1747,22 @@ class Project:
                 return source_type
 
         return PlanningSourceType.OTHER
+
+    @staticmethod
+    def _parse_observation_type(value):
+        for observation_type in ObservationType:
+            if observation_type.value == value:
+                return observation_type
+
+        return ObservationType.OBSERVATION
+
+    @staticmethod
+    def _parse_observation_status(value):
+        for status in ObservationStatus:
+            if status.value == value:
+                return status
+
+        return ObservationStatus.DRAFT
 
     @staticmethod
     def _parse_planning_source_status(value):
