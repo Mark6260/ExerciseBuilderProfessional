@@ -4,6 +4,14 @@ from pathlib import Path
 from core.doctrine import DoctrineReference
 from core.inject import Inject, InjectStatus
 from core.objective import ExerciseObjective
+from core.collective_training_objective import (
+    CollectiveTrainingObjective,
+    CollectiveTask,
+    SuccessFactor,
+    CriticalError,
+    PerformanceMetric,
+    EvidenceRequirement,
+)
 from core.readiness import OperationalRequirement
 from core.readiness.readiness import OperationalReadiness
 from core.readiness.readiness_gap import ReadinessGap
@@ -64,6 +72,9 @@ class Project:
 
         self.injects: list[Inject] = []
         self.objectives: list[ExerciseObjective] = []
+        self.collective_training_objectives: list[
+            CollectiveTrainingObjective
+        ] = []
         self.doctrine_references: list[DoctrineReference] = []
         self.observations: list[Observation] = []
         self.evidence_records: list[EvidenceRecord] = []
@@ -83,7 +94,13 @@ class Project:
 
     def add_objective(self, objective: ExerciseObjective):
         self.objectives.append(objective)
-
+    def add_collective_training_objective(
+        self,
+        objective: CollectiveTrainingObjective,
+    ):
+        self.collective_training_objectives.append(
+            objective
+        )
     def add_doctrine_reference(
         self,
         doctrine_reference: DoctrineReference,
@@ -221,6 +238,91 @@ class Project:
                 }
                 for objective in self.objectives
             ],
+            
+            "collective_training_objectives": [
+    {
+        "id": cto.id,
+        "title": cto.title,
+        "training_audience": cto.training_audience,
+        "required_outcome": cto.required_outcome,
+        "conditions": cto.conditions,
+        "challenge_level": cto.challenge_level,
+        "contributing_functions": cto.contributing_functions,
+        "individual_contributions": cto.individual_contributions,
+
+        "evidence_requirements": [
+            {
+                "id": requirement.id,
+                "description": requirement.description,
+                "evidence_type": requirement.evidence_type,
+                "notes": requirement.notes,
+            }
+            for requirement in cto.evidence_requirements
+        ],
+
+        "collective_tasks": [
+            {
+                "id": task.id,
+                "title": task.title,
+                "description": task.description,
+
+                "success_factors": [
+                    {
+                        "id": factor.id,
+                        "description": factor.description,
+                        "metrics": [
+                            {
+                                "id": metric.id,
+                                "description": metric.description,
+                                "category": metric.category,
+                                "evidence_requirements": [
+                                    {
+                                        "id": requirement.id,
+                                        "description": requirement.description,
+                                        "evidence_type": requirement.evidence_type,
+                                        "notes": requirement.notes,
+                                    }
+                                    for requirement
+                                    in metric.evidence_requirements
+                                ],
+                            }
+                            for metric in factor.metrics
+                        ],
+                    }
+                    for factor in task.success_factors
+                ],
+
+                "critical_errors": [
+                    {
+                        "id": error.id,
+                        "description": error.description,
+                        "metrics": [
+                            {
+                                "id": metric.id,
+                                "description": metric.description,
+                                "category": metric.category,
+                                "evidence_requirements": [
+                                    {
+                                        "id": requirement.id,
+                                        "description": requirement.description,
+                                        "evidence_type": requirement.evidence_type,
+                                        "notes": requirement.notes,
+                                    }
+                                    for requirement
+                                    in metric.evidence_requirements
+                                ],
+                            }
+                            for metric in error.metrics
+                        ],
+                    }
+                    for error in task.critical_errors
+                ],
+            }
+            for task in cto.collective_tasks
+        ],
+    }
+    for cto in self.collective_training_objectives
+],
 
             "observations": [
                 {
@@ -1208,6 +1310,202 @@ class Project:
             )
             for item in saved_objectives
         ]
+        saved_ctos = project_data.get(
+            "collective_training_objectives",
+            [],
+        )
+
+        project.collective_training_objectives = []
+
+        for cto_data in saved_ctos:
+            cto = CollectiveTrainingObjective(
+                id=cto_data.get("id") or str(uuid4()),
+                title=cto_data.get("title", ""),
+                training_audience=cto_data.get(
+                    "training_audience",
+                    "",
+                ),
+                required_outcome=cto_data.get(
+                    "required_outcome",
+                    "",
+                ),
+                conditions=cto_data.get(
+                    "conditions",
+                    "",
+                ),
+                challenge_level=cto_data.get(
+                    "challenge_level"
+                ),
+                contributing_functions=cto_data.get(
+                    "contributing_functions",
+                    [],
+                ),
+                individual_contributions=cto_data.get(
+                    "individual_contributions",
+                    [],
+                ),
+            )
+
+            cto.evidence_requirements = [
+                EvidenceRequirement(
+                    id=item.get("id") or str(uuid4()),
+                    description=item.get(
+                        "description",
+                        "",
+                    ),
+                    evidence_type=item.get(
+                        "evidence_type",
+                        "",
+                    ),
+                    notes=item.get(
+                        "notes",
+                        "",
+                    ),
+                )
+                for item in cto_data.get(
+                    "evidence_requirements",
+                    [],
+                )
+            ]
+
+            for task_data in cto_data.get(
+                "collective_tasks",
+                [],
+            ):
+                task = CollectiveTask(
+                    id=task_data.get("id") or str(uuid4()),
+                    title=task_data.get("title", ""),
+                    description=task_data.get(
+                        "description",
+                        "",
+                    ),
+                )
+
+                for factor_data in task_data.get(
+                    "success_factors",
+                    [],
+                ):
+                    factor = SuccessFactor(
+                        id=factor_data.get("id") or str(uuid4()),
+                        description=factor_data.get(
+                            "description",
+                            "",
+                        ),
+                    )
+
+                    for metric_data in factor_data.get(
+                        "metrics",
+                        [],
+                    ):
+                        metric = PerformanceMetric(
+                            id=(
+                                metric_data.get("id")
+                                or str(uuid4())
+                            ),
+                            description=metric_data.get(
+                                "description",
+                                "",
+                            ),
+                            category=metric_data.get(
+                                "category",
+                                "",
+                            ),
+                        )
+
+                        metric.evidence_requirements = [
+                            EvidenceRequirement(
+                                id=(
+                                    item.get("id")
+                                    or str(uuid4())
+                                ),
+                                description=item.get(
+                                    "description",
+                                    "",
+                                ),
+                                evidence_type=item.get(
+                                    "evidence_type",
+                                    "",
+                                ),
+                                notes=item.get(
+                                    "notes",
+                                    "",
+                                ),
+                            )
+                            for item in metric_data.get(
+                                "evidence_requirements",
+                                [],
+                            )
+                        ]
+
+                        factor.metrics.append(metric)
+
+                    task.success_factors.append(factor)
+
+                for error_data in task_data.get(
+                    "critical_errors",
+                    [],
+                ):
+                    error = CriticalError(
+                        id=error_data.get("id") or str(uuid4()),
+                        description=error_data.get(
+                            "description",
+                            "",
+                        ),
+                    )
+
+                    for metric_data in error_data.get(
+                        "metrics",
+                        [],
+                    ):
+                        metric = PerformanceMetric(
+                            id=(
+                                metric_data.get("id")
+                                or str(uuid4())
+                            ),
+                            description=metric_data.get(
+                                "description",
+                                "",
+                            ),
+                            category=metric_data.get(
+                                "category",
+                                "",
+                            ),
+                        )
+
+                        metric.evidence_requirements = [
+                            EvidenceRequirement(
+                                id=(
+                                    item.get("id")
+                                    or str(uuid4())
+                                ),
+                                description=item.get(
+                                    "description",
+                                    "",
+                                ),
+                                evidence_type=item.get(
+                                    "evidence_type",
+                                    "",
+                                ),
+                                notes=item.get(
+                                    "notes",
+                                    "",
+                                ),
+                            )
+                            for item in metric_data.get(
+                                "evidence_requirements",
+                                [],
+                            )
+                        ]
+
+                        error.metrics.append(metric)
+
+                    task.critical_errors.append(error)
+
+                cto.collective_tasks.append(task)
+
+            project.collective_training_objectives.append(
+                cto
+            )
 
         saved_evidence_records = project_data.get(
             "evidence_records",
