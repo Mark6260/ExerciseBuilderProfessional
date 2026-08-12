@@ -123,25 +123,6 @@ class MainWindow(QMainWindow):
         self.observer_panel.observation_recorded.connect(
         self._handle_observation_recorded
     )
-        observer_session = ObserverSession(
-        observer_name="J Smith",
-        observer_role="Observer Mentor",
-    )
-
-        observer_session.start()
-        observer_session.set_current_inject(17)
-        observer_session.add_current_objective(
-            "Demonstrate safe and effective response "
-            "to a major chemical spill"
-    )
-        observer_session.set_grid_location(
-            "35U LB 412 278",
-            "North side of bridge",
-    )
-
-        self.observer_panel.set_session(
-            observer_session
-    )
 
         self.mel_panel.inject_selected.connect(
             self.show_inject_details

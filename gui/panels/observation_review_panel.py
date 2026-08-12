@@ -114,31 +114,30 @@ class ObservationReviewPanel(QWidget):
         )
 
         self.status_label = QLabel(
-            "Status: â€”"
+            "Status: -"
         )
 
         self.observer_label = QLabel(
-            "Observer: â€”"
+            "Observer: -"
         )
 
         self.exercise_time_label = QLabel(
-            "Exercise Time: â€”"
+            "Exercise Time: -"
         )
 
         self.inject_label = QLabel(
-            "Inject: â€”"
+            "Inject: -"
         )
 
         self.objective_label = QLabel(
-            "Objective: â€”"
+            "Objective: -"
         )
         self.objective_label.setWordWrap(True)
 
         self.location_label = QLabel(
-            "Location: â€”"
+            "Location: -"
         )
         self.location_label.setWordWrap(True)
-
         description_heading = QLabel(
             "WHAT WAS OBSERVED"
         )
@@ -233,22 +232,22 @@ class ObservationReviewPanel(QWidget):
 
         if observation is None:
             self.status_label.setText(
-                "Status: â€”"
+                "Status: "-""
             )
             self.observer_label.setText(
-                "Observer: â€”"
+                "Observer: "-""
             )
             self.exercise_time_label.setText(
-                "Exercise Time: â€”"
+                f"Exercise Time: {observation.exercise_time or '-'}"
             )
             self.inject_label.setText(
-                "Inject: â€”"
+                "Inject: "-""
             )
             self.objective_label.setText(
-                "Objective: â€”"
+                "Objective: "-""
             )
             self.location_label.setText(
-                "Location: â€”"
+                "Location: "-""
             )
             self.description_text.clear()
             self.admit_evidence_button.setEnabled(
@@ -264,7 +263,7 @@ class ObservationReviewPanel(QWidget):
 
         if observation.observer_role:
             observer_text += (
-                f" â€” {observation.observer_role}"
+                f" - {observation.observer_role}"
             )
 
         self.observer_label.setText(
@@ -272,15 +271,19 @@ class ObservationReviewPanel(QWidget):
         )
 
         self.exercise_time_label.setText(
-            f"Exercise Time: "
-            f"{observation.exercise_time or 'â€”'}"
+            "Exercise Time: "
+            + (
+                observation.exercise_time
+                if observation.exercise_time
+                else "-"
+            )
         )
 
         inject_text = (
             str(observation.related_inject_number)
             if observation.related_inject_number
             is not None
-            else "â€”"
+            else ""-""
         )
 
         self.inject_label.setText(
@@ -292,7 +295,7 @@ class ObservationReviewPanel(QWidget):
                 observation.related_objective_titles
             )
         else:
-            objective_text = "â€”"
+            objective_text = ""-""
 
         self.objective_label.setText(
             f"Objective: {objective_text}"
@@ -322,7 +325,7 @@ class ObservationReviewPanel(QWidget):
         location_text = (
             " | ".join(location_parts)
             if location_parts
-            else "â€”"
+            else ""-""
         )
 
         self.location_label.setText(
@@ -351,7 +354,7 @@ class ObservationReviewPanel(QWidget):
         for observation in self.project.observations:
             item_text = (
                 f"{observation.observation_type.value}"
-                f" â€” {observation.title}"
+                f" - {observation.title}"
             )
 
             self.observation_list.addItem(

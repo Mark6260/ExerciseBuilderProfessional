@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QListWidget,
     QPushButton,
     QRadioButton,
@@ -15,6 +16,7 @@ from PySide6.QtWidgets import (
 from core.observation.observer_session import ObserverSession
 from core.observation.observation import ObservationType
 
+
 class ObserverPanel(QWidget):
     """
     Observer Mode working panel.
@@ -22,6 +24,7 @@ class ObserverPanel(QWidget):
     Displays the current observer session and provides
     the working area for observation capture.
     """
+
     observation_recorded = Signal(object)
 
     def __init__(self, parent=None):
@@ -30,18 +33,34 @@ class ObserverPanel(QWidget):
         self.session: ObserverSession | None = None
 
         self._build_ui()
+
         self.record_button.clicked.connect(
             self._record_observation
         )
+
+        self.start_session_button.clicked.connect(
+            self._start_observer_session
+        )
+
     def _build_ui(self):
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setContentsMargins(
+            16,
+            16,
+            16,
+            16,
+        )
         main_layout.setSpacing(12)
 
+        # -------------------------------------------------
         # Header
+        # -------------------------------------------------
+
         header_layout = QHBoxLayout()
 
-        title_label = QLabel("OBSERVER MODE")
+        title_label = QLabel(
+            "OBSERVER MODE"
+        )
         title_label.setStyleSheet(
             "font-size: 18px; font-weight: bold;"
         )
@@ -54,15 +73,22 @@ class ObserverPanel(QWidget):
             | Qt.AlignmentFlag.AlignVCenter
         )
 
-        header_layout.addWidget(title_label)
+        header_layout.addWidget(
+            title_label
+        )
         header_layout.addStretch()
         header_layout.addWidget(
             self.exercise_time_label
         )
 
-        main_layout.addLayout(header_layout)
+        main_layout.addLayout(
+            header_layout
+        )
 
+        # -------------------------------------------------
         # Observer
+        # -------------------------------------------------
+
         self.observer_label = QLabel(
             "No observer session active"
         )
@@ -74,7 +100,51 @@ class ObserverPanel(QWidget):
             self.observer_label
         )
 
+        # -------------------------------------------------
+        # Observer session
+        # -------------------------------------------------
+
+        session_frame = QFrame()
+        session_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+
+        session_layout = QHBoxLayout(
+            session_frame
+        )
+
+        self.observer_name_input = QLineEdit()
+        self.observer_name_input.setPlaceholderText(
+            "Observer name"
+        )
+
+        self.observer_role_input = QLineEdit()
+        self.observer_role_input.setPlaceholderText(
+            "Observer role"
+        )
+
+        self.start_session_button = QPushButton(
+            "START OBSERVER SESSION"
+        )
+
+        session_layout.addWidget(
+            self.observer_name_input
+        )
+        session_layout.addWidget(
+            self.observer_role_input
+        )
+        session_layout.addWidget(
+            self.start_session_button
+        )
+
+        main_layout.addWidget(
+            session_frame
+        )
+
+        # -------------------------------------------------
         # Current activity
+        # -------------------------------------------------
+
         activity_frame = QFrame()
         activity_frame.setFrameShape(
             QFrame.Shape.StyledPanel
@@ -102,7 +172,9 @@ class ObserverPanel(QWidget):
         self.objective_label = QLabel(
             "Objective: -"
         )
-        self.objective_label.setWordWrap(True)
+        self.objective_label.setWordWrap(
+            True
+        )
 
         activity_layout.addWidget(
             activity_heading
@@ -121,7 +193,10 @@ class ObserverPanel(QWidget):
             activity_frame
         )
 
+        # -------------------------------------------------
         # Location
+        # -------------------------------------------------
+
         location_frame = QFrame()
         location_frame.setFrameShape(
             QFrame.Shape.StyledPanel
@@ -149,7 +224,9 @@ class ObserverPanel(QWidget):
         self.location_label = QLabel(
             "Location: -"
         )
-        self.location_label.setWordWrap(True)
+        self.location_label.setWordWrap(
+            True
+        )
 
         location_layout.addWidget(
             location_heading
@@ -168,7 +245,10 @@ class ObserverPanel(QWidget):
             location_frame
         )
 
+        # -------------------------------------------------
         # Observation capture
+        # -------------------------------------------------
+
         observation_heading = QLabel(
             "WHAT DID YOU OBSERVE?"
         )
@@ -190,7 +270,10 @@ class ObserverPanel(QWidget):
             self.observation_text
         )
 
+        # -------------------------------------------------
         # Observation type
+        # -------------------------------------------------
+
         type_layout = QHBoxLayout()
 
         self.effective_practice_radio = (
@@ -242,7 +325,10 @@ class ObserverPanel(QWidget):
             type_layout
         )
 
+        # -------------------------------------------------
         # Record button
+        # -------------------------------------------------
+
         self.record_button = QPushButton(
             "RECORD OBSERVATION"
         )
@@ -254,7 +340,10 @@ class ObserverPanel(QWidget):
             self.record_button
         )
 
+        # -------------------------------------------------
         # Recent observations
+        # -------------------------------------------------
+
         recent_heading = QLabel(
             "RECENT OBSERVATIONS"
         )
@@ -315,8 +404,7 @@ class ObserverPanel(QWidget):
 
         if self.session.observer_role:
             observer_text += (
-                f" - "
-                f"{self.session.observer_role}"
+                f" - {self.session.observer_role}"
             )
 
         self.observer_label.setText(
@@ -347,9 +435,7 @@ class ObserverPanel(QWidget):
             f"Activity: {activity_text}"
         )
 
-        if (
-            self.session.current_objective_titles
-        ):
+        if self.session.current_objective_titles:
             objective_text = " | ".join(
                 self.session.current_objective_titles
             )
@@ -367,8 +453,7 @@ class ObserverPanel(QWidget):
 
         if (
             self.session.latitude is not None
-            and self.session.longitude
-            is not None
+            and self.session.longitude is not None
         ):
             coordinates = (
                 f"{self.session.latitude:.6f}, "
@@ -385,6 +470,7 @@ class ObserverPanel(QWidget):
             "Location: "
             f"{self.session.location_description or '-'}"
         )
+
     def _selected_observation_type(
         self,
     ) -> ObservationType:
@@ -398,7 +484,6 @@ class ObserverPanel(QWidget):
             return ObservationType.EVIDENCE_GAP
 
         return ObservationType.OBSERVATION
-
 
     def _record_observation(self):
         if self.session is None:
@@ -451,4 +536,43 @@ class ObserverPanel(QWidget):
 
         self.observation_radio.setChecked(
             True
+        )
+
+    def _start_observer_session(self):
+        observer_name = (
+            self.observer_name_input
+            .text()
+            .strip()
+        )
+
+        observer_role = (
+            self.observer_role_input
+            .text()
+            .strip()
+        )
+
+        if not observer_name:
+            return
+
+        session = ObserverSession(
+            observer_name=observer_name,
+            observer_role=observer_role,
+        )
+
+        session.start()
+
+        self.set_session(
+            session
+        )
+
+        self.observer_name_input.setEnabled(
+            False
+        )
+
+        self.observer_role_input.setEnabled(
+            False
+        )
+
+        self.start_session_button.setEnabled(
+            False
         )
