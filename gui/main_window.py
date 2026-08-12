@@ -29,7 +29,7 @@ from gui.panels.master_events_list_panel import MasterEventsListPanel
 from gui.panels.apprentice_notebook_panel import (
     ApprenticeNotebookPanel,
 )
-
+from gui.panels.cto_builder_panel import CTOBuilderPanel
 from gui.panels.objectives_panel import ObjectivesPanel
 from gui.panels.project_panel import ProjectPanel
 from gui.panels.observer_panel import ObserverPanel
@@ -58,7 +58,6 @@ class MainWindow(QMainWindow):
         self.update_project_view()
         self.show_apprentice()
         self.observer_panel = ObserverPanel()
-
     def create_menu(self):
         file_menu = self.menuBar().addMenu("File")
 
@@ -117,6 +116,7 @@ class MainWindow(QMainWindow):
         self.observation_review_panel.evidence_admitted.connect(
             self._handle_evidence_admitted
         )
+        self.cto_builder_panel = CTOBuilderPanel()
         self.observation_review_panel.set_project(
             self.current_project
         )
@@ -176,6 +176,12 @@ class MainWindow(QMainWindow):
             self.observation_review_panel,
             "Observation Review",
         )
+
+        self.tabs.addTab(
+            self.cto_builder_panel,
+            "CTO Builder",
+        )
+
         self.setCentralWidget(self.tabs)
     def _handle_observer_inject_selected(
         self,
