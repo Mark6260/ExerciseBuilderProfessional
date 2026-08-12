@@ -132,6 +132,10 @@ class MainWindow(QMainWindow):
             self.add_objective
         )
 
+        self.mel_panel.inject_selected.connect(
+            self._handle_observer_inject_selected
+        )
+
         self.assurance_panel.open_workspace_requested.connect(
             lambda: self.tabs.setCurrentIndex(1)
         )
@@ -173,11 +177,53 @@ class MainWindow(QMainWindow):
             "Observation Review",
         )
         self.setCentralWidget(self.tabs)
+    def _handle_observer_inject_selected(
+        self,
+        row: int,
+    ):
+        if self.current_project is None:
+            return
+
+        if self.observer_panel.session is None:
+            return
+
+        if row < 0:
+            self.observer_panel.session.set_current_inject(
+                None
+            )
+            self.observer_panel.refresh_session_view()
+            return
+
+        if row >= len(self.current_project.injects):
+            return
+
+        inject = self.current_project.injects[row]
+
+        self.observer_panel.session.set_current_inject(
+            inject.number
+        )
+
+        self.observer_panel.refresh_session_view()
+        inject = self.current_project.injects[row]
+
+        self.observer_panel.session.set_current_inject(
+            inject.number
+        )
+
+        self.observer_panel.session.clear_current_objectives()
+
+        for objective in self.current_project.objectives:
+            if inject.number in objective.supporting_injects:
+                self.observer_panel.session.add_current_objective(
+                    objective.title
+                )
+
+        self.observer_panel.refresh_session_view()
 
     def _handle_observation_recorded(
-        self,
-        observation,
-    ):
+                self,
+                observation,
+            ):
         if self.current_project is None:
             return
 
@@ -217,6 +263,10 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(
             "The Apprentice is standing by"
         )
+        self.mel_panel.set_injects(
+            self.current_project.injects
+        )
+
         return
 
         self.new_project()

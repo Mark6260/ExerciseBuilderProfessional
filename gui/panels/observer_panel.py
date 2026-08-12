@@ -41,6 +41,34 @@ class ObserverPanel(QWidget):
         self.start_session_button.clicked.connect(
             self._start_observer_session
         )
+        self.update_location_button.clicked.connect(
+            self._update_observer_location
+        )
+    def _update_observer_location(self):
+        if self.session is None:
+            return
+
+        grid_reference = (
+            self.grid_input
+            .text()
+            .strip()
+        )
+
+        location_description = (
+            self.location_description_input
+            .text()
+            .strip()
+        )
+
+        if not grid_reference:
+            return
+
+        self.session.set_grid_location(
+            grid_reference,
+            location_description,
+        )
+
+        self.refresh_session_view()
 
     def _build_ui(self):
         main_layout = QVBoxLayout(self)
@@ -244,7 +272,66 @@ class ObserverPanel(QWidget):
         main_layout.addWidget(
             location_frame
         )
+        # -------------------------------------------------
+        # Update observer location
+        # -------------------------------------------------
 
+        location_input_frame = QFrame()
+        location_input_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+
+        location_input_layout = QHBoxLayout(
+            location_input_frame
+        )
+
+        self.grid_input = QLineEdit()
+        self.grid_input.setPlaceholderText(
+            "Grid reference"
+        )
+
+        self.latitude_input = QLineEdit()
+        self.latitude_input.setPlaceholderText(
+            "Latitude"
+        )
+
+        self.longitude_input = QLineEdit()
+        self.longitude_input.setPlaceholderText(
+            "Longitude"
+        )
+
+        self.location_description_input = QLineEdit()
+        self.location_description_input.setPlaceholderText(
+            "Location description"
+        )
+
+        self.update_location_button = QPushButton(
+            "UPDATE LOCATION"
+        )
+
+        location_input_layout.addWidget(
+            self.grid_input
+        )
+
+        location_input_layout.addWidget(
+            self.latitude_input
+        )
+
+        location_input_layout.addWidget(
+            self.longitude_input
+        )
+
+        location_input_layout.addWidget(
+            self.location_description_input
+        )
+
+        location_input_layout.addWidget(
+            self.update_location_button
+        )
+
+        main_layout.addWidget(
+            location_input_frame
+        )
         # -------------------------------------------------
         # Observation capture
         # -------------------------------------------------
@@ -365,6 +452,64 @@ class ObserverPanel(QWidget):
         main_layout.addWidget(
             self.recent_observations_list
         )
+    def _update_observer_location(self):
+        if self.session is None:
+            return
+
+        grid_reference = (
+            self.grid_input
+            .text()
+            .strip()
+        )
+
+        latitude_text = (
+            self.latitude_input
+            .text()
+            .strip()
+        )
+
+        longitude_text = (
+            self.longitude_input
+            .text()
+            .strip()
+        )
+
+        location_description = (
+            self.location_description_input
+            .text()
+            .strip()
+        )
+
+        if latitude_text and longitude_text:
+            try:
+                latitude = float(latitude_text)
+                longitude = float(longitude_text)
+            except ValueError:
+                return
+
+            self.session.set_coordinates(
+                latitude,
+                longitude,
+                location_description,
+            )
+
+        elif grid_reference:
+            self.session.set_grid_location(
+                grid_reference,
+                location_description,
+            )
+
+        else:
+            return
+
+        self.refresh_session_view()
+
+    def set_session(
+        self,
+        session: ObserverSession,
+    ):
+        self.session = session
+        self.refresh_session_view()
 
     def set_session(
         self,
