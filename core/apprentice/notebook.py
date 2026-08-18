@@ -20,6 +20,11 @@ class ApprenticeNotebook:
                 answer=answer,
             )
         )
+    def summary(self):
+
+        return (
+        f"Mission: {self.answers[0]}"
+    )    
 
     def answer_for(self, lesson_id: str):
         for entry in self.entries:

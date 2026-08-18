@@ -238,7 +238,6 @@ class Project:
                 }
                 for objective in self.objectives
             ],
-            
             "collective_training_objectives": [
     {
         "id": cto.id,

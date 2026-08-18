@@ -123,7 +123,9 @@ class ExerciseAssurance:
                         severity="Critical",
                         category="Master Events List",
                         item=item_name,
-                        message="The inject does not have an exercise time.",
+                        message=(
+                            "The inject does not have an exercise time."
+                        ),
                         recommendation=(
                             "Assign an exercise time so the planned sequence "
                             "can be reproduced."

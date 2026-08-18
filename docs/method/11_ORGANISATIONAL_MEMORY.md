@@ -1,0 +1,1 @@
+Knowledge has little value if it cannot be rediscovered, understood and applied.

@@ -65,11 +65,11 @@ class ObserverSession:
             )
 
     def set_current_inject(
-        self,
-        inject_number: int | None,
+    self,
+    inject_number: int | None,
     ):
         self.current_inject_number = inject_number
-
+    
     def set_current_activity(
         self,
         activity_id: str,

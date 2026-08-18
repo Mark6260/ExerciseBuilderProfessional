@@ -1,0 +1,1 @@
+Knowledge is not owned. It is held in trust for those who follow.

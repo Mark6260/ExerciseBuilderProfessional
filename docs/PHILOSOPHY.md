@@ -112,4 +112,8 @@ Exercise Director is built on the belief that preparedness is not an accident. I
 
 ---
 
+"Every line of code should make it easier to prepare people for operations."
+
+---
+
 **Better prepared today. Stronger tomorrow.**

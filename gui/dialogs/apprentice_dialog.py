@@ -2,85 +2,155 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
     QLabel,
+    QPlainTextEdit,
     QPushButton,
     QVBoxLayout,
 )
 
 from core.apprentice import ApprenticeCurriculum
+from core.language import BritishArmy
 
 
 class ApprenticeDialog(QDialog):
     """
-    Introduces the Apprentice and presents the first
-    lesson from the Exercise Director curriculum.
+    Presents the first professional question, captures the answer,
+    and confirms what the Apprentice has understood.
     """
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self.setWindowTitle("The Apprentice")
-        self.setMinimumWidth(560)
+        self.setMinimumWidth(620)
+        self.resize(720, 620)
 
         self.curriculum = ApprenticeCurriculum()
-        lesson = self.curriculum.current_lesson
+        self.lesson = self.curriculum.current_lesson
+        self.profession = BritishArmy
 
-        title = QLabel("Welcome to the Workshop.")
-        title.setStyleSheet(
+        self.answer_text = ""
+        self.answer_confirmed = False
+
+        self.title_label = QLabel(
+            "Welcome to the Workshop."
+        )
+        self.title_label.setStyleSheet(
             "font-size: 22px; font-weight: bold;"
         )
 
-        introduction = QLabel(
+        self.introduction_label = QLabel(
             "I'm your Apprentice.\n\n"
             "I won't replace your experience.\n"
             "I won't make operational decisions.\n"
             "I won't tell you how to run your exercise.\n\n"
-            "I'll ask the questions that experienced "
-            "Exercise Directors ask themselves."
+            "I'll ask the questions that help experienced "
+            "Exercise Directors think."
         )
-        introduction.setWordWrap(True)
+        self.introduction_label.setWordWrap(True)
 
-        lesson_heading = QLabel(
-            f"Lesson {lesson.lesson_id}: {lesson.title}"
+        self.lesson_heading = QLabel(
+            f"Lesson {self.lesson.lesson_id}: "
+            f"{self.lesson.title}"
         )
-        lesson_heading.setStyleSheet(
+        self.lesson_heading.setStyleSheet(
             "font-size: 16px; font-weight: bold;"
         )
 
-        lesson_purpose = QLabel(lesson.purpose)
-        lesson_purpose.setWordWrap(True)
-
-        lesson_question = QLabel(
-            f"<b>{lesson.question}</b>"
+        self.lesson_purpose = QLabel(
+            self.lesson.purpose
         )
-        lesson_question.setWordWrap(True)
-        lesson_question.setStyleSheet(
+        self.lesson_purpose.setWordWrap(True)
+
+        self.lesson_question = QLabel(
+            f"<b>{self.profession.lesson_001_question}</b>"
+        )
+        self.lesson_question.setWordWrap(True)
+        self.lesson_question.setStyleSheet(
             "font-size: 17px;"
         )
 
-        lesson_explanation = QLabel(
-            lesson.explanation
+        self.answer_input = QPlainTextEdit()
+        self.answer_input.setPlaceholderText(
+            "Describe the mission the unit is preparing to conduct..."
         )
-        lesson_explanation.setWordWrap(True)
+        self.answer_input.setMinimumHeight(160)
 
-        begin_button = QPushButton(
-            "Begin the Conversation"
+        self.lesson_explanation = QLabel(
+            self.lesson.explanation
         )
-        begin_button.clicked.connect(self.accept)
+        self.lesson_explanation.setWordWrap(True)
+
+        self.acknowledgement_label = QLabel()
+        self.acknowledgement_label.setWordWrap(True)
+        self.acknowledgement_label.setStyleSheet(
+            "font-size: 16px;"
+        )
+        self.acknowledgement_label.hide()
+
+        self.continue_button = QPushButton(
+            "Record Mission"
+        )
+        self.continue_button.clicked.connect(
+            self.continue_conversation
+        )
 
         layout = QVBoxLayout()
         layout.setSpacing(12)
 
-        layout.addWidget(title)
-        layout.addWidget(introduction)
+        layout.addWidget(self.title_label)
+        layout.addWidget(self.introduction_label)
         layout.addSpacing(8)
-        layout.addWidget(lesson_heading)
-        layout.addWidget(lesson_purpose)
-        layout.addWidget(lesson_question)
-        layout.addWidget(lesson_explanation)
+        layout.addWidget(self.lesson_heading)
+        layout.addWidget(self.lesson_purpose)
+        layout.addWidget(self.lesson_question)
+        layout.addWidget(self.answer_input)
+        layout.addWidget(self.lesson_explanation)
+        layout.addWidget(self.acknowledgement_label)
         layout.addStretch()
         layout.addWidget(
-            begin_button,
+            self.continue_button,
             alignment=Qt.AlignmentFlag.AlignRight,
         )
 
         self.setLayout(layout)
+
+    def continue_conversation(self):
+        if self.answer_confirmed:
+            self.accept()
+            return
+
+        self.answer_text = (
+            self.answer_input
+            .toPlainText()
+            .strip()
+        )
+        self.notebook_summary = (
+            "✓ Mission\n\n"
+            f"    {self.answer_text}"
+        )
+
+        if not self.answer_text:
+            self.answer_input.setFocus()
+            return
+
+        self.answer_confirmed = True
+
+        self.lesson_question.hide()
+        self.answer_input.hide()
+        self.lesson_explanation.hide()
+
+        self.acknowledgement_label.setText(
+            "<b>Understood.</b><br><br>"
+            "Mission recorded:<br><br>"
+            f"{self.answer_text}<br><br>"
+            "Let's now examine the readiness required "
+            "to prepare the unit for that mission."
+        )
+        self.acknowledgement_label.show()
+
+        self.continue_button.setText(
+            "Continue to Readiness Analysis"
+        )
+
+    def answer(self):
+        return self.answer_text
