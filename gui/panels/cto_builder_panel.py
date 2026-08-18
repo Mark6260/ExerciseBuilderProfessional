@@ -1726,30 +1726,119 @@ class CTOBuilderPanel(QWidget):
         )
 
     def _refresh_design_review(self):
-        reasons = (
-            self.cto.collective_test_reasons()
+        reasons = self.cto.collective_test_reasons()
+
+        success_gaps = []
+        critical_gaps = []
+        advisories = []
+
+        # -------------------------------------------------
+        # Success-factor assurance gaps
+        # -------------------------------------------------
+
+        for task in self.cto.collective_tasks:
+            for factor in task.success_factors:
+                if not factor.metrics:
+                    success_gaps.append(
+                        (
+                            task.title,
+                            factor.description,
+                            None,
+                            "No observable metric defined.",
+                        )
+                    )
+                    continue
+
+                for metric in factor.metrics:
+                    if not metric.evidence_requirements:
+                        success_gaps.append(
+                            (
+                                task.title,
+                                factor.description,
+                                metric.description,
+                                "No evidence requirement defined.",
+                            )
+                        )
+
+        # -------------------------------------------------
+        # Critical-error assurance gaps
+        # -------------------------------------------------
+
+        for task in self.cto.collective_tasks:
+            for error in task.critical_errors:
+                if not error.metrics:
+                    critical_gaps.append(
+                        (
+                            task.title,
+                            error.description,
+                            None,
+                            "No observable metric defined for critical error.",
+                        )
+                    )
+                    continue
+
+                for metric in error.metrics:
+                    if not metric.evidence_requirements:
+                        critical_gaps.append(
+                            (
+                                task.title,
+                                error.description,
+                                metric.description,
+                                "No evidence requirement defined for critical-error metric.",
+                            )
+                        )
+
+        # -------------------------------------------------
+        # Advisory observations
+        # -------------------------------------------------
+
+        if not self.cto.conditions.strip():
+            advisories.append(
+                "No conditions have been defined. Consider whether the "
+                "performance context, constraints or environment should "
+                "be made explicit."
+            )
+
+        if self.cto.challenge_level is None:
+            advisories.append(
+                "No challenge level has been specified. This is acceptable "
+                "where the training methodology does not require one."
+            )
+
+        if not self.cto.critical_errors():
+            advisories.append(
+                "No critical errors have been identified. This does not "
+                "block exercise design, but consider whether any failure "
+                "would be serious enough to require explicit observation."
+            )
+
+        structure_complete = (
+            self.cto.passes_collective_structure_test()
+        )
+        success_complete = (
+            self.cto.has_evidence_coverage()
+        )
+        critical_complete = (
+            self.cto.has_critical_error_coverage()
+        )
+
+        ready = (
+            structure_complete
+            and success_complete
+            and critical_complete
         )
 
         lines = [
             "CTO DESIGN REVIEW",
             "",
             "TRAINING AUDIENCE",
-            (
-                self.cto.training_audience
-                or "-"
-            ),
+            self.cto.training_audience or "-",
             "",
             "REQUIRED COLLECTIVE OUTCOME",
-            (
-                self.cto.required_outcome
-                or "-"
-            ),
+            self.cto.required_outcome or "-",
             "",
             "CONDITIONS",
-            (
-                self.cto.conditions
-                or "-"
-            ),
+            self.cto.conditions or "-",
             "",
             "CHALLENGE LEVEL",
             (
@@ -1759,17 +1848,18 @@ class CTOBuilderPanel(QWidget):
             ),
             "",
             "COLLECTIVE STRUCTURE",
+            (
+                "Complete"
+                if structure_complete
+                else "Needs development"
+            ),
         ]
 
         if reasons:
             for reason in reasons:
                 lines.append(
-                    f"- {reason}"
+                    f"  - {reason}"
                 )
-        else:
-            lines.append(
-                "Complete"
-            )
 
         lines.extend(
             [
@@ -1777,32 +1867,118 @@ class CTOBuilderPanel(QWidget):
                 "SUCCESS EVIDENCE COVERAGE",
                 (
                     "Complete"
-                    if self.cto.has_evidence_coverage()
+                    if success_complete
                     else "Needs development"
                 ),
                 "",
                 "CRITICAL ERROR COVERAGE",
                 (
                     "Complete"
-                    if self.cto.has_critical_error_coverage()
+                    if critical_complete
                     else "Needs development"
                 ),
                 "",
-                "DESIGN STATUS",
+                "ASSURANCE GAPS",
             ]
         )
 
-        if (
-            self.cto.passes_collective_structure_test()
-            and self.cto.has_evidence_coverage()
-            and self.cto.has_critical_error_coverage()
-        ):
+        if not reasons and not success_gaps and not critical_gaps:
             lines.append(
-                "Ready for Exercise Design"
+                "None identified"
             )
         else:
+            if reasons:
+                lines.append(
+                    "Collective Structure"
+                )
+                for reason in reasons:
+                    lines.append(
+                        f"  - {reason}"
+                    )
+                lines.append("")
+
+            for task_title, factor_description, metric_description, gap in success_gaps:
+                lines.append(
+                    f"Collective Task: {task_title}"
+                )
+                lines.append(
+                    f"  Success Factor: {factor_description}"
+                )
+                if metric_description:
+                    lines.append(
+                        f"  Observable Metric: {metric_description}"
+                    )
+                lines.append(
+                    f"  GAP: {gap}"
+                )
+                lines.append("")
+
+            for task_title, error_description, metric_description, gap in critical_gaps:
+                lines.append(
+                    f"Collective Task: {task_title}"
+                )
+                lines.append(
+                    f"  Critical Error: {error_description}"
+                )
+                if metric_description:
+                    lines.append(
+                        f"  Observable Metric: {metric_description}"
+                    )
+                lines.append(
+                    f"  GAP: {gap}"
+                )
+                lines.append("")
+
+        lines.extend(
+            [
+                "",
+                "ADVISORY OBSERVATIONS",
+            ]
+        )
+
+        if advisories:
+            for advisory in advisories:
+                lines.append(
+                    f"  - {advisory}"
+                )
+        else:
             lines.append(
-                "Needs Development"
+                "None identified"
+            )
+
+        lines.extend(
+            [
+                "",
+                "DESIGN STATUS",
+                (
+                    "READY FOR EXERCISE DESIGN"
+                    if ready
+                    else "NEEDS DEVELOPMENT"
+                ),
+            ]
+        )
+
+        if ready:
+            lines.extend(
+                [
+                    "",
+                    (
+                        "The CTO meets the current structural and evidence "
+                        "coverage checks. This is an assurance gate for "
+                        "progression into exercise design; professional "
+                        "judgement remains with the Exercise Director."
+                    ),
+                ]
+            )
+        else:
+            lines.extend(
+                [
+                    "",
+                    (
+                        "Resolve the assurance gaps above before treating "
+                        "the CTO as ready for exercise design."
+                    ),
+                ]
             )
 
         self.design_review_text.setPlainText(
