@@ -13,7 +13,9 @@ from PySide6.QtWidgets import (
 )
 
 from core.collective_training_objective import (
+    CollectiveTask,
     CollectiveTrainingObjective,
+    SuccessFactor,
 )
 
 
@@ -33,8 +35,12 @@ class CTOBuilderPanel(QWidget):
             title="Untitled CTO"
         )
 
+        self.current_collective_task = None
+
+        # Build all widgets first
         self._build_ui()
 
+        # Then connect signals
         self.training_audience_input.textChanged.connect(
             self._update_training_audience
         )
@@ -49,6 +55,17 @@ class CTOBuilderPanel(QWidget):
 
         self.challenge_level_input.valueChanged.connect(
             self._update_challenge_level
+        )
+
+        self.add_success_factor_button.clicked.connect(
+            self._add_success_factor
+        )
+
+        self.add_collective_task_button.clicked.connect(
+            self._add_collective_task
+        )
+        self.collective_task_input.textChanged.connect(
+            self._update_add_collective_task_button
         )
 
     def _build_ui(self):
@@ -268,11 +285,139 @@ class CTOBuilderPanel(QWidget):
         )
 
         # -------------------------------------------------
-        # Stages 4-7 - placeholders for later bricks
+        # Stage 4 - Collective Tasks & Success
         # -------------------------------------------------
 
-        for _ in range(4):
+        tasks_page = QWidget()
+
+        tasks_layout = QVBoxLayout(
+            tasks_page
+        )
+
+        task_guidance = QLabel(
+            "Identify something the collective must do together "
+            "to achieve the required outcome."
+        )
+        task_guidance.setWordWrap(
+            True
+        )
+
+        task_label = QLabel(
+            "COLLECTIVE TASK"
+        )
+        task_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        self.collective_task_input = QLineEdit()
+        self.collective_task_input.setPlaceholderText(
+            "e.g. Synchronise Activity"
+        )
+
+        success_label = QLabel(
+            "WHAT DOES SUCCESSFUL COLLECTIVE "
+            "PERFORMANCE LOOK LIKE?"
+        )
+        success_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+        success_label.setWordWrap(
+            True
+        )
+
+        self.success_factor_input = QTextEdit()
+        self.success_factor_input.setPlaceholderText(
+            "e.g. Activity is synchronised in time and space"
+        )
+        self.success_factor_input.setMaximumHeight(
+            100
+        )
+
+        self.add_success_factor_button = QPushButton(
+            "ADD SUCCESS FACTOR"
+        )
+
+        current_task_label = QLabel(
+            "CURRENT COLLECTIVE TASK"
+        )
+        current_task_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        self.current_task_summary = QTextEdit()
+        self.current_task_summary.setReadOnly(
+            True
+        )
+        self.current_task_summary.setPlaceholderText(
+            "No collective task has been added yet."
+        )
+
+        self.add_collective_task_button = QPushButton(
+            "ADD COLLECTIVE TASK"
+        )
+        self.add_collective_task_button.setEnabled(
+            False
+        )
+        cto_tasks_label = QLabel(
+            "CTO TASKS"
+        )
+        cto_tasks_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        self.cto_tasks_summary = QTextEdit()
+        self.cto_tasks_summary.setReadOnly(
+            True
+        )
+        self.cto_tasks_summary.setPlaceholderText(
+            "No collective tasks have been added yet."
+        )
+
+        tasks_layout.addWidget(
+            task_guidance
+        )
+        tasks_layout.addWidget(
+            task_label
+        )
+        tasks_layout.addWidget(
+            self.collective_task_input
+        )
+        tasks_layout.addWidget(
+            success_label
+        )
+        tasks_layout.addWidget(
+            self.success_factor_input
+        )
+        tasks_layout.addWidget(
+            self.add_success_factor_button
+        )
+        tasks_layout.addWidget(
+            current_task_label
+        )
+        tasks_layout.addWidget(
+            self.current_task_summary
+        )
+        tasks_layout.addWidget(
+            self.add_collective_task_button
+        )
+        tasks_layout.addWidget(
+            cto_tasks_label
+        )
+
+        tasks_layout.addWidget(
+            self.cto_tasks_summary
+        )
+        self.page_stack.addWidget(
+            tasks_page
+        )
+
+        # -------------------------------------------------
+        # Stages 5-7 - placeholders for later bricks
+        # -------------------------------------------------
+
+        for _ in range(3):
             page = QWidget()
+
             page_layout = QVBoxLayout(
                 page
             )
@@ -353,7 +498,6 @@ class CTOBuilderPanel(QWidget):
             work_frame,
             3,
         )
-
         # -------------------------------------------------
         # Connections
         # -------------------------------------------------
@@ -380,6 +524,52 @@ class CTOBuilderPanel(QWidget):
 
         self._show_stage(
             0
+        )
+    def _update_add_collective_task_button(
+        self,
+        *_,
+    ):
+        has_title = bool(
+            self.collective_task_input
+            .text()
+            .strip()
+        )
+
+        has_success_factor = bool(
+            self.current_collective_task
+            and self.current_collective_task.success_factors
+        )
+
+        self.add_collective_task_button.setEnabled(
+            has_title and has_success_factor
+        )
+
+    def _refresh_cto_tasks_summary(self):
+        if not self.cto.collective_tasks:
+            self.cto_tasks_summary.setPlainText(
+                "No collective tasks have been added yet."
+            )
+            return
+
+        lines = []
+
+        for index, task in enumerate(
+            self.cto.collective_tasks,
+            start=1,
+        ):
+            lines.append(
+                f"{index}. {task.title}"
+            )
+
+            for factor in task.success_factors:
+                lines.append(
+                    f"   - {factor.description}"
+                )
+
+            lines.append("")
+
+        self.cto_tasks_summary.setPlainText(
+            "\n".join(lines).strip()
         )
 
     def _update_training_audience(
@@ -592,4 +782,90 @@ class CTOBuilderPanel(QWidget):
 
         self.next_button.setEnabled(
             row < self.stage_list.count() - 1
+        )
+    def _ensure_current_collective_task(self):
+        task_title = (
+            self.collective_task_input
+            .text()
+            .strip()
+        )
+
+        if not task_title:
+            return None
+
+        if self.current_collective_task is None:
+            self.current_collective_task = CollectiveTask(
+                title=task_title
+            )
+        else:
+            self.current_collective_task.title = (
+                task_title
+            )
+        return self.current_collective_task
+
+    def _add_success_factor(self):
+        task = self._ensure_current_collective_task()
+
+        if task is None:
+            return
+
+        description = (
+            self.success_factor_input
+            .toPlainText()
+            .strip()
+        )
+
+        if not description:
+            return
+
+        task.success_factors.append(
+            SuccessFactor(
+                description=description
+            )
+        )
+
+        self.success_factor_input.clear()
+
+        self._refresh_current_task_summary()
+        self._update_add_collective_task_button()
+
+
+    def _add_collective_task(self):
+        task = self._ensure_current_collective_task()
+
+        if task is None:
+            return
+
+        self.cto.collective_tasks.append(
+            task
+        )
+
+        self.current_collective_task = None
+
+        self.collective_task_input.clear()
+        self.success_factor_input.clear()
+
+        self._refresh_current_task_summary()
+        self._refresh_cto_tasks_summary()
+        self._update_add_collective_task_button()
+    def _refresh_current_task_summary(self):
+        task = self.current_collective_task
+
+        if task is None:
+            self.current_task_summary.setPlainText(
+                "No collective task is currently being developed."
+            )
+            return
+
+        lines = [
+            task.title,
+        ]
+
+        for factor in task.success_factors:
+            lines.append(
+                f"- {factor.description}"
+            )
+
+        self.current_task_summary.setPlainText(
+            "\n".join(lines)
         )
