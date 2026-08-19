@@ -62,6 +62,19 @@
                         }
                     ],
                     "critical_errors": []
+                },
+                {
+                    "id": "8923176f-adb5-4a04-a9ab-443905d6af68",
+                    "title": "Orders Dissemination",
+                    "description": "",
+                    "success_factors": [
+                        {
+                            "id": "9ea5b935-1faf-4e2b-9f9e-d461b5c633b7",
+                            "description": "Correct orders delivery, accurate and on time",
+                            "metrics": []
+                        }
+                    ],
+                    "critical_errors": []
                 }
             ]
         }

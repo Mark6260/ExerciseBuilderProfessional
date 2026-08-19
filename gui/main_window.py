@@ -30,6 +30,7 @@ from gui.panels.apprentice_notebook_panel import (
     ApprenticeNotebookPanel,
 )
 from gui.panels.cto_builder_panel import CTOBuilderPanel
+from gui.panels.exercise_design_panel import ExerciseDesignPanel
 from gui.panels.objectives_panel import ObjectivesPanel
 from gui.panels.project_panel import ProjectPanel
 from gui.panels.observer_panel import ObserverPanel
@@ -117,6 +118,7 @@ class MainWindow(QMainWindow):
             self._handle_evidence_admitted
         )
         self.cto_builder_panel = CTOBuilderPanel()
+        self.exercise_design_panel = ExerciseDesignPanel()
         self.observation_review_panel.set_project(
             self.current_project
         )
@@ -180,6 +182,11 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(
             self.cto_builder_panel,
             "CTO Builder",
+        )
+
+        self.tabs.addTab(
+            self.exercise_design_panel,
+            "Exercise Design",
         )
 
         self.setCentralWidget(self.tabs)
@@ -264,6 +271,10 @@ class MainWindow(QMainWindow):
         )
 
         self.cto_builder_panel.set_project(
+            self.current_project
+        )
+
+        self.exercise_design_panel.set_project(
             self.current_project
         )
 
