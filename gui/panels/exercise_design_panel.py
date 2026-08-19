@@ -22,12 +22,13 @@ from PySide6.QtWidgets import (
 from core.exercise_design_opportunity import ExerciseDesignOpportunity
 from core.candidate_exercise_activity import CandidateExerciseActivity
 from core.candidate_mel_mil_activity import CandidateMelMilActivity
-from core.inject import Inject
+from core.inject import Inject, InjectStatus
 from core.mel_mil_promotion import MelMilPromotion
 
 
 class ExerciseDesignPanel(QWidget):
     inject_promoted = Signal(int)
+    inject_updated = Signal(int)
 
     """
     Derived exercise-design view built from the assured CTO.
@@ -796,7 +797,7 @@ class ExerciseDesignPanel(QWidget):
 
         self.mel_activity_tree = QTreeWidget()
         self.mel_activity_tree.setColumnCount(
-            6
+            7
         )
         self.mel_activity_tree.setHeaderLabels(
             [
@@ -806,6 +807,7 @@ class ExerciseDesignPanel(QWidget):
                 "Phase / Timing",
                 "Assurance Coverage",
                 "Workspace Status",
+                "Development Status",
             ]
         )
         self.mel_activity_tree.setMinimumHeight(
@@ -847,6 +849,26 @@ class ExerciseDesignPanel(QWidget):
             self._edit_selected_mel_activity
         )
 
+        self.develop_mel_draft_button = QPushButton(
+            "DEVELOP WORKSPACE DRAFT"
+        )
+        self.develop_mel_draft_button.setEnabled(
+            False
+        )
+        self.develop_mel_draft_button.clicked.connect(
+            self._develop_selected_workspace_draft
+        )
+
+        self.mark_mel_ready_button = QPushButton(
+            "MARK READY FOR EXCON"
+        )
+        self.mark_mel_ready_button.setEnabled(
+            False
+        )
+        self.mark_mel_ready_button.clicked.connect(
+            self._mark_selected_workspace_draft_ready
+        )
+
         self.promote_mel_activity_button = QPushButton(
             "PROMOTE TO MEL/MIL DRAFT"
         )
@@ -870,6 +892,12 @@ class ExerciseDesignPanel(QWidget):
         mel_manage_layout.addStretch()
         mel_manage_layout.addWidget(
             self.promote_mel_activity_button
+        )
+        mel_manage_layout.addWidget(
+            self.develop_mel_draft_button
+        )
+        mel_manage_layout.addWidget(
+            self.mark_mel_ready_button
         )
         mel_manage_layout.addWidget(
             self.edit_mel_activity_button
@@ -976,6 +1004,12 @@ class ExerciseDesignPanel(QWidget):
                 False
             )
             self.promote_mel_activity_button.setEnabled(
+                False
+            )
+            self.develop_mel_draft_button.setEnabled(
+                False
+            )
+            self.mark_mel_ready_button.setEnabled(
                 False
             )
         self._clear_candidate_activity_editor()
@@ -2539,6 +2573,28 @@ class ExerciseDesignPanel(QWidget):
                 else "Candidate only"
             )
 
+            workspace_inject = self._workspace_inject_for_promotion(
+                promotion
+            )
+
+            if workspace_inject is None:
+                development_status = (
+                    "Not promoted"
+                    if promotion is None
+                    else "Workspace row missing"
+                )
+            elif workspace_inject.status == InjectStatus.READY:
+                development_status = "READY FOR EXCON"
+            else:
+                gaps = self._workspace_draft_gaps(
+                    workspace_inject
+                )
+                development_status = (
+                    "Draft complete"
+                    if not gaps
+                    else f"Draft — {len(gaps)} field(s) required"
+                )
+
             item = QTreeWidgetItem(
                 [
                     activity.title,
@@ -2547,6 +2603,7 @@ class ExerciseDesignPanel(QWidget):
                     phase_timing,
                     assurance_coverage,
                     workspace_status,
+                    development_status,
                 ]
             )
             item.setToolTip(
@@ -2607,6 +2664,26 @@ class ExerciseDesignPanel(QWidget):
         self.promote_mel_activity_button.setEnabled(
             activity is not None
             and not already_promoted
+        )
+
+        promotion = (
+            self._promotion_for_mel_activity(
+                activity.id
+            )
+            if activity is not None
+            else None
+        )
+        workspace_inject = self._workspace_inject_for_promotion(
+            promotion
+        )
+
+        self.develop_mel_draft_button.setEnabled(
+            workspace_inject is not None
+        )
+
+        self.mark_mel_ready_button.setEnabled(
+            workspace_inject is not None
+            and workspace_inject.status != InjectStatus.READY
         )
 
     def _select_mel_activity_by_id(
@@ -2870,6 +2947,45 @@ class ExerciseDesignPanel(QWidget):
             False
         )
 
+    def _workspace_inject_for_promotion(
+        self,
+        promotion,
+    ):
+        if self.project is None or promotion is None:
+            return None
+
+        for inject in self.project.injects:
+            if inject.number == promotion.inject_number:
+                return inject
+
+        return None
+
+    @staticmethod
+    def _workspace_draft_gaps(
+        inject,
+    ):
+        if inject is None:
+            return [
+                "Workspace draft is not available."
+            ]
+
+        checks = [
+            ("Title", inject.title),
+            ("Exercise Time", inject.exercise_time),
+            ("Phase", inject.phase),
+            ("Source", inject.source),
+            ("Method", inject.method),
+            ("Audience", inject.audience),
+            ("Inject Content", inject.inject_text),
+            ("Expected Action", inject.expected_action),
+        ]
+
+        return [
+            label
+            for label, value in checks
+            if not str(value or "").strip()
+        ]
+
     def _promotion_for_mel_activity(
         self,
         candidate_mel_mil_activity_id,
@@ -2934,6 +3050,7 @@ class ExerciseDesignPanel(QWidget):
             expected_action=activity.intended_effect,
             facilitator_notes=activity.control_notes,
             attachments=[],
+            status=InjectStatus.PLANNED,
         )
 
         promotion = MelMilPromotion(
@@ -2973,6 +3090,303 @@ class ExerciseDesignPanel(QWidget):
                 f"Draft #{inject_number} has been added to the Exercise "
                 "Workspace.\\n\\n"
                 "Its design and assurance lineage has been retained."
+            ),
+        )
+
+    def _develop_selected_workspace_draft(self):
+        activity = self._selected_mel_activity()
+
+        if activity is None:
+            return
+
+        promotion = self._promotion_for_mel_activity(
+            activity.id
+        )
+        inject = self._workspace_inject_for_promotion(
+            promotion
+        )
+
+        if promotion is None or inject is None:
+            QMessageBox.warning(
+                self,
+                "Develop Workspace Draft",
+                "Promote this Candidate MEL/MIL Activity into the "
+                "workspace before developing it.",
+            )
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(
+            f"Develop MEL/MIL Draft #{inject.number}"
+        )
+        dialog.resize(
+            820,
+            760,
+        )
+
+        dialog_layout = QVBoxLayout(
+            dialog
+        )
+        form = QFormLayout()
+
+        title_input = QLineEdit(
+            inject.title
+        )
+        time_input = QLineEdit(
+            inject.exercise_time
+        )
+        phase_input = QLineEdit(
+            inject.phase
+        )
+        source_input = QLineEdit(
+            inject.source
+        )
+        method_input = QLineEdit(
+            inject.method
+        )
+        audience_input = QLineEdit(
+            inject.audience
+        )
+        category_input = QLineEdit(
+            inject.category
+        )
+
+        content_input = QTextEdit()
+        content_input.setPlainText(
+            inject.inject_text
+        )
+        content_input.setMinimumHeight(
+            150
+        )
+
+        expected_input = QTextEdit()
+        expected_input.setPlainText(
+            inject.expected_action
+        )
+        expected_input.setMinimumHeight(
+            120
+        )
+
+        notes_input = QTextEdit()
+        notes_input.setPlainText(
+            inject.facilitator_notes
+        )
+        notes_input.setMinimumHeight(
+            100
+        )
+
+        form.addRow(
+            "Title:",
+            title_input,
+        )
+        form.addRow(
+            "Exercise Time:",
+            time_input,
+        )
+        form.addRow(
+            "Phase:",
+            phase_input,
+        )
+        form.addRow(
+            "Source:",
+            source_input,
+        )
+        form.addRow(
+            "Method:",
+            method_input,
+        )
+        form.addRow(
+            "Audience:",
+            audience_input,
+        )
+        form.addRow(
+            "Category:",
+            category_input,
+        )
+        form.addRow(
+            "Inject / Event Content:",
+            content_input,
+        )
+        form.addRow(
+            "Expected Action / Response:",
+            expected_input,
+        )
+        form.addRow(
+            "Facilitator / ExCon Notes:",
+            notes_input,
+        )
+
+        lineage_label = QLabel(
+            "ASSURANCE PROVENANCE\n"
+            f"Candidate MEL/MIL: {activity.title}\n"
+            f"Candidate Exercise Activity ID: "
+            f"{promotion.candidate_activity_id or '-'}\n"
+            f"Design Opportunity ID: "
+            f"{promotion.design_opportunity_id or '-'}\n"
+            f"CTO ID: {promotion.cto_id or '-'}\n"
+            f"Observable Metrics: {len(promotion.metric_ids)}\n"
+            "Evidence Requirements: "
+            f"{len(promotion.evidence_requirement_ids)}"
+        )
+        lineage_label.setWordWrap(
+            True
+        )
+        lineage_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        protection_label = QLabel(
+            "Editing this workspace draft changes the executable MEL/MIL "
+            "item only. Its Candidate MEL/MIL source and upstream assurance "
+            "lineage remain unchanged."
+        )
+        protection_label.setWordWrap(
+            True
+        )
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(
+            dialog.accept
+        )
+        buttons.rejected.connect(
+            dialog.reject
+        )
+
+        dialog_layout.addLayout(
+            form
+        )
+        dialog_layout.addWidget(
+            lineage_label
+        )
+        dialog_layout.addWidget(
+            protection_label
+        )
+        dialog_layout.addWidget(
+            buttons
+        )
+
+        if (
+            dialog.exec()
+            != QDialog.DialogCode.Accepted
+        ):
+            return
+
+        inject.title = title_input.text().strip()
+        inject.exercise_time = time_input.text().strip()
+        inject.phase = phase_input.text().strip()
+        inject.source = source_input.text().strip()
+        inject.method = method_input.text().strip()
+        inject.audience = audience_input.text().strip()
+        inject.category = category_input.text().strip()
+        inject.inject_text = (
+            content_input
+            .toPlainText()
+            .strip()
+        )
+        inject.expected_action = (
+            expected_input
+            .toPlainText()
+            .strip()
+        )
+        inject.facilitator_notes = (
+            notes_input
+            .toPlainText()
+            .strip()
+        )
+
+        # Any substantive edit returns the workspace item to draft unless
+        # the user deliberately passes the readiness gate again.
+        inject.status = InjectStatus.PLANNED
+
+        self._refresh_mel_activities()
+        self._select_mel_activity_by_id(
+            activity.id
+        )
+
+        self.inject_updated.emit(
+            inject.number
+        )
+
+    def _mark_selected_workspace_draft_ready(self):
+        activity = self._selected_mel_activity()
+
+        if activity is None:
+            return
+
+        promotion = self._promotion_for_mel_activity(
+            activity.id
+        )
+        inject = self._workspace_inject_for_promotion(
+            promotion
+        )
+
+        if inject is None:
+            return
+
+        gaps = self._workspace_draft_gaps(
+            inject
+        )
+
+        if gaps:
+            gap_text = "\n".join(
+                f"• {gap}"
+                for gap in gaps
+            )
+
+            QMessageBox.warning(
+                self,
+                "MEL/MIL Draft Not Ready",
+                "This workspace draft cannot be released to ExCon yet.\n\n"
+                "Complete the following fields:\n\n"
+                f"{gap_text}",
+            )
+            return
+
+        answer = QMessageBox.question(
+            self,
+            "Mark Ready for ExCon",
+            (
+                f"Release MEL/MIL Draft #{inject.number} as READY FOR "
+                "EXCON?\n\n"
+                f"{inject.title}\n\n"
+                "This records that the executable workspace item has the "
+                "minimum delivery information required. The underlying "
+                "assurance lineage remains unchanged."
+            ),
+            (
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No
+            ),
+            QMessageBox.StandardButton.No,
+        )
+
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        inject.status = InjectStatus.READY
+
+        if inject.category == "Assured Design Draft":
+            inject.category = "Assured MEL/MIL"
+
+        self._refresh_mel_activities()
+        self._select_mel_activity_by_id(
+            activity.id
+        )
+
+        self.inject_updated.emit(
+            inject.number
+        )
+
+        QMessageBox.information(
+            self,
+            "Ready for ExCon",
+            (
+                f"MEL/MIL Draft #{inject.number} is now READY FOR EXCON.\n\n"
+                "Any later edit to the workspace draft will return it to "
+                "PLANNED and require the readiness gate to be passed again."
             ),
         )
 
