@@ -58,7 +58,6 @@ class MainWindow(QMainWindow):
 
         self.update_project_view()
         self.show_apprentice()
-        self.observer_panel = ObserverPanel()
     def create_menu(self):
         file_menu = self.menuBar().addMenu("File")
 
@@ -126,6 +125,10 @@ class MainWindow(QMainWindow):
             self._handle_design_inject_updated
         )
         self.observation_review_panel.set_project(
+            self.current_project
+        )
+
+        self.observer_panel.set_project(
             self.current_project
         )
         self.observer_panel.observation_recorded.connect(
@@ -262,16 +265,30 @@ class MainWindow(QMainWindow):
 
         inject = self.current_project.injects[row]
 
+        # Keep Observer Mode on the exact live project object being used
+        # by the workspace before resolving any assurance lineage.
+        self.observer_panel.set_project(
+            self.current_project
+        )
+
         self.observer_panel.session.set_current_inject(
             inject.number
         )
 
-        self.observer_panel.refresh_session_view()
-        inject = self.current_project.injects[row]
-
-        self.observer_panel.session.set_current_inject(
-            inject.number
+        self.observer_panel.session.set_current_activity(
+            ""
         )
+
+        for promotion in getattr(
+            self.current_project,
+            "mel_mil_promotions",
+            [],
+        ):
+            if str(promotion.inject_number) == str(inject.number):
+                self.observer_panel.session.set_current_activity(
+                    promotion.candidate_mel_mil_activity_id
+                )
+                break
 
         self.observer_panel.session.clear_current_objectives()
 

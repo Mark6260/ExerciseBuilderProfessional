@@ -211,7 +211,16 @@ class Project:
     def save(self, filename):
         readiness_gap = self.operational_requirement.readiness.readiness_gap
 
+        # Backwards compatibility:
+        # Some live/legacy project states may still hold readiness_gap
+        # as a simple string rather than a ReadinessGap object.
+        if isinstance(readiness_gap, str):
+            readiness_gap = ReadinessGap(
+                shortfall=readiness_gap
+            )
+            
         project_data = {
+        
             "name": self.name,
 
             "operational_requirement": {

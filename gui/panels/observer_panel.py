@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 
 from core.observation.observer_session import ObserverSession
 from core.observation.observation import ObservationType
+from core.inject import InjectStatus
 
 
 class ObserverPanel(QWidget):
@@ -31,6 +32,8 @@ class ObserverPanel(QWidget):
         super().__init__(parent)
 
         self.session: ObserverSession | None = None
+        self.project = None
+        self.assurance_tasking = None
 
         self._build_ui()
 
@@ -44,32 +47,6 @@ class ObserverPanel(QWidget):
         self.update_location_button.clicked.connect(
             self._update_observer_location
         )
-    def _update_observer_location(self):
-        if self.session is None:
-            return
-
-        grid_reference = (
-            self.grid_input
-            .text()
-            .strip()
-        )
-
-        location_description = (
-            self.location_description_input
-            .text()
-            .strip()
-        )
-
-        if not grid_reference:
-            return
-
-        self.session.set_grid_location(
-            grid_reference,
-            location_description,
-        )
-
-        self.refresh_session_view()
-
     def _build_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(
@@ -219,6 +196,68 @@ class ObserverPanel(QWidget):
 
         main_layout.addWidget(
             activity_frame
+        )
+
+        # -------------------------------------------------
+        # Assurance tasking
+        # -------------------------------------------------
+
+        assurance_frame = QFrame()
+        assurance_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+        assurance_layout = QVBoxLayout(
+            assurance_frame
+        )
+
+        assurance_heading = QLabel(
+            "ASSURANCE TASKING"
+        )
+        assurance_heading.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        self.assurance_status_label = QLabel(
+            "No assured observer tasking for the current MEL/MIL item."
+        )
+        self.assurance_status_label.setWordWrap(True)
+
+        self.success_factor_label = QLabel(
+            "Success Factor: -"
+        )
+        self.success_factor_label.setWordWrap(True)
+
+        self.observable_metric_label = QLabel(
+            "Observable Metric: -"
+        )
+        self.observable_metric_label.setWordWrap(True)
+
+        self.evidence_requirement_label = QLabel(
+            "Evidence Requirement: -"
+        )
+        self.evidence_requirement_label.setWordWrap(True)
+
+        assurance_note = QLabel(
+            "Read-only assurance guidance. Record only what you actually "
+            "observe; Observer Mode does not make the assessment decision."
+        )
+        assurance_note.setWordWrap(True)
+        assurance_note.setStyleSheet(
+            "font-style: italic;"
+        )
+
+        for widget in (
+            assurance_heading,
+            self.assurance_status_label,
+            self.success_factor_label,
+            self.observable_metric_label,
+            self.evidence_requirement_label,
+            assurance_note,
+        ):
+            assurance_layout.addWidget(widget)
+
+        main_layout.addWidget(
+            assurance_frame
         )
 
         # -------------------------------------------------
@@ -504,12 +543,198 @@ class ObserverPanel(QWidget):
 
         self.refresh_session_view()
 
-    def set_session(
+    def set_project(self, project):
+        self.project = project
+        self.refresh_assurance_tasking()
+
+    def _find_promotion_for_inject(
         self,
-        session: ObserverSession,
+        inject_number,
     ):
-        self.session = session
-        self.refresh_session_view()
+        if self.project is None:
+            return None
+
+        wanted = str(inject_number)
+
+        for promotion in getattr(
+            self.project,
+            "mel_mil_promotions",
+            [],
+        ):
+            if str(promotion.inject_number) == wanted:
+                return promotion
+
+        return None
+
+    def _find_cto(self, cto_id: str):
+        if self.project is None:
+            return None
+
+        for cto in getattr(
+            self.project,
+            "collective_training_objectives",
+            [],
+        ):
+            if cto.id == cto_id:
+                return cto
+
+        return None
+
+    @staticmethod
+    def _find_success_factor(cto, success_factor_id: str):
+        if cto is None:
+            return None
+
+        for task in cto.collective_tasks:
+            for factor in task.success_factors:
+                if factor.id == success_factor_id:
+                    return factor
+
+        return None
+
+    @staticmethod
+    def _metric_texts(cto, metric_ids):
+        if cto is None:
+            return []
+
+        wanted = set(metric_ids)
+        return [
+            metric.description
+            for task in cto.collective_tasks
+            for factor in task.success_factors
+            for metric in factor.metrics
+            if metric.id in wanted
+        ]
+
+    @staticmethod
+    def _evidence_texts(cto, evidence_ids):
+        if cto is None:
+            return []
+
+        wanted = set(evidence_ids)
+        results = []
+
+        for task in cto.collective_tasks:
+            for factor in task.success_factors:
+                for metric in factor.metrics:
+                    for requirement in metric.evidence_requirements:
+                        if requirement.id not in wanted:
+                            continue
+
+                        value = requirement.description
+                        if requirement.evidence_type:
+                            value += f" [{requirement.evidence_type}]"
+                        if requirement.notes:
+                            value += f" — {requirement.notes}"
+                        results.append(value)
+
+        return results
+
+    def refresh_assurance_tasking(self):
+        if not hasattr(self, "assurance_status_label"):
+            return
+
+        self.assurance_tasking = None
+        self.assurance_status_label.setText(
+            "No assured observer tasking for the current MEL/MIL item."
+        )
+        self.success_factor_label.setText("Success Factor: -")
+        self.observable_metric_label.setText("Observable Metric: -")
+        self.evidence_requirement_label.setText(
+            "Evidence Requirement: -"
+        )
+
+        if self.project is None or self.session is None:
+            return
+
+        inject_number = self.session.current_inject_number
+        if inject_number is None:
+            return
+
+        promotion = self._find_promotion_for_inject(
+            inject_number
+        )
+
+        if promotion is None:
+            self.assurance_status_label.setText(
+                f"No assured design promotion lineage was found for "
+                f"MEL/MIL #{inject_number}."
+            )
+            return
+
+        inject = next(
+            (
+                item
+                for item in getattr(
+                    self.project,
+                    "injects",
+                    [],
+                )
+                if str(item.number) == str(inject_number)
+            ),
+            None,
+        )
+
+        if (
+            inject is None
+            or inject.status != InjectStatus.READY
+        ):
+            self.assurance_status_label.setText(
+                "Assurance lineage exists, but this MEL/MIL item is not "
+                "READY FOR EXCON. Observer tasking is withheld."
+            )
+            return
+
+        cto = self._find_cto(promotion.cto_id)
+        factor = self._find_success_factor(
+            cto,
+            promotion.success_factor_id,
+        )
+        metrics = self._metric_texts(
+            cto,
+            promotion.metric_ids,
+        )
+        evidence = self._evidence_texts(
+            cto,
+            promotion.evidence_requirement_ids,
+        )
+
+        self.assurance_tasking = {
+            "cto_id": promotion.cto_id,
+            "success_factor_id": promotion.success_factor_id,
+            "metric_ids": list(promotion.metric_ids),
+            "evidence_requirement_ids": list(
+                promotion.evidence_requirement_ids
+            ),
+        }
+
+        self.assurance_status_label.setText(
+            f"Assured observer tasking for MEL/MIL #{inject_number}"
+        )
+        self.success_factor_label.setText(
+            "Success Factor: "
+            + (
+                factor.description
+                if factor is not None
+                else "Not found — review lineage"
+            )
+        )
+        self.observable_metric_label.setText(
+            "Observable Metric: "
+            + (
+                " | ".join(metrics)
+                if metrics
+                else "Not found — review lineage"
+            )
+        )
+        self.evidence_requirement_label.setText(
+            "Evidence Requirement: "
+            + (
+                " | ".join(evidence)
+                if evidence
+                else "Not found — review lineage"
+            )
+        )
 
     def set_session(
         self,
@@ -541,6 +766,7 @@ class ObserverPanel(QWidget):
             self.location_label.setText(
                 "Location: -"
             )
+            self.refresh_assurance_tasking()
             return
 
         observer_text = (
@@ -615,6 +841,8 @@ class ObserverPanel(QWidget):
             "Location: "
             f"{self.session.location_description or '-'}"
         )
+
+        self.refresh_assurance_tasking()
 
     def _selected_observation_type(
         self,

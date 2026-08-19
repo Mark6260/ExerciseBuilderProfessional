@@ -1,0 +1,105 @@
+{
+    "name": "Untitled Project",
+    "operational_requirement": {
+        "title": "",
+        "description": "Testing",
+        "sponsor": "",
+        "operational_driver": "Testing",
+        "success_criteria": "Testing",
+        "doctrine_reference": null,
+        "readiness": {
+            "current_state": "Testing",
+            "required_state": "Testing",
+            "required_standard": "Testing",
+            "readiness_gap": {
+                "required_standard": "",
+                "current_state": "",
+                "shortfall": "Testing",
+                "consequence": "",
+                "preparation_requirement": "",
+                "rationale": ""
+            },
+            "rationale": ""
+        }
+    },
+    "doctrine_references": [],
+    "objectives": [],
+    "mel_mil_promotions": [],
+    "candidate_mel_mil_activities": [],
+    "candidate_exercise_activities": [],
+    "exercise_design_opportunities": [
+        {
+            "id": "86a6c5c2-8092-4246-b84e-43fb916f409d",
+            "title": "Competing departmental priorities",
+            "description": "The developing cyber incident creates competing operational demands across departmental functions, requiring the team to agree priorities, communicate them to relevant functions and coordinate activity within a time-critical response.",
+            "required_conditions": "",
+            "stimulus_information": "",
+            "response_opportunity": "",
+            "evidence_capture_plan": "",
+            "cto_id": "3a05c13e-84d2-42f9-a427-977abae7f659",
+            "collective_task_id": "505ea14e-1bc0-454c-bb53-bb913c6952a0",
+            "success_factor_id": "8cadd75c-59be-4a5f-80b1-b511099af6dc",
+            "metric_ids": [
+                "87118eb5-b09a-4d84-a300-e19caf26913a"
+            ],
+            "evidence_requirement_ids": [
+                "7c47c6fc-ff3c-44d8-918e-1b36884806dd"
+            ]
+        }
+    ],
+    "collective_training_objectives": [
+        {
+            "id": "3a05c13e-84d2-42f9-a427-977abae7f659",
+            "title": "Untitled CTO",
+            "training_audience": "DESNZ Cyber Incident Response Team",
+            "required_outcome": "Coordinate an effective departmental response to a significant cyber incident affecting the UK energy sector.",
+            "conditions": "The team is responding to an evolving cyber incident with incomplete and conflicting information, concurrent operational impacts and pressure for timely decisions.",
+            "challenge_level": 7,
+            "contributing_functions": [],
+            "individual_contributions": [],
+            "evidence_requirements": [],
+            "collective_tasks": [
+                {
+                    "id": "505ea14e-1bc0-454c-bb53-bb913c6952a0",
+                    "title": "Coordinate departmental cyber incident response",
+                    "description": "",
+                    "success_factors": [
+                        {
+                            "id": "8cadd75c-59be-4a5f-80b1-b511099af6dc",
+                            "description": "Response priorities are agreed, communicated and coordinated across relevant departmental functions.",
+                            "metrics": [
+                                {
+                                    "id": "87118eb5-b09a-4d84-a300-e19caf26913a",
+                                    "description": "Key coordinating decisions and response priorities are communicated to relevant departmental functions within the required timeframe.",
+                                    "category": "Success Factor",
+                                    "evidence_requirements": [
+                                        {
+                                            "id": "7c47c6fc-ff3c-44d8-918e-1b36884806dd",
+                                            "description": "Decision or action log showing the time, decision, owner and affected departmental functions.",
+                                            "evidence_type": "Decision log",
+                                            "notes": ""
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "critical_errors": []
+                }
+            ]
+        }
+    ],
+    "observations": [],
+    "evidence_records": [],
+    "assessment_records": [],
+    "readiness_decisions": [],
+    "findings": [],
+    "recommendations": [],
+    "improvement_actions": [],
+    "training_opportunities": [],
+    "candidate_opportunities": [],
+    "planning_sources": [],
+    "planned_activities": [],
+    "discovery_requirements": [],
+    "injects": []
+}
