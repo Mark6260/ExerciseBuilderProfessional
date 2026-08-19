@@ -24,7 +24,49 @@
     },
     "doctrine_references": [],
     "objectives": [],
-    "candidate_exercise_activities": [],
+    "candidate_mel_mil_activities": [
+        {
+            "id": "4041947b-d7a8-49b1-8cb6-54e728c843cf",
+            "title": "Competing Incident Reports Reach HQ",
+            "activity_type": "Information release",
+            "phase": "Main Play",
+            "timing_window": "09:15-09:30",
+            "event_summary": "Separate control-cell reports introduce concurrent operational demands to relevant headquarters cells within a short period.",
+            "intended_effect": "Create a credible requirement for the headquarters to prioritise demands, coordinate decisions and communicate those decisions across relevant cells.",
+            "control_notes": "",
+            "candidate_activity_id": "71a26acc-5db9-4467-937e-3c047b5d18ef",
+            "design_opportunity_id": "e740014a-736b-40f8-aae3-287d70092e80",
+            "cto_id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
+            "collective_task_id": "8923176f-adb5-4a04-a9ab-443905d6af68",
+            "success_factor_id": "9ea5b935-1faf-4e2b-9f9e-d461b5c633b7",
+            "metric_ids": [
+                "50666d72-70f8-45c7-8127-1bed614c25b5"
+            ],
+            "evidence_requirement_ids": [
+                "d3839cf6-3b05-4148-8e98-9539b4f8efc8"
+            ]
+        }
+    ],
+    "candidate_exercise_activities": [
+        {
+            "id": "71a26acc-5db9-4467-937e-3c047b5d18ef",
+            "title": "HQ Coordination Activity",
+            "description": "Comms expolitation at all levels",
+            "delivery_method": "Other",
+            "phase": "",
+            "notes": "",
+            "design_opportunity_id": "e740014a-736b-40f8-aae3-287d70092e80",
+            "cto_id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
+            "collective_task_id": "8923176f-adb5-4a04-a9ab-443905d6af68",
+            "success_factor_id": "9ea5b935-1faf-4e2b-9f9e-d461b5c633b7",
+            "metric_ids": [
+                "50666d72-70f8-45c7-8127-1bed614c25b5"
+            ],
+            "evidence_requirement_ids": [
+                "d3839cf6-3b05-4148-8e98-9539b4f8efc8"
+            ]
+        }
+    ],
     "exercise_design_opportunities": [
         {
             "id": "79d16c90-13d9-4e65-89b0-1f02b11fcb73",
@@ -42,6 +84,24 @@
             ],
             "evidence_requirement_ids": [
                 "ae5d9351-a630-4000-b807-b975ea6b6499"
+            ]
+        },
+        {
+            "id": "e740014a-736b-40f8-aae3-287d70092e80",
+            "title": "HQ Comms Check",
+            "description": "Full eploitation of the comms network",
+            "required_conditions": "High level comms dissemination",
+            "stimulus_information": "Bge Info relayed on time",
+            "response_opportunity": "Freely",
+            "evidence_capture_plan": "Dec Log",
+            "cto_id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
+            "collective_task_id": "8923176f-adb5-4a04-a9ab-443905d6af68",
+            "success_factor_id": "9ea5b935-1faf-4e2b-9f9e-d461b5c633b7",
+            "metric_ids": [
+                "50666d72-70f8-45c7-8127-1bed614c25b5"
+            ],
+            "evidence_requirement_ids": [
+                "d3839cf6-3b05-4148-8e98-9539b4f8efc8"
             ]
         }
     ],

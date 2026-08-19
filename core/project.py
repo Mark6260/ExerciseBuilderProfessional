@@ -6,6 +6,7 @@ from core.inject import Inject, InjectStatus
 from core.objective import ExerciseObjective
 from core.exercise_design_opportunity import ExerciseDesignOpportunity
 from core.candidate_exercise_activity import CandidateExerciseActivity
+from core.candidate_mel_mil_activity import CandidateMelMilActivity
 from core.collective_training_objective import (
     CollectiveTrainingObjective,
     CollectiveTask,
@@ -76,6 +77,7 @@ class Project:
         self.objectives: list[ExerciseObjective] = []
         self.exercise_design_opportunities: list[ExerciseDesignOpportunity] = []
         self.candidate_exercise_activities: list[CandidateExerciseActivity] = []
+        self.candidate_mel_mil_activities: list[CandidateMelMilActivity] = []
         self.collective_training_objectives: list[
             CollectiveTrainingObjective
         ] = []
@@ -111,6 +113,14 @@ class Project:
         activity: CandidateExerciseActivity,
     ):
         self.candidate_exercise_activities.append(
+            activity
+        )
+
+    def add_candidate_mel_mil_activity(
+        self,
+        activity: CandidateMelMilActivity,
+    ):
+        self.candidate_mel_mil_activities.append(
             activity
         )
 
@@ -258,6 +268,29 @@ class Project:
                 }
                 for objective in self.objectives
             ],
+            "candidate_mel_mil_activities": [
+                {
+                    "id": activity.id,
+                    "title": activity.title,
+                    "activity_type": activity.activity_type,
+                    "phase": activity.phase,
+                    "timing_window": activity.timing_window,
+                    "event_summary": activity.event_summary,
+                    "intended_effect": activity.intended_effect,
+                    "control_notes": activity.control_notes,
+                    "candidate_activity_id": activity.candidate_activity_id,
+                    "design_opportunity_id": activity.design_opportunity_id,
+                    "cto_id": activity.cto_id,
+                    "collective_task_id": activity.collective_task_id,
+                    "success_factor_id": activity.success_factor_id,
+                    "metric_ids": activity.metric_ids,
+                    "evidence_requirement_ids": (
+                        activity.evidence_requirement_ids
+                    ),
+                }
+                for activity in self.candidate_mel_mil_activities
+            ],
+
             "candidate_exercise_activities": [
                 {
                     "id": activity.id,
@@ -1369,6 +1402,65 @@ class Project:
             )
             for item in saved_objectives
         ]
+        saved_candidate_mel_mil = project_data.get(
+            "candidate_mel_mil_activities",
+            [],
+        )
+
+        project.candidate_mel_mil_activities = [
+            CandidateMelMilActivity(
+                id=item.get("id") or str(uuid4()),
+                title=item.get("title", ""),
+                activity_type=item.get(
+                    "activity_type",
+                    "",
+                ),
+                phase=item.get("phase", ""),
+                timing_window=item.get(
+                    "timing_window",
+                    "",
+                ),
+                event_summary=item.get(
+                    "event_summary",
+                    "",
+                ),
+                intended_effect=item.get(
+                    "intended_effect",
+                    "",
+                ),
+                control_notes=item.get(
+                    "control_notes",
+                    "",
+                ),
+                candidate_activity_id=item.get(
+                    "candidate_activity_id",
+                    "",
+                ),
+                design_opportunity_id=item.get(
+                    "design_opportunity_id",
+                    "",
+                ),
+                cto_id=item.get("cto_id", ""),
+                collective_task_id=item.get(
+                    "collective_task_id",
+                    "",
+                ),
+                success_factor_id=item.get(
+                    "success_factor_id",
+                    "",
+                ),
+                metric_ids=item.get(
+                    "metric_ids",
+                    [],
+                ),
+                evidence_requirement_ids=item.get(
+                    "evidence_requirement_ids",
+                    [],
+                ),
+            )
+            for item in saved_candidate_mel_mil
+        ]
+
         saved_candidate_activities = project_data.get(
             "candidate_exercise_activities",
             [],

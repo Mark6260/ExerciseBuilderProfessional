@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from core.exercise_design_opportunity import ExerciseDesignOpportunity
 from core.candidate_exercise_activity import CandidateExerciseActivity
+from core.candidate_mel_mil_activity import CandidateMelMilActivity
 
 
 class ExerciseDesignPanel(QWidget):
@@ -646,6 +647,244 @@ class ExerciseDesignPanel(QWidget):
             activity_frame
         )
 
+        # -------------------------------------------------
+        # Candidate MEL/MIL Activity
+        # -------------------------------------------------
+
+        mel_frame = QFrame()
+        mel_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+        mel_layout = QVBoxLayout(
+            mel_frame
+        )
+
+        mel_title = QLabel(
+            "CANDIDATE MEL/MIL ACTIVITY"
+        )
+        mel_title.setStyleSheet(
+            "font-size: 16px; font-weight: bold;"
+        )
+        mel_layout.addWidget(
+            mel_title
+        )
+
+        mel_guidance = QLabel(
+            "Select a Candidate Exercise Activity above, then define a "
+            "candidate MEL/MIL-level event or control activity that could "
+            "deliver it. This is still a design object — do not write the "
+            "final inject wording here."
+        )
+        mel_guidance.setWordWrap(
+            True
+        )
+        mel_layout.addWidget(
+            mel_guidance
+        )
+
+        self.selected_mel_parent_label = QLabel(
+            "Selected Candidate Exercise Activity: None"
+        )
+        self.selected_mel_parent_label.setWordWrap(
+            True
+        )
+        mel_layout.addWidget(
+            self.selected_mel_parent_label
+        )
+
+        self.mel_title_input = QLineEdit()
+        self.mel_title_input.setPlaceholderText(
+            "e.g. Competing incident reports reach HQ"
+        )
+        mel_layout.addWidget(
+            self.mel_title_input
+        )
+
+        self.mel_type_input = QComboBox()
+        self.mel_type_input.addItems(
+            [
+                "Select MEL/MIL activity type...",
+                "Scenario event",
+                "Information release",
+                "Control-cell action",
+                "Role-play interaction",
+                "Decision point",
+                "Live activity",
+                "Background activity",
+                "Other",
+            ]
+        )
+        mel_layout.addWidget(
+            self.mel_type_input
+        )
+
+        mel_position_layout = QHBoxLayout()
+
+        self.mel_phase_input = QLineEdit()
+        self.mel_phase_input.setPlaceholderText(
+            "Phase / placement"
+        )
+
+        self.mel_timing_input = QLineEdit()
+        self.mel_timing_input.setPlaceholderText(
+            "Timing / window, e.g. 09:15-09:30"
+        )
+
+        mel_position_layout.addWidget(
+            self.mel_phase_input
+        )
+        mel_position_layout.addWidget(
+            self.mel_timing_input
+        )
+
+        mel_layout.addLayout(
+            mel_position_layout
+        )
+
+        self.mel_event_summary_input = QTextEdit()
+        self.mel_event_summary_input.setPlaceholderText(
+            "Describe what happens at MEL/MIL level: the event, release, "
+            "interaction or control action. Do not write final inject text."
+        )
+        self.mel_event_summary_input.setFixedHeight(
+            80
+        )
+        mel_layout.addWidget(
+            self.mel_event_summary_input
+        )
+
+        self.mel_intended_effect_input = QTextEdit()
+        self.mel_intended_effect_input.setPlaceholderText(
+            "What opportunity should this activity create for the training "
+            "audience to respond, decide, coordinate or produce evidence?"
+        )
+        self.mel_intended_effect_input.setFixedHeight(
+            70
+        )
+        mel_layout.addWidget(
+            self.mel_intended_effect_input
+        )
+
+        self.mel_control_notes_input = QTextEdit()
+        self.mel_control_notes_input.setPlaceholderText(
+            "Control notes (optional) — dependencies, sequencing, realism "
+            "or ExCon considerations."
+        )
+        self.mel_control_notes_input.setFixedHeight(
+            60
+        )
+        mel_layout.addWidget(
+            self.mel_control_notes_input
+        )
+
+        self.add_mel_activity_button = QPushButton(
+            "ADD CANDIDATE MEL/MIL ACTIVITY"
+        )
+        self.add_mel_activity_button.setEnabled(
+            False
+        )
+        self.add_mel_activity_button.clicked.connect(
+            self._add_candidate_mel_mil_activity
+        )
+        mel_layout.addWidget(
+            self.add_mel_activity_button
+        )
+
+        self.mel_activity_tree = QTreeWidget()
+        self.mel_activity_tree.setColumnCount(
+            5
+        )
+        self.mel_activity_tree.setHeaderLabels(
+            [
+                "Candidate MEL/MIL Activity",
+                "Parent Exercise Activity",
+                "Type",
+                "Phase / Timing",
+                "Assurance Coverage",
+            ]
+        )
+        self.mel_activity_tree.setMinimumHeight(
+            160
+        )
+        self.mel_activity_tree.header().setStretchLastSection(
+            True
+        )
+        self.mel_activity_tree.setColumnWidth(
+            0,
+            300,
+        )
+        self.mel_activity_tree.setColumnWidth(
+            1,
+            340,
+        )
+        self.mel_activity_tree.setColumnWidth(
+            2,
+            190,
+        )
+        self.mel_activity_tree.setColumnWidth(
+            3,
+            220,
+        )
+
+        mel_layout.addWidget(
+            self.mel_activity_tree
+        )
+
+        mel_manage_layout = QHBoxLayout()
+
+        self.edit_mel_activity_button = QPushButton(
+            "EDIT SELECTED MEL/MIL ACTIVITY"
+        )
+        self.edit_mel_activity_button.setEnabled(
+            False
+        )
+        self.edit_mel_activity_button.clicked.connect(
+            self._edit_selected_mel_activity
+        )
+
+        self.delete_mel_activity_button = QPushButton(
+            "DELETE SELECTED MEL/MIL ACTIVITY"
+        )
+        self.delete_mel_activity_button.setEnabled(
+            False
+        )
+        self.delete_mel_activity_button.clicked.connect(
+            self._delete_selected_mel_activity
+        )
+
+        mel_manage_layout.addStretch()
+        mel_manage_layout.addWidget(
+            self.edit_mel_activity_button
+        )
+        mel_manage_layout.addWidget(
+            self.delete_mel_activity_button
+        )
+
+        mel_layout.addLayout(
+            mel_manage_layout
+        )
+
+        self.mel_activity_tree.itemSelectionChanged.connect(
+            self._mel_activity_selected
+        )
+
+        self.mel_title_input.textChanged.connect(
+            self._update_add_mel_activity_button
+        )
+        self.mel_type_input.currentIndexChanged.connect(
+            self._update_add_mel_activity_button
+        )
+        self.mel_event_summary_input.textChanged.connect(
+            self._update_add_mel_activity_button
+        )
+        self.mel_intended_effect_input.textChanged.connect(
+            self._update_add_mel_activity_button
+        )
+
+        layout.addWidget(
+            mel_frame
+        )
+
         self.candidate_activity_title_input.textChanged.connect(
             self._update_add_candidate_activity_button
         )
@@ -694,6 +933,8 @@ class ExerciseDesignPanel(QWidget):
         self.design_tree.clear()
         self.opportunity_tree.clear()
         self.candidate_activity_tree.clear()
+        self.mel_activity_tree.clear()
+        self._clear_mel_activity_editor()
         if hasattr(
             self,
             "edit_opportunity_button",
@@ -708,6 +949,12 @@ class ExerciseDesignPanel(QWidget):
                 False
             )
             self.delete_candidate_activity_button.setEnabled(
+                False
+            )
+            self.edit_mel_activity_button.setEnabled(
+                False
+            )
+            self.delete_mel_activity_button.setEnabled(
                 False
             )
         self._clear_candidate_activity_editor()
@@ -784,6 +1031,7 @@ class ExerciseDesignPanel(QWidget):
         self.design_tree.expandAll()
         self._refresh_design_opportunities()
         self._refresh_candidate_activities()
+        self._refresh_mel_activities()
 
     def _show_blocking_gaps(self):
         root = QTreeWidgetItem(
@@ -1839,6 +2087,18 @@ class ExerciseDesignPanel(QWidget):
             activity is not None
         )
 
+        if activity is None:
+            self.selected_mel_parent_label.setText(
+                "Selected Candidate Exercise Activity: None"
+            )
+        else:
+            self.selected_mel_parent_label.setText(
+                "Selected Candidate Exercise Activity: "
+                + activity.title
+            )
+
+        self._update_add_mel_activity_button()
+
     def _select_candidate_activity_by_id(
         self,
         activity_id,
@@ -2027,6 +2287,28 @@ class ExerciseDesignPanel(QWidget):
         if activity is None:
             return
 
+        dependent_mel_activities = [
+            item
+            for item in self.project.candidate_mel_mil_activities
+            if item.candidate_activity_id == activity.id
+        ]
+
+        if dependent_mel_activities:
+            names = "\n".join(
+                f"• {item.title}"
+                for item in dependent_mel_activities
+            )
+
+            QMessageBox.warning(
+                self,
+                "Delete Candidate Exercise Activity",
+                "This Candidate Exercise Activity cannot be deleted because "
+                "Candidate MEL/MIL Activities depend on it:\n\n"
+                f"{names}\n\n"
+                "Delete or rework the dependent MEL/MIL activities first.",
+            )
+            return
+
         opportunity = self._find_design_opportunity(
             activity.design_opportunity_id
         )
@@ -2068,6 +2350,463 @@ class ExerciseDesignPanel(QWidget):
             False
         )
         self.delete_candidate_activity_button.setEnabled(
+            False
+        )
+
+    def _clear_mel_activity_editor(self):
+        if not hasattr(
+            self,
+            "selected_mel_parent_label",
+        ):
+            return
+
+        self.selected_mel_parent_label.setText(
+            "Selected Candidate Exercise Activity: None"
+        )
+        self.mel_title_input.clear()
+        self.mel_type_input.setCurrentIndex(
+            0
+        )
+        self.mel_phase_input.clear()
+        self.mel_timing_input.clear()
+        self.mel_event_summary_input.clear()
+        self.mel_intended_effect_input.clear()
+        self.mel_control_notes_input.clear()
+        self.add_mel_activity_button.setEnabled(
+            False
+        )
+
+    def _update_add_mel_activity_button(
+        self,
+        *_,
+    ):
+        activity = self._selected_candidate_activity()
+
+        enabled = bool(
+            activity is not None
+            and self.mel_title_input.text().strip()
+            and self.mel_type_input.currentIndex() > 0
+            and (
+                self.mel_event_summary_input
+                .toPlainText()
+                .strip()
+            )
+            and (
+                self.mel_intended_effect_input
+                .toPlainText()
+                .strip()
+            )
+        )
+
+        self.add_mel_activity_button.setEnabled(
+            enabled
+        )
+
+    def _add_candidate_mel_mil_activity(self):
+        parent = self._selected_candidate_activity()
+
+        if parent is None:
+            return
+
+        activity = CandidateMelMilActivity(
+            title=self.mel_title_input.text().strip(),
+            activity_type=self.mel_type_input.currentText(),
+            phase=self.mel_phase_input.text().strip(),
+            timing_window=self.mel_timing_input.text().strip(),
+            event_summary=(
+                self.mel_event_summary_input
+                .toPlainText()
+                .strip()
+            ),
+            intended_effect=(
+                self.mel_intended_effect_input
+                .toPlainText()
+                .strip()
+            ),
+            control_notes=(
+                self.mel_control_notes_input
+                .toPlainText()
+                .strip()
+            ),
+            candidate_activity_id=parent.id,
+            design_opportunity_id=parent.design_opportunity_id,
+            cto_id=parent.cto_id,
+            collective_task_id=parent.collective_task_id,
+            success_factor_id=parent.success_factor_id,
+            metric_ids=list(parent.metric_ids),
+            evidence_requirement_ids=list(
+                parent.evidence_requirement_ids
+            ),
+        )
+
+        self.project.add_candidate_mel_mil_activity(
+            activity
+        )
+
+        self.mel_title_input.clear()
+        self.mel_type_input.setCurrentIndex(
+            0
+        )
+        self.mel_phase_input.clear()
+        self.mel_timing_input.clear()
+        self.mel_event_summary_input.clear()
+        self.mel_intended_effect_input.clear()
+        self.mel_control_notes_input.clear()
+
+        self._refresh_mel_activities()
+        self._update_add_mel_activity_button()
+
+    def _find_candidate_exercise_activity(
+        self,
+        activity_id,
+    ):
+        if self.project is None:
+            return None
+
+        for activity in self.project.candidate_exercise_activities:
+            if activity.id == activity_id:
+                return activity
+
+        return None
+
+    def _refresh_mel_activities(self):
+        self.mel_activity_tree.clear()
+
+        if self.project is None or self.cto is None:
+            return
+
+        activities = [
+            activity
+            for activity in self.project.candidate_mel_mil_activities
+            if activity.cto_id == self.cto.id
+        ]
+
+        for activity in activities:
+            parent = self._find_candidate_exercise_activity(
+                activity.candidate_activity_id
+            )
+
+            if parent is None:
+                parent_title = (
+                    "Candidate Exercise Activity no longer found"
+                )
+                assurance_coverage = "Review required"
+            else:
+                parent_title = parent.title
+                assurance_coverage = (
+                    f"{len(activity.metric_ids)} metric(s), "
+                    f"{len(activity.evidence_requirement_ids)} "
+                    "evidence requirement(s)"
+                )
+
+            phase_timing = " / ".join(
+                item
+                for item in [
+                    activity.phase.strip(),
+                    activity.timing_window.strip(),
+                ]
+                if item
+            ) or "-"
+
+            item = QTreeWidgetItem(
+                [
+                    activity.title,
+                    parent_title,
+                    activity.activity_type or "-",
+                    phase_timing,
+                    assurance_coverage,
+                ]
+            )
+            item.setToolTip(
+                0,
+                activity.event_summary
+            )
+            item.setToolTip(
+                3,
+                activity.intended_effect
+            )
+            item.setData(
+                0,
+                Qt.ItemDataRole.UserRole,
+                activity.id,
+            )
+
+            self.mel_activity_tree.addTopLevelItem(
+                item
+            )
+
+    def _selected_mel_activity(self):
+        if self.project is None:
+            return None
+
+        items = self.mel_activity_tree.selectedItems()
+
+        if not items:
+            return None
+
+        activity_id = items[0].data(
+            0,
+            Qt.ItemDataRole.UserRole,
+        )
+
+        for activity in self.project.candidate_mel_mil_activities:
+            if activity.id == activity_id:
+                return activity
+
+        return None
+
+    def _mel_activity_selected(self):
+        activity = self._selected_mel_activity()
+
+        self.edit_mel_activity_button.setEnabled(
+            activity is not None
+        )
+        self.delete_mel_activity_button.setEnabled(
+            activity is not None
+        )
+
+    def _select_mel_activity_by_id(
+        self,
+        activity_id,
+    ):
+        for index in range(
+            self.mel_activity_tree.topLevelItemCount()
+        ):
+            item = self.mel_activity_tree.topLevelItem(
+                index
+            )
+            if item.data(
+                0,
+                Qt.ItemDataRole.UserRole,
+            ) == activity_id:
+                self.mel_activity_tree.setCurrentItem(
+                    item
+                )
+                return
+
+    def _edit_selected_mel_activity(self):
+        activity = self._selected_mel_activity()
+
+        if activity is None:
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(
+            "Edit Candidate MEL/MIL Activity"
+        )
+        dialog.resize(
+            760,
+            650,
+        )
+
+        dialog_layout = QVBoxLayout(
+            dialog
+        )
+        form = QFormLayout()
+
+        title_input = QLineEdit(
+            activity.title
+        )
+
+        type_input = QComboBox()
+        type_input.addItems(
+            [
+                "Select MEL/MIL activity type...",
+                "Scenario event",
+                "Information release",
+                "Control-cell action",
+                "Role-play interaction",
+                "Decision point",
+                "Live activity",
+                "Background activity",
+                "Other",
+            ]
+        )
+        type_index = type_input.findText(
+            activity.activity_type
+        )
+        if type_index >= 0:
+            type_input.setCurrentIndex(
+                type_index
+            )
+
+        phase_input = QLineEdit(
+            activity.phase
+        )
+        timing_input = QLineEdit(
+            activity.timing_window
+        )
+
+        summary_input = QTextEdit()
+        summary_input.setPlainText(
+            activity.event_summary
+        )
+        summary_input.setMinimumHeight(
+            130
+        )
+
+        effect_input = QTextEdit()
+        effect_input.setPlainText(
+            activity.intended_effect
+        )
+        effect_input.setMinimumHeight(
+            110
+        )
+
+        notes_input = QTextEdit()
+        notes_input.setPlainText(
+            activity.control_notes
+        )
+        notes_input.setMinimumHeight(
+            90
+        )
+
+        form.addRow(
+            "Title:",
+            title_input,
+        )
+        form.addRow(
+            "Activity type:",
+            type_input,
+        )
+        form.addRow(
+            "Phase:",
+            phase_input,
+        )
+        form.addRow(
+            "Timing / window:",
+            timing_input,
+        )
+        form.addRow(
+            "Event summary:",
+            summary_input,
+        )
+        form.addRow(
+            "Intended effect:",
+            effect_input,
+        )
+        form.addRow(
+            "Control notes:",
+            notes_input,
+        )
+
+        protected_label = QLabel(
+            "Parent Candidate Exercise Activity and all upstream assurance "
+            "lineage are protected during editing."
+        )
+        protected_label.setWordWrap(
+            True
+        )
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(
+            dialog.accept
+        )
+        buttons.rejected.connect(
+            dialog.reject
+        )
+
+        dialog_layout.addLayout(
+            form
+        )
+        dialog_layout.addWidget(
+            protected_label
+        )
+        dialog_layout.addWidget(
+            buttons
+        )
+
+        if (
+            dialog.exec()
+            != QDialog.DialogCode.Accepted
+        ):
+            return
+
+        title = title_input.text().strip()
+        summary = summary_input.toPlainText().strip()
+        effect = effect_input.toPlainText().strip()
+
+        if (
+            not title
+            or type_input.currentIndex() == 0
+            or not summary
+            or not effect
+        ):
+            QMessageBox.warning(
+                self,
+                "Edit Candidate MEL/MIL Activity",
+                "Title, activity type, event summary and intended effect "
+                "are required.",
+            )
+            return
+
+        activity.title = title
+        activity.activity_type = type_input.currentText()
+        activity.phase = phase_input.text().strip()
+        activity.timing_window = timing_input.text().strip()
+        activity.event_summary = summary
+        activity.intended_effect = effect
+        activity.control_notes = (
+            notes_input.toPlainText().strip()
+        )
+
+        activity_id = activity.id
+
+        self._refresh_mel_activities()
+        self._select_mel_activity_by_id(
+            activity_id
+        )
+
+    def _delete_selected_mel_activity(self):
+        activity = self._selected_mel_activity()
+
+        if activity is None:
+            return
+
+        parent = self._find_candidate_exercise_activity(
+            activity.candidate_activity_id
+        )
+
+        parent_title = (
+            parent.title
+            if parent is not None
+            else "Unknown Candidate Exercise Activity"
+        )
+
+        answer = QMessageBox.question(
+            self,
+            "Delete Candidate MEL/MIL Activity",
+            (
+                "Delete the selected Candidate MEL/MIL Activity?\\n\\n"
+                f"{activity.title}\\n\\n"
+                f"Parent Candidate Exercise Activity: {parent_title}\\n\\n"
+                "The parent activity and assured design chain will remain "
+                "unchanged."
+            ),
+            (
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No
+            ),
+            QMessageBox.StandardButton.No,
+        )
+
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        self.project.candidate_mel_mil_activities = [
+            item
+            for item in self.project.candidate_mel_mil_activities
+            if item.id != activity.id
+        ]
+
+        self._refresh_mel_activities()
+        self.edit_mel_activity_button.setEnabled(
+            False
+        )
+        self.delete_mel_activity_button.setEnabled(
             False
         )
 
