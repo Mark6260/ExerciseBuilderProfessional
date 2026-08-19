@@ -116,6 +116,82 @@ class CTOBuilderPanel(QWidget):
             self._add_evidence_requirement
         )
         
+    def set_project(
+        self,
+        project,
+    ):
+        """
+        Bind the CTO Builder to the current Exercise Director project.
+
+        The Project owns the CTO. The builder edits that same live object,
+        so the existing Project.save()/Project.load() persistence path can
+        save and restore the complete CTO hierarchy.
+        """
+
+        if project is None:
+            return
+
+        if project.collective_training_objectives:
+            self.cto = project.collective_training_objectives[0]
+        else:
+            self.cto = CollectiveTrainingObjective(
+                title="Untitled CTO"
+            )
+            project.add_collective_training_objective(
+                self.cto
+            )
+
+        self.current_collective_task = None
+        self._load_cto_into_ui()
+
+    def _load_cto_into_ui(self):
+        """
+        Refresh all CTO Builder controls from the currently bound CTO.
+        """
+
+        self.training_audience_input.setText(
+            self.cto.training_audience or ""
+        )
+
+        self.collective_outcome_input.setPlainText(
+            self.cto.required_outcome or ""
+        )
+
+        self.conditions_input.setPlainText(
+            self.cto.conditions or ""
+        )
+
+        self.challenge_level_input.setValue(
+            self.cto.challenge_level
+            if self.cto.challenge_level is not None
+            else 0
+        )
+
+        self.collective_task_input.clear()
+        self.success_factor_input.clear()
+        self.critical_error_input.clear()
+        self.critical_error_evidence_input.clear()
+        self.observable_metric_input.clear()
+        self.evidence_description_input.clear()
+        self.evidence_type_input.clear()
+        self.evidence_notes_input.clear()
+
+        self._refresh_current_task_summary()
+        self._refresh_cto_tasks_summary()
+        self._refresh_critical_error_task_selector()
+        self._refresh_critical_errors_summary()
+        self._refresh_metric_task_selector()
+        self._refresh_observable_metrics_summary()
+        self._refresh_evidence_task_selector()
+        self._refresh_evidence_requirements_summary()
+        self._update_add_collective_task_button()
+        self._update_add_critical_error_button()
+        self._update_add_observable_metric_button()
+        self._update_add_evidence_requirement_button()
+
+        if self.stage_list.currentRow() == 7:
+            self._refresh_design_review()
+
     def _build_ui(self):
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(

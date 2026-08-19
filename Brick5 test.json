@@ -1,0 +1,82 @@
+{
+    "name": "Untitled Project",
+    "operational_requirement": {
+        "title": "",
+        "description": "",
+        "sponsor": "",
+        "operational_driver": "",
+        "success_criteria": "",
+        "doctrine_reference": null,
+        "readiness": {
+            "current_state": "",
+            "required_state": "",
+            "required_standard": "",
+            "readiness_gap": {
+                "required_standard": "",
+                "current_state": "",
+                "shortfall": "",
+                "consequence": "",
+                "preparation_requirement": "",
+                "rationale": ""
+            },
+            "rationale": ""
+        }
+    },
+    "doctrine_references": [],
+    "objectives": [],
+    "collective_training_objectives": [
+        {
+            "id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
+            "title": "Untitled CTO",
+            "training_audience": "Battlegroup Headquarters",
+            "required_outcome": "Coordinate an effective response to a developing operational situation",
+            "conditions": "",
+            "challenge_level": null,
+            "contributing_functions": [],
+            "individual_contributions": [],
+            "evidence_requirements": [],
+            "collective_tasks": [
+                {
+                    "id": "5f4a72bf-1773-4180-b6e6-497ac071af45",
+                    "title": "Coordinate Response Activity",
+                    "description": "",
+                    "success_factors": [
+                        {
+                            "id": "97076356-0545-460e-a020-4dcb2abcb45b",
+                            "description": "Response activity is coordinated across the headquarters",
+                            "metrics": [
+                                {
+                                    "id": "bd102bb1-8268-46e2-a663-5c99e904d868",
+                                    "description": "Key coordinating decisions are communicated to all relevant cells.",
+                                    "category": "Success Factor",
+                                    "evidence_requirements": [
+                                        {
+                                            "id": "ae5d9351-a630-4000-b807-b975ea6b6499",
+                                            "description": "Decision log showing the decision and affected cells",
+                                            "evidence_type": "Decision Log",
+                                            "notes": ""
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "critical_errors": []
+                }
+            ]
+        }
+    ],
+    "observations": [],
+    "evidence_records": [],
+    "assessment_records": [],
+    "readiness_decisions": [],
+    "findings": [],
+    "recommendations": [],
+    "improvement_actions": [],
+    "training_opportunities": [],
+    "candidate_opportunities": [],
+    "planning_sources": [],
+    "planned_activities": [],
+    "discovery_requirements": [],
+    "injects": []
+}

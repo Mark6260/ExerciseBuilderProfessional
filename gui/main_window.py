@@ -260,8 +260,24 @@ class MainWindow(QMainWindow):
 
     def update_project_view(self):
         requirement = (
-        self.current_project.operational_requirement
-    )
+            self.current_project.operational_requirement
+        )
+
+        self.cto_builder_panel.set_project(
+            self.current_project
+        )
+
+        self.mel_panel.set_injects(
+            self.current_project.injects
+        )
+
+        self.objectives_panel.set_objectives(
+            self.current_project.objectives
+        )
+
+        self.observation_review_panel.set_project(
+            self.current_project
+        )
     def show_apprentice(self):
         dialog = ApprenticeDialog(self)
 
@@ -430,14 +446,6 @@ class MainWindow(QMainWindow):
 
         self.statusBar().showMessage(
             "New operational readiness case created"
-        )
-
-    def open_project(self):
-        filename, _ = QFileDialog.getOpenFileName(
-            self,
-            "Open Project",
-            "",
-            "Exercise Director Project (*.json)",
         )
 
     def open_project(self):
