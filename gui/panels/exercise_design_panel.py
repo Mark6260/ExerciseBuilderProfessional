@@ -218,8 +218,20 @@ class ExerciseDesignPanel(QWidget):
         self.opportunity_tree.header().setStretchLastSection(
             True
         )
+        self.opportunity_tree.setColumnWidth(
+            0,
+            300,
+        )
+        self.opportunity_tree.setColumnWidth(
+            1,
+            520,
+        )
         opportunity_layout.addWidget(
             self.opportunity_tree
+        )
+
+        self.opportunity_tree.itemSelectionChanged.connect(
+            self._opportunity_selected
         )
 
         layout.addWidget(
@@ -234,6 +246,151 @@ class ExerciseDesignPanel(QWidget):
         )
         self.opportunity_description_input.textChanged.connect(
             self._update_add_opportunity_button
+        )
+
+        decomposition_frame = QFrame()
+        decomposition_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+        decomposition_layout = QVBoxLayout(
+            decomposition_frame
+        )
+
+        decomposition_title = QLabel(
+            "DESIGN OPPORTUNITY DECOMPOSITION"
+        )
+        decomposition_title.setStyleSheet(
+            "font-size: 16px; font-weight: bold;"
+        )
+        decomposition_layout.addWidget(
+            decomposition_title
+        )
+
+        decomposition_guidance = QLabel(
+            "Select a Design Opportunity above, then define the design "
+            "ingredients that later MEL/MIL activity must provide. "
+            "Stay at requirement level here — do not write individual "
+            "injects yet."
+        )
+        decomposition_guidance.setWordWrap(True)
+        decomposition_layout.addWidget(
+            decomposition_guidance
+        )
+
+        self.selected_opportunity_label = QLabel(
+            "Selected Design Opportunity: None"
+        )
+        self.selected_opportunity_label.setWordWrap(
+            True
+        )
+        decomposition_layout.addWidget(
+            self.selected_opportunity_label
+        )
+
+        conditions_label = QLabel(
+            "REQUIRED CONDITIONS"
+        )
+        conditions_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+        decomposition_layout.addWidget(
+            conditions_label
+        )
+
+        self.required_conditions_input = QTextEdit()
+        self.required_conditions_input.setPlaceholderText(
+            "What conditions, pressures, constraints or context must "
+            "exist for this opportunity to be credible?"
+        )
+        self.required_conditions_input.setFixedHeight(
+            70
+        )
+        decomposition_layout.addWidget(
+            self.required_conditions_input
+        )
+
+        stimulus_label = QLabel(
+            "STIMULUS / INFORMATION"
+        )
+        stimulus_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+        decomposition_layout.addWidget(
+            stimulus_label
+        )
+
+        self.stimulus_information_input = QTextEdit()
+        self.stimulus_information_input.setPlaceholderText(
+            "What information, event, report, request or change must "
+            "reach the training audience? Describe the requirement, "
+            "not the wording of an inject."
+        )
+        self.stimulus_information_input.setFixedHeight(
+            70
+        )
+        decomposition_layout.addWidget(
+            self.stimulus_information_input
+        )
+
+        response_label = QLabel(
+            "RESPONSE OPPORTUNITY"
+        )
+        response_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+        decomposition_layout.addWidget(
+            response_label
+        )
+
+        self.response_opportunity_input = QTextEdit()
+        self.response_opportunity_input.setPlaceholderText(
+            "What must the exercise allow the training audience to do, "
+            "decide, coordinate or produce so performance can be observed?"
+        )
+        self.response_opportunity_input.setFixedHeight(
+            70
+        )
+        decomposition_layout.addWidget(
+            self.response_opportunity_input
+        )
+
+        evidence_label = QLabel(
+            "EVIDENCE / CAPTURE REQUIREMENT"
+        )
+        evidence_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+        decomposition_layout.addWidget(
+            evidence_label
+        )
+
+        self.evidence_capture_input = QTextEdit()
+        self.evidence_capture_input.setPlaceholderText(
+            "How must ExCon or observers be able to capture the assured "
+            "evidence during this opportunity?"
+        )
+        self.evidence_capture_input.setFixedHeight(
+            70
+        )
+        decomposition_layout.addWidget(
+            self.evidence_capture_input
+        )
+
+        self.save_decomposition_button = QPushButton(
+            "SAVE DESIGN DECOMPOSITION"
+        )
+        self.save_decomposition_button.setEnabled(
+            False
+        )
+        self.save_decomposition_button.clicked.connect(
+            self._save_design_decomposition
+        )
+        decomposition_layout.addWidget(
+            self.save_decomposition_button
+        )
+
+        layout.addWidget(
+            decomposition_frame
         )
 
         footer_layout = QHBoxLayout()
@@ -264,6 +421,7 @@ class ExerciseDesignPanel(QWidget):
     def refresh_view(self):
         self.design_tree.clear()
         self.opportunity_tree.clear()
+        self._clear_decomposition_editor()
         self.selected_requirement_label.setText(
             "Selected Success Factor: None"
         )
@@ -799,9 +957,23 @@ class ExerciseDesignPanel(QWidget):
                     opportunity.evidence_requirement_ids
                 )
 
+                decomposition_complete = all(
+                    [
+                        opportunity.required_conditions.strip(),
+                        opportunity.stimulus_information.strip(),
+                        opportunity.response_opportunity.strip(),
+                        opportunity.evidence_capture_plan.strip(),
+                    ]
+                )
+
                 coverage = (
                     f"{metric_count} metric(s), "
-                    f"{evidence_count} evidence requirement(s)"
+                    f"{evidence_count} evidence requirement(s) | "
+                    + (
+                        "Decomposition complete"
+                        if decomposition_complete
+                        else "Decomposition needed"
+                    )
                 )
 
             item = QTreeWidgetItem(
@@ -824,4 +996,117 @@ class ExerciseDesignPanel(QWidget):
             self.opportunity_tree.addTopLevelItem(
                 item
             )
+
+    def _clear_decomposition_editor(self):
+        if not hasattr(
+            self,
+            "selected_opportunity_label",
+        ):
+            return
+
+        self.selected_opportunity_label.setText(
+            "Selected Design Opportunity: None"
+        )
+        self.required_conditions_input.clear()
+        self.stimulus_information_input.clear()
+        self.response_opportunity_input.clear()
+        self.evidence_capture_input.clear()
+        self.save_decomposition_button.setEnabled(
+            False
+        )
+
+    def _selected_design_opportunity(self):
+        if self.project is None:
+            return None
+
+        items = self.opportunity_tree.selectedItems()
+
+        if not items:
+            return None
+
+        opportunity_id = items[0].data(
+            0,
+            Qt.ItemDataRole.UserRole,
+        )
+
+        for opportunity in self.project.exercise_design_opportunities:
+            if opportunity.id == opportunity_id:
+                return opportunity
+
+        return None
+
+    def _opportunity_selected(self):
+        opportunity = self._selected_design_opportunity()
+
+        if opportunity is None:
+            self._clear_decomposition_editor()
+            return
+
+        self.selected_opportunity_label.setText(
+            "Selected Design Opportunity: "
+            + opportunity.title
+        )
+
+        self.required_conditions_input.setPlainText(
+            opportunity.required_conditions
+        )
+        self.stimulus_information_input.setPlainText(
+            opportunity.stimulus_information
+        )
+        self.response_opportunity_input.setPlainText(
+            opportunity.response_opportunity
+        )
+        self.evidence_capture_input.setPlainText(
+            opportunity.evidence_capture_plan
+        )
+
+        self.save_decomposition_button.setEnabled(
+            True
+        )
+
+    def _save_design_decomposition(self):
+        opportunity = self._selected_design_opportunity()
+
+        if opportunity is None:
+            return
+
+        opportunity.required_conditions = (
+            self.required_conditions_input
+            .toPlainText()
+            .strip()
+        )
+        opportunity.stimulus_information = (
+            self.stimulus_information_input
+            .toPlainText()
+            .strip()
+        )
+        opportunity.response_opportunity = (
+            self.response_opportunity_input
+            .toPlainText()
+            .strip()
+        )
+        opportunity.evidence_capture_plan = (
+            self.evidence_capture_input
+            .toPlainText()
+            .strip()
+        )
+
+        selected_id = opportunity.id
+
+        self._refresh_design_opportunities()
+
+        for index in range(
+            self.opportunity_tree.topLevelItemCount()
+        ):
+            item = self.opportunity_tree.topLevelItem(
+                index
+            )
+            if item.data(
+                0,
+                Qt.ItemDataRole.UserRole,
+            ) == selected_id:
+                self.opportunity_tree.setCurrentItem(
+                    item
+                )
+                break
 

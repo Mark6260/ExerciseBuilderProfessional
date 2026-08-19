@@ -16,6 +16,14 @@ class ExerciseDesignOpportunity:
     title: str
     description: str = ""
 
+    # Brick 8: designer-authored decomposition of the opportunity.
+    # These fields describe what later MEL/MIL activity must enable;
+    # they are not inject text.
+    required_conditions: str = ""
+    stimulus_information: str = ""
+    response_opportunity: str = ""
+    evidence_capture_plan: str = ""
+
     cto_id: str = ""
     collective_task_id: str = ""
     success_factor_id: str = ""

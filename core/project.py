@@ -73,7 +73,7 @@ class Project:
 
         self.injects: list[Inject] = []
         self.objectives: list[ExerciseObjective] = []
-        self.exercise_design_opportunities: list["ExerciseDesignOpportunity"] = []
+        self.exercise_design_opportunities: list[ExerciseDesignOpportunity] = []
         self.collective_training_objectives: list[
             CollectiveTrainingObjective
         ] = []
@@ -253,6 +253,10 @@ class Project:
                     "id": opportunity.id,
                     "title": opportunity.title,
                     "description": opportunity.description,
+                    "required_conditions": opportunity.required_conditions,
+                    "stimulus_information": opportunity.stimulus_information,
+                    "response_opportunity": opportunity.response_opportunity,
+                    "evidence_capture_plan": opportunity.evidence_capture_plan,
                     "cto_id": opportunity.cto_id,
                     "collective_task_id": opportunity.collective_task_id,
                     "success_factor_id": opportunity.success_factor_id,
@@ -1345,6 +1349,22 @@ class Project:
                 id=item.get("id") or str(uuid4()),
                 title=item.get("title", ""),
                 description=item.get("description", ""),
+                required_conditions=item.get(
+                    "required_conditions",
+                    "",
+                ),
+                stimulus_information=item.get(
+                    "stimulus_information",
+                    "",
+                ),
+                response_opportunity=item.get(
+                    "response_opportunity",
+                    "",
+                ),
+                evidence_capture_plan=item.get(
+                    "evidence_capture_plan",
+                    "",
+                ),
                 cto_id=item.get("cto_id", ""),
                 collective_task_id=item.get(
                     "collective_task_id",
