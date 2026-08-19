@@ -24,6 +24,24 @@
     },
     "doctrine_references": [],
     "objectives": [],
+    "mel_mil_promotions": [
+        {
+            "id": "3ca6b1ed-7dee-42c2-89dd-9d589762c2b5",
+            "inject_number": 1,
+            "candidate_mel_mil_activity_id": "4041947b-d7a8-49b1-8cb6-54e728c843cf",
+            "candidate_activity_id": "71a26acc-5db9-4467-937e-3c047b5d18ef",
+            "design_opportunity_id": "e740014a-736b-40f8-aae3-287d70092e80",
+            "cto_id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
+            "collective_task_id": "8923176f-adb5-4a04-a9ab-443905d6af68",
+            "success_factor_id": "9ea5b935-1faf-4e2b-9f9e-d461b5c633b7",
+            "metric_ids": [
+                "50666d72-70f8-45c7-8127-1bed614c25b5"
+            ],
+            "evidence_requirement_ids": [
+                "d3839cf6-3b05-4148-8e98-9539b4f8efc8"
+            ]
+        }
+    ],
     "candidate_mel_mil_activities": [
         {
             "id": "4041947b-d7a8-49b1-8cb6-54e728c843cf",
@@ -186,5 +204,21 @@
     "planning_sources": [],
     "planned_activities": [],
     "discovery_requirements": [],
-    "injects": []
+    "injects": [
+        {
+            "number": 1,
+            "title": "Competing Incident Reports Reach HQ",
+            "exercise_time": "09:15-09:30",
+            "phase": "Main Play",
+            "source": "Exercise Design",
+            "method": "Information release",
+            "audience": "",
+            "category": "Assured Design Draft",
+            "inject_text": "Separate control-cell reports introduce concurrent operational demands to relevant headquarters cells within a short period.",
+            "expected_action": "Create a credible requirement for the headquarters to prioritise demands, coordinate decisions and communicate those decisions across relevant cells.",
+            "facilitator_notes": "",
+            "attachments": [],
+            "status": "Planned"
+        }
+    ]
 }

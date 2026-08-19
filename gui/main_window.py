@@ -119,6 +119,9 @@ class MainWindow(QMainWindow):
         )
         self.cto_builder_panel = CTOBuilderPanel()
         self.exercise_design_panel = ExerciseDesignPanel()
+        self.exercise_design_panel.inject_promoted.connect(
+            self._handle_design_inject_promoted
+        )
         self.observation_review_panel.set_project(
             self.current_project
         )
@@ -190,6 +193,28 @@ class MainWindow(QMainWindow):
         )
 
         self.setCentralWidget(self.tabs)
+    def _handle_design_inject_promoted(
+        self,
+        inject_number: int,
+    ):
+        self.mel_panel.set_injects(
+            self.current_project.injects
+        )
+
+        for row, inject in enumerate(
+            self.current_project.injects
+        ):
+            if inject.number == inject_number:
+                self.mel_panel.list_widget.setCurrentRow(
+                    row
+                )
+                break
+
+        self.statusBar().showMessage(
+            f"MEL/MIL Draft #{inject_number} added from assured design",
+            5000,
+        )
+
     def _handle_observer_inject_selected(
         self,
         row: int,

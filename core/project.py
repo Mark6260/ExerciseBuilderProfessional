@@ -7,6 +7,7 @@ from core.objective import ExerciseObjective
 from core.exercise_design_opportunity import ExerciseDesignOpportunity
 from core.candidate_exercise_activity import CandidateExerciseActivity
 from core.candidate_mel_mil_activity import CandidateMelMilActivity
+from core.mel_mil_promotion import MelMilPromotion
 from core.collective_training_objective import (
     CollectiveTrainingObjective,
     CollectiveTask,
@@ -78,6 +79,7 @@ class Project:
         self.exercise_design_opportunities: list[ExerciseDesignOpportunity] = []
         self.candidate_exercise_activities: list[CandidateExerciseActivity] = []
         self.candidate_mel_mil_activities: list[CandidateMelMilActivity] = []
+        self.mel_mil_promotions: list[MelMilPromotion] = []
         self.collective_training_objectives: list[
             CollectiveTrainingObjective
         ] = []
@@ -122,6 +124,14 @@ class Project:
     ):
         self.candidate_mel_mil_activities.append(
             activity
+        )
+
+    def add_mel_mil_promotion(
+        self,
+        promotion: MelMilPromotion,
+    ):
+        self.mel_mil_promotions.append(
+            promotion
         )
 
     def add_collective_training_objective(
@@ -268,6 +278,34 @@ class Project:
                 }
                 for objective in self.objectives
             ],
+            "mel_mil_promotions": [
+                {
+                    "id": promotion.id,
+                    "inject_number": promotion.inject_number,
+                    "candidate_mel_mil_activity_id": (
+                        promotion.candidate_mel_mil_activity_id
+                    ),
+                    "candidate_activity_id": (
+                        promotion.candidate_activity_id
+                    ),
+                    "design_opportunity_id": (
+                        promotion.design_opportunity_id
+                    ),
+                    "cto_id": promotion.cto_id,
+                    "collective_task_id": (
+                        promotion.collective_task_id
+                    ),
+                    "success_factor_id": (
+                        promotion.success_factor_id
+                    ),
+                    "metric_ids": promotion.metric_ids,
+                    "evidence_requirement_ids": (
+                        promotion.evidence_requirement_ids
+                    ),
+                }
+                for promotion in self.mel_mil_promotions
+            ],
+
             "candidate_mel_mil_activities": [
                 {
                     "id": activity.id,
@@ -1402,6 +1440,51 @@ class Project:
             )
             for item in saved_objectives
         ]
+        saved_mel_mil_promotions = project_data.get(
+            "mel_mil_promotions",
+            [],
+        )
+
+        project.mel_mil_promotions = [
+            MelMilPromotion(
+                id=item.get("id") or str(uuid4()),
+                inject_number=item.get(
+                    "inject_number",
+                    0,
+                ),
+                candidate_mel_mil_activity_id=item.get(
+                    "candidate_mel_mil_activity_id",
+                    "",
+                ),
+                candidate_activity_id=item.get(
+                    "candidate_activity_id",
+                    "",
+                ),
+                design_opportunity_id=item.get(
+                    "design_opportunity_id",
+                    "",
+                ),
+                cto_id=item.get("cto_id", ""),
+                collective_task_id=item.get(
+                    "collective_task_id",
+                    "",
+                ),
+                success_factor_id=item.get(
+                    "success_factor_id",
+                    "",
+                ),
+                metric_ids=item.get(
+                    "metric_ids",
+                    [],
+                ),
+                evidence_requirement_ids=item.get(
+                    "evidence_requirement_ids",
+                    [],
+                ),
+            )
+            for item in saved_mel_mil_promotions
+        ]
+
         saved_candidate_mel_mil = project_data.get(
             "candidate_mel_mil_activities",
             [],

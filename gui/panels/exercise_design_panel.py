@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -22,9 +22,13 @@ from PySide6.QtWidgets import (
 from core.exercise_design_opportunity import ExerciseDesignOpportunity
 from core.candidate_exercise_activity import CandidateExerciseActivity
 from core.candidate_mel_mil_activity import CandidateMelMilActivity
+from core.inject import Inject
+from core.mel_mil_promotion import MelMilPromotion
 
 
 class ExerciseDesignPanel(QWidget):
+    inject_promoted = Signal(int)
+
     """
     Derived exercise-design view built from the assured CTO.
 
@@ -792,7 +796,7 @@ class ExerciseDesignPanel(QWidget):
 
         self.mel_activity_tree = QTreeWidget()
         self.mel_activity_tree.setColumnCount(
-            5
+            6
         )
         self.mel_activity_tree.setHeaderLabels(
             [
@@ -801,6 +805,7 @@ class ExerciseDesignPanel(QWidget):
                 "Type",
                 "Phase / Timing",
                 "Assurance Coverage",
+                "Workspace Status",
             ]
         )
         self.mel_activity_tree.setMinimumHeight(
@@ -842,6 +847,16 @@ class ExerciseDesignPanel(QWidget):
             self._edit_selected_mel_activity
         )
 
+        self.promote_mel_activity_button = QPushButton(
+            "PROMOTE TO MEL/MIL DRAFT"
+        )
+        self.promote_mel_activity_button.setEnabled(
+            False
+        )
+        self.promote_mel_activity_button.clicked.connect(
+            self._promote_selected_mel_activity
+        )
+
         self.delete_mel_activity_button = QPushButton(
             "DELETE SELECTED MEL/MIL ACTIVITY"
         )
@@ -853,6 +868,9 @@ class ExerciseDesignPanel(QWidget):
         )
 
         mel_manage_layout.addStretch()
+        mel_manage_layout.addWidget(
+            self.promote_mel_activity_button
+        )
         mel_manage_layout.addWidget(
             self.edit_mel_activity_button
         )
@@ -955,6 +973,9 @@ class ExerciseDesignPanel(QWidget):
                 False
             )
             self.delete_mel_activity_button.setEnabled(
+                False
+            )
+            self.promote_mel_activity_button.setEnabled(
                 False
             )
         self._clear_candidate_activity_editor()
@@ -2508,6 +2529,16 @@ class ExerciseDesignPanel(QWidget):
                 if item
             ) or "-"
 
+            promotion = self._promotion_for_mel_activity(
+                activity.id
+            )
+
+            workspace_status = (
+                f"MEL/MIL Draft #{promotion.inject_number}"
+                if promotion is not None
+                else "Candidate only"
+            )
+
             item = QTreeWidgetItem(
                 [
                     activity.title,
@@ -2515,6 +2546,7 @@ class ExerciseDesignPanel(QWidget):
                     activity.activity_type or "-",
                     phase_timing,
                     assurance_coverage,
+                    workspace_status,
                 ]
             )
             item.setToolTip(
@@ -2563,6 +2595,18 @@ class ExerciseDesignPanel(QWidget):
         )
         self.delete_mel_activity_button.setEnabled(
             activity is not None
+        )
+
+        already_promoted = bool(
+            activity is not None
+            and self._promotion_for_mel_activity(
+                activity.id
+            )
+        )
+
+        self.promote_mel_activity_button.setEnabled(
+            activity is not None
+            and not already_promoted
         )
 
     def _select_mel_activity_by_id(
@@ -2766,6 +2810,22 @@ class ExerciseDesignPanel(QWidget):
         if activity is None:
             return
 
+        promotion = self._promotion_for_mel_activity(
+            activity.id
+        )
+
+        if promotion is not None:
+            QMessageBox.warning(
+                self,
+                "Delete Candidate MEL/MIL Activity",
+                "This Candidate MEL/MIL Activity has already been promoted "
+                "into the live MEL/MIL workspace as "
+                f"Draft #{promotion.inject_number}.\n\n"
+                "The promoted workspace row must be dealt with before its "
+                "design source can be removed.",
+            )
+            return
+
         parent = self._find_candidate_exercise_activity(
             activity.candidate_activity_id
         )
@@ -2808,5 +2868,111 @@ class ExerciseDesignPanel(QWidget):
         )
         self.delete_mel_activity_button.setEnabled(
             False
+        )
+
+    def _promotion_for_mel_activity(
+        self,
+        candidate_mel_mil_activity_id,
+    ):
+        if self.project is None:
+            return None
+
+        for promotion in self.project.mel_mil_promotions:
+            if (
+                promotion.candidate_mel_mil_activity_id
+                == candidate_mel_mil_activity_id
+            ):
+                return promotion
+
+        return None
+
+    def _next_inject_number(self):
+        if not self.project.injects:
+            return 1
+
+        return (
+            max(
+                inject.number
+                for inject in self.project.injects
+            )
+            + 1
+        )
+
+    def _promote_selected_mel_activity(self):
+        activity = self._selected_mel_activity()
+
+        if activity is None:
+            return
+
+        existing = self._promotion_for_mel_activity(
+            activity.id
+        )
+
+        if existing is not None:
+            QMessageBox.information(
+                self,
+                "Promote to MEL/MIL Draft",
+                (
+                    "This Candidate MEL/MIL Activity is already represented "
+                    f"in the workspace as Draft #{existing.inject_number}."
+                ),
+            )
+            return
+
+        inject_number = self._next_inject_number()
+
+        draft_inject = Inject(
+            number=inject_number,
+            title=activity.title,
+            exercise_time=activity.timing_window,
+            phase=activity.phase,
+            source="Exercise Design",
+            method=activity.activity_type,
+            audience="",
+            category="Assured Design Draft",
+            inject_text=activity.event_summary,
+            expected_action=activity.intended_effect,
+            facilitator_notes=activity.control_notes,
+            attachments=[],
+        )
+
+        promotion = MelMilPromotion(
+            inject_number=inject_number,
+            candidate_mel_mil_activity_id=activity.id,
+            candidate_activity_id=activity.candidate_activity_id,
+            design_opportunity_id=activity.design_opportunity_id,
+            cto_id=activity.cto_id,
+            collective_task_id=activity.collective_task_id,
+            success_factor_id=activity.success_factor_id,
+            metric_ids=list(activity.metric_ids),
+            evidence_requirement_ids=list(
+                activity.evidence_requirement_ids
+            ),
+        )
+
+        self.project.add_inject(
+            draft_inject
+        )
+        self.project.add_mel_mil_promotion(
+            promotion
+        )
+
+        self._refresh_mel_activities()
+        self._select_mel_activity_by_id(
+            activity.id
+        )
+
+        self.inject_promoted.emit(
+            inject_number
+        )
+
+        QMessageBox.information(
+            self,
+            "Promoted to MEL/MIL Draft",
+            (
+                f"Draft #{inject_number} has been added to the Exercise "
+                "Workspace.\\n\\n"
+                "Its design and assurance lineage has been retained."
+            ),
         )
 
