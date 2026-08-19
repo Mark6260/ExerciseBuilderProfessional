@@ -1,0 +1,167 @@
+{
+    "name": "Untitled Project",
+    "operational_requirement": {
+        "title": "",
+        "description": "",
+        "sponsor": "",
+        "operational_driver": "",
+        "success_criteria": "",
+        "doctrine_reference": null,
+        "readiness": {
+            "current_state": "",
+            "required_state": "",
+            "required_standard": "",
+            "readiness_gap": {
+                "required_standard": "",
+                "current_state": "",
+                "shortfall": "",
+                "consequence": "",
+                "preparation_requirement": "",
+                "rationale": ""
+            },
+            "rationale": ""
+        }
+    },
+    "doctrine_references": [],
+    "objectives": [],
+    "candidate_exercise_activities": [
+        {
+            "id": "354e1197-2952-43b7-95d4-a1c15944254d",
+            "title": "Concurrent Incident Coordination Sequence",
+            "description": "A developing sequence of concurrent operational demands requires multiple headquarters cells to prioritise activity, coordinate decisions and maintain a common response.",
+            "delivery_method": "Simulated operational activity",
+            "phase": "Main Play",
+            "notes": "Activity may require several control-cell interactions and should allow sufficient time for genuine coordination rather than forcing an immediate response.",
+            "design_opportunity_id": "79d16c90-13d9-4e65-89b0-1f02b11fcb73",
+            "cto_id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
+            "collective_task_id": "5f4a72bf-1773-4180-b6e6-497ac071af45",
+            "success_factor_id": "97076356-0545-460e-a020-4dcb2abcb45b",
+            "metric_ids": [
+                "bd102bb1-8268-46e2-a663-5c99e904d868"
+            ],
+            "evidence_requirement_ids": [
+                "ae5d9351-a630-4000-b807-b975ea6b6499"
+            ]
+        },
+        {
+            "id": "96a7ac50-0f0a-4f07-b0d3-4c825b231e25",
+            "title": "HQ Multi-Cell Coordination Activity",
+            "description": "A developing sequence of concurrent operational demands requires multiple headquarters cells to prioritise activity, coordinate decisions and maintain a common response.",
+            "delivery_method": "Simulated operational activity",
+            "phase": "Main Play",
+            "notes": "",
+            "design_opportunity_id": "79d16c90-13d9-4e65-89b0-1f02b11fcb73",
+            "cto_id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
+            "collective_task_id": "5f4a72bf-1773-4180-b6e6-497ac071af45",
+            "success_factor_id": "97076356-0545-460e-a020-4dcb2abcb45b",
+            "metric_ids": [
+                "bd102bb1-8268-46e2-a663-5c99e904d868"
+            ],
+            "evidence_requirement_ids": [
+                "ae5d9351-a630-4000-b807-b975ea6b6499"
+            ]
+        }
+    ],
+    "exercise_design_opportunities": [
+        {
+            "id": "79d16c90-13d9-4e65-89b0-1f02b11fcb73",
+            "title": "Concurrent Incident Coordination Sequence",
+            "description": "Multiple operational demands develop concurrently, requiring the headquarters to coordinate priorities, decisions and activity across relevant cells.",
+            "required_conditions": "Multiple operational demands are developing concurrently and require coordination across headquarters cells.",
+            "stimulus_information": "Relevant cells receive developing information and competing demands that require prioritisation and coordinating decisions.",
+            "response_opportunity": "The headquarters has sufficient time and authority to coordinate priorities, make decisions and communicate those decisions across relevant cells.",
+            "evidence_capture_plan": "Observers can access the decision log and establish the time, decision, owner and affected cells.",
+            "cto_id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
+            "collective_task_id": "5f4a72bf-1773-4180-b6e6-497ac071af45",
+            "success_factor_id": "97076356-0545-460e-a020-4dcb2abcb45b",
+            "metric_ids": [
+                "bd102bb1-8268-46e2-a663-5c99e904d868"
+            ],
+            "evidence_requirement_ids": [
+                "ae5d9351-a630-4000-b807-b975ea6b6499"
+            ]
+        }
+    ],
+    "collective_training_objectives": [
+        {
+            "id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
+            "title": "Untitled CTO",
+            "training_audience": "Battlegroup Headquarters",
+            "required_outcome": "Coordinate an effective response to a developing operational situation",
+            "conditions": "",
+            "challenge_level": null,
+            "contributing_functions": [],
+            "individual_contributions": [],
+            "evidence_requirements": [],
+            "collective_tasks": [
+                {
+                    "id": "5f4a72bf-1773-4180-b6e6-497ac071af45",
+                    "title": "Coordinate Response Activity",
+                    "description": "",
+                    "success_factors": [
+                        {
+                            "id": "97076356-0545-460e-a020-4dcb2abcb45b",
+                            "description": "Response activity is coordinated across the headquarters",
+                            "metrics": [
+                                {
+                                    "id": "bd102bb1-8268-46e2-a663-5c99e904d868",
+                                    "description": "Key coordinating decisions are communicated to all relevant cells.",
+                                    "category": "Success Factor",
+                                    "evidence_requirements": [
+                                        {
+                                            "id": "ae5d9351-a630-4000-b807-b975ea6b6499",
+                                            "description": "Decision log showing the decision and affected cells",
+                                            "evidence_type": "Decision Log",
+                                            "notes": ""
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "critical_errors": []
+                },
+                {
+                    "id": "8923176f-adb5-4a04-a9ab-443905d6af68",
+                    "title": "Orders Dissemination",
+                    "description": "",
+                    "success_factors": [
+                        {
+                            "id": "9ea5b935-1faf-4e2b-9f9e-d461b5c633b7",
+                            "description": "Correct orders delivery, accurate and on time",
+                            "metrics": [
+                                {
+                                    "id": "50666d72-70f8-45c7-8127-1bed614c25b5",
+                                    "description": "Key orders processed followed",
+                                    "category": "Success Factor",
+                                    "evidence_requirements": [
+                                        {
+                                            "id": "d3839cf6-3b05-4148-8e98-9539b4f8efc8",
+                                            "description": "Orders Log",
+                                            "evidence_type": "Orders Log",
+                                            "notes": ""
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "critical_errors": []
+                }
+            ]
+        }
+    ],
+    "observations": [],
+    "evidence_records": [],
+    "assessment_records": [],
+    "readiness_decisions": [],
+    "findings": [],
+    "recommendations": [],
+    "improvement_actions": [],
+    "training_opportunities": [],
+    "candidate_opportunities": [],
+    "planning_sources": [],
+    "planned_activities": [],
+    "discovery_requirements": [],
+    "injects": []
+}

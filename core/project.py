@@ -5,6 +5,7 @@ from core.doctrine import DoctrineReference
 from core.inject import Inject, InjectStatus
 from core.objective import ExerciseObjective
 from core.exercise_design_opportunity import ExerciseDesignOpportunity
+from core.candidate_exercise_activity import CandidateExerciseActivity
 from core.collective_training_objective import (
     CollectiveTrainingObjective,
     CollectiveTask,
@@ -74,6 +75,7 @@ class Project:
         self.injects: list[Inject] = []
         self.objectives: list[ExerciseObjective] = []
         self.exercise_design_opportunities: list[ExerciseDesignOpportunity] = []
+        self.candidate_exercise_activities: list[CandidateExerciseActivity] = []
         self.collective_training_objectives: list[
             CollectiveTrainingObjective
         ] = []
@@ -102,6 +104,14 @@ class Project:
     ):
         self.exercise_design_opportunities.append(
             opportunity
+        )
+
+    def add_candidate_exercise_activity(
+        self,
+        activity: CandidateExerciseActivity,
+    ):
+        self.candidate_exercise_activities.append(
+            activity
         )
 
     def add_collective_training_objective(
@@ -248,6 +258,26 @@ class Project:
                 }
                 for objective in self.objectives
             ],
+            "candidate_exercise_activities": [
+                {
+                    "id": activity.id,
+                    "title": activity.title,
+                    "description": activity.description,
+                    "delivery_method": activity.delivery_method,
+                    "phase": activity.phase,
+                    "notes": activity.notes,
+                    "design_opportunity_id": activity.design_opportunity_id,
+                    "cto_id": activity.cto_id,
+                    "collective_task_id": activity.collective_task_id,
+                    "success_factor_id": activity.success_factor_id,
+                    "metric_ids": activity.metric_ids,
+                    "evidence_requirement_ids": (
+                        activity.evidence_requirement_ids
+                    ),
+                }
+                for activity in self.candidate_exercise_activities
+            ],
+
             "exercise_design_opportunities": [
                 {
                     "id": opportunity.id,
@@ -1339,6 +1369,47 @@ class Project:
             )
             for item in saved_objectives
         ]
+        saved_candidate_activities = project_data.get(
+            "candidate_exercise_activities",
+            [],
+        )
+
+        project.candidate_exercise_activities = [
+            CandidateExerciseActivity(
+                id=item.get("id") or str(uuid4()),
+                title=item.get("title", ""),
+                description=item.get("description", ""),
+                delivery_method=item.get(
+                    "delivery_method",
+                    "",
+                ),
+                phase=item.get("phase", ""),
+                notes=item.get("notes", ""),
+                design_opportunity_id=item.get(
+                    "design_opportunity_id",
+                    "",
+                ),
+                cto_id=item.get("cto_id", ""),
+                collective_task_id=item.get(
+                    "collective_task_id",
+                    "",
+                ),
+                success_factor_id=item.get(
+                    "success_factor_id",
+                    "",
+                ),
+                metric_ids=item.get(
+                    "metric_ids",
+                    [],
+                ),
+                evidence_requirement_ids=item.get(
+                    "evidence_requirement_ids",
+                    [],
+                ),
+            )
+            for item in saved_candidate_activities
+        ]
+
         saved_design_opportunities = project_data.get(
             "exercise_design_opportunities",
             [],

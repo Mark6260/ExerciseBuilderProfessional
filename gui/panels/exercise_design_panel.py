@@ -1,8 +1,11 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QComboBox,
     QFrame,
     QHBoxLayout,
     QLineEdit,
+    QScrollArea,
+    QSizePolicy,
     QMessageBox,
     QLabel,
     QPushButton,
@@ -14,6 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.exercise_design_opportunity import ExerciseDesignOpportunity
+from core.candidate_exercise_activity import CandidateExerciseActivity
 
 
 class ExerciseDesignPanel(QWidget):
@@ -35,7 +39,30 @@ class ExerciseDesignPanel(QWidget):
         self._build_ui()
 
     def _build_ui(self):
-        layout = QVBoxLayout(self)
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(
+            0,
+            0,
+            0,
+            0,
+        )
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        scroll_area.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+
+        page = QWidget()
+        page.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.MinimumExpanding,
+        )
+
+        layout = QVBoxLayout(page)
         layout.setContentsMargins(
             16,
             16,
@@ -393,6 +420,167 @@ class ExerciseDesignPanel(QWidget):
             decomposition_frame
         )
 
+        activity_frame = QFrame()
+        activity_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+        activity_layout = QVBoxLayout(
+            activity_frame
+        )
+
+        activity_title = QLabel(
+            "CANDIDATE EXERCISE ACTIVITY"
+        )
+        activity_title.setStyleSheet(
+            "font-size: 16px; font-weight: bold;"
+        )
+        activity_layout.addWidget(
+            activity_title
+        )
+
+        activity_guidance = QLabel(
+            "Select a completed Design Opportunity above, then describe "
+            "a candidate piece of exercise architecture that could create "
+            "that opportunity. This is still not an inject or MEL/MIL row."
+        )
+        activity_guidance.setWordWrap(
+            True
+        )
+        activity_layout.addWidget(
+            activity_guidance
+        )
+
+        self.selected_activity_opportunity_label = QLabel(
+            "Selected Design Opportunity: None"
+        )
+        self.selected_activity_opportunity_label.setWordWrap(
+            True
+        )
+        activity_layout.addWidget(
+            self.selected_activity_opportunity_label
+        )
+
+        self.candidate_activity_title_input = QLineEdit()
+        self.candidate_activity_title_input.setPlaceholderText(
+            "e.g. Concurrent incident coordination sequence"
+        )
+        activity_layout.addWidget(
+            self.candidate_activity_title_input
+        )
+
+        self.candidate_activity_method_input = QComboBox()
+        self.candidate_activity_method_input.addItems(
+            [
+                "Select delivery method...",
+                "Facilitated discussion",
+                "Scripted role-play",
+                "Simulated operational activity",
+                "Live activity",
+                "Decision point",
+                "Information flow / reporting",
+                "Control-cell interaction",
+                "Other",
+            ]
+        )
+        activity_layout.addWidget(
+            self.candidate_activity_method_input
+        )
+
+        self.candidate_activity_phase_input = QLineEdit()
+        self.candidate_activity_phase_input.setPlaceholderText(
+            "Phase / placement (optional)"
+        )
+        activity_layout.addWidget(
+            self.candidate_activity_phase_input
+        )
+
+        self.candidate_activity_description_input = QTextEdit()
+        self.candidate_activity_description_input.setPlaceholderText(
+            "Describe the candidate activity at exercise-architecture "
+            "level. What would happen, who would be involved, and how "
+            "would it create the required design opportunity?"
+        )
+        self.candidate_activity_description_input.setFixedHeight(
+            85
+        )
+        activity_layout.addWidget(
+            self.candidate_activity_description_input
+        )
+
+        self.candidate_activity_notes_input = QTextEdit()
+        self.candidate_activity_notes_input.setPlaceholderText(
+            "Designer notes (optional) — constraints, dependencies, "
+            "resources or realism considerations."
+        )
+        self.candidate_activity_notes_input.setFixedHeight(
+            60
+        )
+        activity_layout.addWidget(
+            self.candidate_activity_notes_input
+        )
+
+        self.add_candidate_activity_button = QPushButton(
+            "ADD CANDIDATE EXERCISE ACTIVITY"
+        )
+        self.add_candidate_activity_button.setEnabled(
+            False
+        )
+        self.add_candidate_activity_button.clicked.connect(
+            self._add_candidate_exercise_activity
+        )
+        activity_layout.addWidget(
+            self.add_candidate_activity_button
+        )
+
+        self.candidate_activity_tree = QTreeWidget()
+        self.candidate_activity_tree.setColumnCount(
+            4
+        )
+        self.candidate_activity_tree.setHeaderLabels(
+            [
+                "Candidate Activity",
+                "Design Opportunity",
+                "Delivery Method",
+                "Assurance Coverage",
+            ]
+        )
+        self.candidate_activity_tree.setMinimumHeight(
+            150
+        )
+        self.candidate_activity_tree.header().setStretchLastSection(
+            True
+        )
+        self.candidate_activity_tree.setColumnWidth(
+            0,
+            300,
+        )
+        self.candidate_activity_tree.setColumnWidth(
+            1,
+            360,
+        )
+        self.candidate_activity_tree.setColumnWidth(
+            2,
+            220,
+        )
+
+        activity_layout.addWidget(
+            self.candidate_activity_tree
+        )
+
+        layout.addWidget(
+            activity_frame
+        )
+
+        self.candidate_activity_title_input.textChanged.connect(
+            self._update_add_candidate_activity_button
+        )
+        self.candidate_activity_description_input.textChanged.connect(
+            self._update_add_candidate_activity_button
+        )
+        self.candidate_activity_method_input.currentIndexChanged.connect(
+            self._update_add_candidate_activity_button
+        )
+
         footer_layout = QHBoxLayout()
 
         self.refresh_button = QPushButton(
@@ -411,6 +599,15 @@ class ExerciseDesignPanel(QWidget):
             footer_layout
         )
 
+        # Preserve useful editor heights. As Exercise Design grows,
+        # the workspace scrolls instead of crushing stacked controls.
+        layout.setSizeConstraint(
+            QVBoxLayout.SizeConstraint.SetMinimumSize
+        )
+
+        scroll_area.setWidget(page)
+        outer_layout.addWidget(scroll_area)
+
     def set_project(
         self,
         project,
@@ -421,6 +618,8 @@ class ExerciseDesignPanel(QWidget):
     def refresh_view(self):
         self.design_tree.clear()
         self.opportunity_tree.clear()
+        self.candidate_activity_tree.clear()
+        self._clear_candidate_activity_editor()
         self._clear_decomposition_editor()
         self.selected_requirement_label.setText(
             "Selected Success Factor: None"
@@ -493,6 +692,7 @@ class ExerciseDesignPanel(QWidget):
         self._build_design_requirements()
         self.design_tree.expandAll()
         self._refresh_design_opportunities()
+        self._refresh_candidate_activities()
 
     def _show_blocking_gaps(self):
         root = QTreeWidgetItem(
@@ -1040,9 +1240,15 @@ class ExerciseDesignPanel(QWidget):
 
         if opportunity is None:
             self._clear_decomposition_editor()
+            self._clear_candidate_activity_editor()
             return
 
         self.selected_opportunity_label.setText(
+            "Selected Design Opportunity: "
+            + opportunity.title
+        )
+
+        self.selected_activity_opportunity_label.setText(
             "Selected Design Opportunity: "
             + opportunity.title
         )
@@ -1063,6 +1269,7 @@ class ExerciseDesignPanel(QWidget):
         self.save_decomposition_button.setEnabled(
             True
         )
+        self._update_add_candidate_activity_button()
 
     def _save_design_decomposition(self):
         opportunity = self._selected_design_opportunity()
@@ -1109,4 +1316,215 @@ class ExerciseDesignPanel(QWidget):
                     item
                 )
                 break
+
+        self._update_add_candidate_activity_button()
+
+    def _clear_candidate_activity_editor(self):
+        if not hasattr(
+            self,
+            "selected_activity_opportunity_label",
+        ):
+            return
+
+        self.selected_activity_opportunity_label.setText(
+            "Selected Design Opportunity: None"
+        )
+        self.candidate_activity_title_input.clear()
+        self.candidate_activity_method_input.setCurrentIndex(
+            0
+        )
+        self.candidate_activity_phase_input.clear()
+        self.candidate_activity_description_input.clear()
+        self.candidate_activity_notes_input.clear()
+        self.add_candidate_activity_button.setEnabled(
+            False
+        )
+
+    @staticmethod
+    def _opportunity_decomposition_complete(
+        opportunity,
+    ):
+        if opportunity is None:
+            return False
+
+        return all(
+            [
+                opportunity.required_conditions.strip(),
+                opportunity.stimulus_information.strip(),
+                opportunity.response_opportunity.strip(),
+                opportunity.evidence_capture_plan.strip(),
+            ]
+        )
+
+    def _update_add_candidate_activity_button(
+        self,
+        *_,
+    ):
+        opportunity = self._selected_design_opportunity()
+
+        enabled = bool(
+            opportunity is not None
+            and self._opportunity_decomposition_complete(
+                opportunity
+            )
+            and self.candidate_activity_title_input.text().strip()
+            and (
+                self.candidate_activity_method_input.currentIndex()
+                > 0
+            )
+            and (
+                self.candidate_activity_description_input
+                .toPlainText()
+                .strip()
+            )
+        )
+
+        self.add_candidate_activity_button.setEnabled(
+            enabled
+        )
+
+    def _add_candidate_exercise_activity(self):
+        opportunity = self._selected_design_opportunity()
+
+        if not self._opportunity_decomposition_complete(
+            opportunity
+        ):
+            QMessageBox.warning(
+                self,
+                "Candidate Exercise Activity",
+                "Complete and save the selected Design Opportunity "
+                "decomposition before creating a Candidate Exercise "
+                "Activity.",
+            )
+            return
+
+        activity = CandidateExerciseActivity(
+            title=(
+                self.candidate_activity_title_input
+                .text()
+                .strip()
+            ),
+            description=(
+                self.candidate_activity_description_input
+                .toPlainText()
+                .strip()
+            ),
+            delivery_method=(
+                self.candidate_activity_method_input
+                .currentText()
+            ),
+            phase=(
+                self.candidate_activity_phase_input
+                .text()
+                .strip()
+            ),
+            notes=(
+                self.candidate_activity_notes_input
+                .toPlainText()
+                .strip()
+            ),
+            design_opportunity_id=opportunity.id,
+            cto_id=opportunity.cto_id,
+            collective_task_id=(
+                opportunity.collective_task_id
+            ),
+            success_factor_id=(
+                opportunity.success_factor_id
+            ),
+            metric_ids=list(
+                opportunity.metric_ids
+            ),
+            evidence_requirement_ids=list(
+                opportunity.evidence_requirement_ids
+            ),
+        )
+
+        self.project.add_candidate_exercise_activity(
+            activity
+        )
+
+        self.candidate_activity_title_input.clear()
+        self.candidate_activity_method_input.setCurrentIndex(
+            0
+        )
+        self.candidate_activity_phase_input.clear()
+        self.candidate_activity_description_input.clear()
+        self.candidate_activity_notes_input.clear()
+
+        self._refresh_candidate_activities()
+        self._update_add_candidate_activity_button()
+
+    def _find_design_opportunity(
+        self,
+        opportunity_id,
+    ):
+        if self.project is None:
+            return None
+
+        for opportunity in self.project.exercise_design_opportunities:
+            if opportunity.id == opportunity_id:
+                return opportunity
+
+        return None
+
+    def _refresh_candidate_activities(self):
+        self.candidate_activity_tree.clear()
+
+        if self.project is None or self.cto is None:
+            return
+
+        activities = [
+            activity
+            for activity in self.project.candidate_exercise_activities
+            if activity.cto_id == self.cto.id
+        ]
+
+        for activity in activities:
+            opportunity = self._find_design_opportunity(
+                activity.design_opportunity_id
+            )
+
+            if opportunity is None:
+                opportunity_title = (
+                    "Design Opportunity no longer found"
+                )
+                assurance_coverage = "Review required"
+            else:
+                opportunity_title = opportunity.title
+
+                assurance_coverage = (
+                    f"{len(activity.metric_ids)} metric(s), "
+                    f"{len(activity.evidence_requirement_ids)} "
+                    "evidence requirement(s)"
+                )
+
+            item = QTreeWidgetItem(
+                [
+                    activity.title,
+                    opportunity_title,
+                    activity.delivery_method or "-",
+                    assurance_coverage,
+                ]
+            )
+
+            item.setToolTip(
+                0,
+                activity.description,
+            )
+
+            if activity.phase:
+                item.setToolTip(
+                    2,
+                    f"Phase / placement: {activity.phase}",
+                )
+
+            item.setData(
+                0,
+                Qt.ItemDataRole.UserRole,
+                activity.id,
+            )
+
+            self.candidate_activity_tree.addTopLevelItem(
+                item
+            )
 
