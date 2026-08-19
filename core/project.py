@@ -4,6 +4,7 @@ from pathlib import Path
 from core.doctrine import DoctrineReference
 from core.inject import Inject, InjectStatus
 from core.objective import ExerciseObjective
+from core.exercise_design_opportunity import ExerciseDesignOpportunity
 from core.collective_training_objective import (
     CollectiveTrainingObjective,
     CollectiveTask,
@@ -72,6 +73,7 @@ class Project:
 
         self.injects: list[Inject] = []
         self.objectives: list[ExerciseObjective] = []
+        self.exercise_design_opportunities: list["ExerciseDesignOpportunity"] = []
         self.collective_training_objectives: list[
             CollectiveTrainingObjective
         ] = []
@@ -94,6 +96,14 @@ class Project:
 
     def add_objective(self, objective: ExerciseObjective):
         self.objectives.append(objective)
+    def add_exercise_design_opportunity(
+        self,
+        opportunity: ExerciseDesignOpportunity,
+    ):
+        self.exercise_design_opportunities.append(
+            opportunity
+        )
+
     def add_collective_training_objective(
         self,
         objective: CollectiveTrainingObjective,
@@ -238,6 +248,22 @@ class Project:
                 }
                 for objective in self.objectives
             ],
+            "exercise_design_opportunities": [
+                {
+                    "id": opportunity.id,
+                    "title": opportunity.title,
+                    "description": opportunity.description,
+                    "cto_id": opportunity.cto_id,
+                    "collective_task_id": opportunity.collective_task_id,
+                    "success_factor_id": opportunity.success_factor_id,
+                    "metric_ids": opportunity.metric_ids,
+                    "evidence_requirement_ids": (
+                        opportunity.evidence_requirement_ids
+                    ),
+                }
+                for opportunity in self.exercise_design_opportunities
+            ],
+
             "collective_training_objectives": [
     {
         "id": cto.id,
@@ -1309,6 +1335,37 @@ class Project:
             )
             for item in saved_objectives
         ]
+        saved_design_opportunities = project_data.get(
+            "exercise_design_opportunities",
+            [],
+        )
+
+        project.exercise_design_opportunities = [
+            ExerciseDesignOpportunity(
+                id=item.get("id") or str(uuid4()),
+                title=item.get("title", ""),
+                description=item.get("description", ""),
+                cto_id=item.get("cto_id", ""),
+                collective_task_id=item.get(
+                    "collective_task_id",
+                    "",
+                ),
+                success_factor_id=item.get(
+                    "success_factor_id",
+                    "",
+                ),
+                metric_ids=item.get(
+                    "metric_ids",
+                    [],
+                ),
+                evidence_requirement_ids=item.get(
+                    "evidence_requirement_ids",
+                    [],
+                ),
+            )
+            for item in saved_design_opportunities
+        ]
+
         saved_ctos = project_data.get(
             "collective_training_objectives",
             [],

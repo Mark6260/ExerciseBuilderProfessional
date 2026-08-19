@@ -2,13 +2,18 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
+    QLineEdit,
+    QMessageBox,
     QLabel,
     QPushButton,
     QTreeWidget,
     QTreeWidgetItem,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
+
+from core.exercise_design_opportunity import ExerciseDesignOpportunity
 
 
 class ExerciseDesignPanel(QWidget):
@@ -123,6 +128,114 @@ class ExerciseDesignPanel(QWidget):
             1,
         )
 
+        opportunity_frame = QFrame()
+        opportunity_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+        opportunity_layout = QVBoxLayout(
+            opportunity_frame
+        )
+
+        opportunity_title = QLabel(
+            "DESIGN OPPORTUNITY"
+        )
+        opportunity_title.setStyleSheet(
+            "font-size: 16px; font-weight: bold;"
+        )
+        opportunity_layout.addWidget(
+            opportunity_title
+        )
+
+        opportunity_guidance = QLabel(
+            "Select a Success Factor in the assured design tree, then "
+            "describe a credible situation or activity that gives the "
+            "training audience a fair opportunity to demonstrate it. "
+            "Do not write an inject here."
+        )
+        opportunity_guidance.setWordWrap(True)
+        opportunity_layout.addWidget(
+            opportunity_guidance
+        )
+
+        self.selected_requirement_label = QLabel(
+            "Selected Success Factor: None"
+        )
+        self.selected_requirement_label.setWordWrap(
+            True
+        )
+        opportunity_layout.addWidget(
+            self.selected_requirement_label
+        )
+
+        self.opportunity_title_input = QLineEdit()
+        self.opportunity_title_input.setPlaceholderText(
+            "e.g. Competing operational demands require HQ coordination"
+        )
+        opportunity_layout.addWidget(
+            self.opportunity_title_input
+        )
+
+        self.opportunity_description_input = QTextEdit()
+        self.opportunity_description_input.setPlaceholderText(
+            "Describe the exercise situation or activity. What must be "
+            "happening so the collective has a credible opportunity to "
+            "demonstrate the selected success factor?"
+        )
+        self.opportunity_description_input.setFixedHeight(
+            90
+        )
+        opportunity_layout.addWidget(
+            self.opportunity_description_input
+        )
+
+        self.add_opportunity_button = QPushButton(
+            "ADD DESIGN OPPORTUNITY"
+        )
+        self.add_opportunity_button.setEnabled(
+            False
+        )
+        self.add_opportunity_button.clicked.connect(
+            self._add_design_opportunity
+        )
+        opportunity_layout.addWidget(
+            self.add_opportunity_button
+        )
+
+        self.opportunity_tree = QTreeWidget()
+        self.opportunity_tree.setColumnCount(
+            3
+        )
+        self.opportunity_tree.setHeaderLabels(
+            [
+                "Design Opportunity",
+                "Assured Link",
+                "Coverage",
+            ]
+        )
+        self.opportunity_tree.setMinimumHeight(
+            150
+        )
+        self.opportunity_tree.header().setStretchLastSection(
+            True
+        )
+        opportunity_layout.addWidget(
+            self.opportunity_tree
+        )
+
+        layout.addWidget(
+            opportunity_frame
+        )
+
+        self.design_tree.itemSelectionChanged.connect(
+            self._design_requirement_selected
+        )
+        self.opportunity_title_input.textChanged.connect(
+            self._update_add_opportunity_button
+        )
+        self.opportunity_description_input.textChanged.connect(
+            self._update_add_opportunity_button
+        )
+
         footer_layout = QHBoxLayout()
 
         self.refresh_button = QPushButton(
@@ -150,6 +263,13 @@ class ExerciseDesignPanel(QWidget):
 
     def refresh_view(self):
         self.design_tree.clear()
+        self.opportunity_tree.clear()
+        self.selected_requirement_label.setText(
+            "Selected Success Factor: None"
+        )
+        self.add_opportunity_button.setEnabled(
+            False
+        )
         self.cto = None
 
         if self.project is None:
@@ -214,6 +334,7 @@ class ExerciseDesignPanel(QWidget):
 
         self._build_design_requirements()
         self.design_tree.expandAll()
+        self._refresh_design_opportunities()
 
     def _show_blocking_gaps(self):
         root = QTreeWidgetItem(
@@ -377,6 +498,21 @@ class ExerciseDesignPanel(QWidget):
                     Qt.ItemDataRole.UserRole,
                     factor.id,
                 )
+                factor_item.setData(
+                    1,
+                    Qt.ItemDataRole.UserRole,
+                    "success_factor",
+                )
+                factor_item.setData(
+                    2,
+                    Qt.ItemDataRole.UserRole,
+                    {
+                        "task_id": task.id,
+                        "task_title": task.title,
+                        "factor_id": factor.id,
+                        "factor_description": factor.description,
+                    },
+                )
 
                 for metric in factor.metrics:
                     metric_item = QTreeWidgetItem(
@@ -478,3 +614,214 @@ class ExerciseDesignPanel(QWidget):
                             Qt.ItemDataRole.UserRole,
                             requirement.id,
                         )
+
+    def _design_requirement_selected(self):
+        items = self.design_tree.selectedItems()
+
+        if not items:
+            self.selected_requirement_label.setText(
+                "Selected Success Factor: None"
+            )
+            self._update_add_opportunity_button()
+            return
+
+        item = items[0]
+        item_type = item.data(
+            1,
+            Qt.ItemDataRole.UserRole,
+        )
+
+        if item_type != "success_factor":
+            self.selected_requirement_label.setText(
+                "Selected Success Factor: None — select a Success Factor "
+                "row in the assured design tree."
+            )
+            self._update_add_opportunity_button()
+            return
+
+        data = item.data(
+            2,
+            Qt.ItemDataRole.UserRole,
+        ) or {}
+
+        self.selected_requirement_label.setText(
+            "Selected Success Factor: "
+            + data.get(
+                "factor_description",
+                "",
+            )
+        )
+
+        self._update_add_opportunity_button()
+
+    def _selected_success_factor_data(self):
+        items = self.design_tree.selectedItems()
+
+        if not items:
+            return None
+
+        item = items[0]
+
+        if item.data(
+            1,
+            Qt.ItemDataRole.UserRole,
+        ) != "success_factor":
+            return None
+
+        return item.data(
+            2,
+            Qt.ItemDataRole.UserRole,
+        )
+
+    def _update_add_opportunity_button(self):
+        selected = self._selected_success_factor_data()
+
+        enabled = bool(
+            self.project is not None
+            and self.cto is not None
+            and selected
+            and self.opportunity_title_input.text().strip()
+            and self.opportunity_description_input.toPlainText().strip()
+            and self.cto.passes_collective_structure_test()
+            and self.cto.has_evidence_coverage()
+            and self.cto.has_critical_error_coverage()
+        )
+
+        self.add_opportunity_button.setEnabled(
+            enabled
+        )
+
+    def _find_success_factor(
+        self,
+        task_id,
+        factor_id,
+    ):
+        for task in self.cto.collective_tasks:
+            if task.id != task_id:
+                continue
+
+            for factor in task.success_factors:
+                if factor.id == factor_id:
+                    return task, factor
+
+        return None, None
+
+    def _add_design_opportunity(self):
+        selected = self._selected_success_factor_data()
+
+        if not selected:
+            return
+
+        task, factor = self._find_success_factor(
+            selected.get(
+                "task_id",
+                "",
+            ),
+            selected.get(
+                "factor_id",
+                "",
+            ),
+        )
+
+        if task is None or factor is None:
+            QMessageBox.warning(
+                self,
+                "Design Opportunity",
+                "The selected assured requirement could not be found.",
+            )
+            return
+
+        metric_ids = [
+            metric.id
+            for metric in factor.metrics
+        ]
+
+        evidence_ids = [
+            requirement.id
+            for metric in factor.metrics
+            for requirement in metric.evidence_requirements
+        ]
+
+        opportunity = ExerciseDesignOpportunity(
+            title=self.opportunity_title_input.text().strip(),
+            description=(
+                self.opportunity_description_input
+                .toPlainText()
+                .strip()
+            ),
+            cto_id=self.cto.id,
+            collective_task_id=task.id,
+            success_factor_id=factor.id,
+            metric_ids=metric_ids,
+            evidence_requirement_ids=evidence_ids,
+        )
+
+        self.project.add_exercise_design_opportunity(
+            opportunity
+        )
+
+        self.opportunity_title_input.clear()
+        self.opportunity_description_input.clear()
+
+        self._refresh_design_opportunities()
+        self._update_add_opportunity_button()
+
+    def _refresh_design_opportunities(self):
+        self.opportunity_tree.clear()
+
+        if self.project is None or self.cto is None:
+            return
+
+        opportunities = [
+            opportunity
+            for opportunity in self.project.exercise_design_opportunities
+            if opportunity.cto_id == self.cto.id
+        ]
+
+        for opportunity in opportunities:
+            task, factor = self._find_success_factor(
+                opportunity.collective_task_id,
+                opportunity.success_factor_id,
+            )
+
+            if factor is None:
+                assured_link = "Assured requirement no longer found"
+                coverage = "Review required"
+            else:
+                assured_link = (
+                    f"{task.title} → {factor.description}"
+                )
+
+                metric_count = len(
+                    opportunity.metric_ids
+                )
+                evidence_count = len(
+                    opportunity.evidence_requirement_ids
+                )
+
+                coverage = (
+                    f"{metric_count} metric(s), "
+                    f"{evidence_count} evidence requirement(s)"
+                )
+
+            item = QTreeWidgetItem(
+                [
+                    opportunity.title,
+                    assured_link,
+                    coverage,
+                ]
+            )
+            item.setToolTip(
+                0,
+                opportunity.description,
+            )
+            item.setData(
+                0,
+                Qt.ItemDataRole.UserRole,
+                opportunity.id,
+            )
+
+            self.opportunity_tree.addTopLevelItem(
+                item
+            )
+

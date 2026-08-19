@@ -24,7 +24,22 @@
     },
     "doctrine_references": [],
     "objectives": [],
-    "exercise_design_opportunities": [],
+    "exercise_design_opportunities": [
+        {
+            "id": "e0afb7fa-22fd-4d3c-b72f-93c246110d1e",
+            "title": "Concurrent demands require HQ coordination",
+            "description": "Multiple operational demands develop concurrently, requiring the headquarters to coordinate priorities, decisions and activity across relevant cells.",
+            "cto_id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
+            "collective_task_id": "5f4a72bf-1773-4180-b6e6-497ac071af45",
+            "success_factor_id": "97076356-0545-460e-a020-4dcb2abcb45b",
+            "metric_ids": [
+                "bd102bb1-8268-46e2-a663-5c99e904d868"
+            ],
+            "evidence_requirement_ids": [
+                "ae5d9351-a630-4000-b807-b975ea6b6499"
+            ]
+        }
+    ],
     "collective_training_objectives": [
         {
             "id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
