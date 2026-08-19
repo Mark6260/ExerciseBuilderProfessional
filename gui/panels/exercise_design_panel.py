@@ -1,6 +1,9 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFormLayout,
     QFrame,
     QHBoxLayout,
     QLineEdit,
@@ -255,6 +258,40 @@ class ExerciseDesignPanel(QWidget):
         )
         opportunity_layout.addWidget(
             self.opportunity_tree
+        )
+
+        opportunity_manage_layout = QHBoxLayout()
+
+        self.edit_opportunity_button = QPushButton(
+            "EDIT SELECTED OPPORTUNITY"
+        )
+        self.edit_opportunity_button.setEnabled(
+            False
+        )
+        self.edit_opportunity_button.clicked.connect(
+            self._edit_selected_design_opportunity
+        )
+
+        self.delete_opportunity_button = QPushButton(
+            "DELETE SELECTED OPPORTUNITY"
+        )
+        self.delete_opportunity_button.setEnabled(
+            False
+        )
+        self.delete_opportunity_button.clicked.connect(
+            self._delete_selected_design_opportunity
+        )
+
+        opportunity_manage_layout.addStretch()
+        opportunity_manage_layout.addWidget(
+            self.edit_opportunity_button
+        )
+        opportunity_manage_layout.addWidget(
+            self.delete_opportunity_button
+        )
+
+        opportunity_layout.addLayout(
+            opportunity_manage_layout
         )
 
         self.opportunity_tree.itemSelectionChanged.connect(
@@ -567,6 +604,44 @@ class ExerciseDesignPanel(QWidget):
             self.candidate_activity_tree
         )
 
+        activity_manage_layout = QHBoxLayout()
+
+        self.edit_candidate_activity_button = QPushButton(
+            "EDIT SELECTED ACTIVITY"
+        )
+        self.edit_candidate_activity_button.setEnabled(
+            False
+        )
+        self.edit_candidate_activity_button.clicked.connect(
+            self._edit_selected_candidate_activity
+        )
+
+        self.delete_candidate_activity_button = QPushButton(
+            "DELETE SELECTED ACTIVITY"
+        )
+        self.delete_candidate_activity_button.setEnabled(
+            False
+        )
+        self.delete_candidate_activity_button.clicked.connect(
+            self._delete_selected_candidate_activity
+        )
+
+        activity_manage_layout.addStretch()
+        activity_manage_layout.addWidget(
+            self.edit_candidate_activity_button
+        )
+        activity_manage_layout.addWidget(
+            self.delete_candidate_activity_button
+        )
+
+        activity_layout.addLayout(
+            activity_manage_layout
+        )
+
+        self.candidate_activity_tree.itemSelectionChanged.connect(
+            self._candidate_activity_selected
+        )
+
         layout.addWidget(
             activity_frame
         )
@@ -619,6 +694,22 @@ class ExerciseDesignPanel(QWidget):
         self.design_tree.clear()
         self.opportunity_tree.clear()
         self.candidate_activity_tree.clear()
+        if hasattr(
+            self,
+            "edit_opportunity_button",
+        ):
+            self.edit_opportunity_button.setEnabled(
+                False
+            )
+            self.delete_opportunity_button.setEnabled(
+                False
+            )
+            self.edit_candidate_activity_button.setEnabled(
+                False
+            )
+            self.delete_candidate_activity_button.setEnabled(
+                False
+            )
         self._clear_candidate_activity_editor()
         self._clear_decomposition_editor()
         self.selected_requirement_label.setText(
@@ -1238,6 +1329,13 @@ class ExerciseDesignPanel(QWidget):
     def _opportunity_selected(self):
         opportunity = self._selected_design_opportunity()
 
+        self.edit_opportunity_button.setEnabled(
+            opportunity is not None
+        )
+        self.delete_opportunity_button.setEnabled(
+            opportunity is not None
+        )
+
         if opportunity is None:
             self._clear_decomposition_editor()
             self._clear_candidate_activity_editor()
@@ -1527,4 +1625,449 @@ class ExerciseDesignPanel(QWidget):
             self.candidate_activity_tree.addTopLevelItem(
                 item
             )
+
+    def _select_design_opportunity_by_id(
+        self,
+        opportunity_id,
+    ):
+        for index in range(
+            self.opportunity_tree.topLevelItemCount()
+        ):
+            item = self.opportunity_tree.topLevelItem(
+                index
+            )
+            if item.data(
+                0,
+                Qt.ItemDataRole.UserRole,
+            ) == opportunity_id:
+                self.opportunity_tree.setCurrentItem(
+                    item
+                )
+                return
+
+    def _edit_selected_design_opportunity(self):
+        opportunity = self._selected_design_opportunity()
+
+        if opportunity is None:
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(
+            "Edit Design Opportunity"
+        )
+        dialog.resize(
+            680,
+            420,
+        )
+
+        dialog_layout = QVBoxLayout(
+            dialog
+        )
+        form = QFormLayout()
+
+        title_input = QLineEdit(
+            opportunity.title
+        )
+
+        description_input = QTextEdit()
+        description_input.setPlainText(
+            opportunity.description
+        )
+        description_input.setMinimumHeight(
+            180
+        )
+
+        form.addRow(
+            "Title:",
+            title_input,
+        )
+        form.addRow(
+            "Description:",
+            description_input,
+        )
+
+        link_label = QLabel(
+            "Assurance linkage is protected. Editing this opportunity "
+            "does not change its CTO, Task, Success Factor, Metric or "
+            "Evidence Requirement references."
+        )
+        link_label.setWordWrap(
+            True
+        )
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(
+            dialog.accept
+        )
+        buttons.rejected.connect(
+            dialog.reject
+        )
+
+        dialog_layout.addLayout(
+            form
+        )
+        dialog_layout.addWidget(
+            link_label
+        )
+        dialog_layout.addWidget(
+            buttons
+        )
+
+        if (
+            dialog.exec()
+            != QDialog.DialogCode.Accepted
+        ):
+            return
+
+        title = title_input.text().strip()
+        description = (
+            description_input
+            .toPlainText()
+            .strip()
+        )
+
+        if not title or not description:
+            QMessageBox.warning(
+                self,
+                "Edit Design Opportunity",
+                "Title and description are both required.",
+            )
+            return
+
+        opportunity.title = title
+        opportunity.description = description
+
+        opportunity_id = opportunity.id
+
+        self._refresh_design_opportunities()
+        self._refresh_candidate_activities()
+        self._select_design_opportunity_by_id(
+            opportunity_id
+        )
+
+    def _delete_selected_design_opportunity(self):
+        opportunity = self._selected_design_opportunity()
+
+        if opportunity is None:
+            return
+
+        dependent_activities = [
+            activity
+            for activity
+            in self.project.candidate_exercise_activities
+            if (
+                activity.design_opportunity_id
+                == opportunity.id
+            )
+        ]
+
+        if dependent_activities:
+            names = "\n".join(
+                f"• {activity.title}"
+                for activity in dependent_activities
+            )
+
+            QMessageBox.warning(
+                self,
+                "Delete Design Opportunity",
+                "This Design Opportunity cannot be deleted because "
+                "Candidate Exercise Activities depend on it:\n\n"
+                f"{names}\n\n"
+                "Delete or rework the dependent activities first.",
+            )
+            return
+
+        answer = QMessageBox.question(
+            self,
+            "Delete Design Opportunity",
+            (
+                "Delete the selected Design Opportunity?\n\n"
+                f"{opportunity.title}\n\n"
+                "Its assured CTO linkage will not be altered."
+            ),
+            (
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No
+            ),
+            QMessageBox.StandardButton.No,
+        )
+
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        self.project.exercise_design_opportunities = [
+            item
+            for item in self.project.exercise_design_opportunities
+            if item.id != opportunity.id
+        ]
+
+        self._clear_decomposition_editor()
+        self._clear_candidate_activity_editor()
+        self._refresh_design_opportunities()
+        self._refresh_candidate_activities()
+
+    def _selected_candidate_activity(self):
+        if self.project is None:
+            return None
+
+        items = self.candidate_activity_tree.selectedItems()
+
+        if not items:
+            return None
+
+        activity_id = items[0].data(
+            0,
+            Qt.ItemDataRole.UserRole,
+        )
+
+        for activity in self.project.candidate_exercise_activities:
+            if activity.id == activity_id:
+                return activity
+
+        return None
+
+    def _candidate_activity_selected(self):
+        activity = self._selected_candidate_activity()
+
+        self.edit_candidate_activity_button.setEnabled(
+            activity is not None
+        )
+        self.delete_candidate_activity_button.setEnabled(
+            activity is not None
+        )
+
+    def _select_candidate_activity_by_id(
+        self,
+        activity_id,
+    ):
+        for index in range(
+            self.candidate_activity_tree.topLevelItemCount()
+        ):
+            item = self.candidate_activity_tree.topLevelItem(
+                index
+            )
+            if item.data(
+                0,
+                Qt.ItemDataRole.UserRole,
+            ) == activity_id:
+                self.candidate_activity_tree.setCurrentItem(
+                    item
+                )
+                return
+
+    def _edit_selected_candidate_activity(self):
+        activity = self._selected_candidate_activity()
+
+        if activity is None:
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(
+            "Edit Candidate Exercise Activity"
+        )
+        dialog.resize(
+            720,
+            560,
+        )
+
+        dialog_layout = QVBoxLayout(
+            dialog
+        )
+        form = QFormLayout()
+
+        title_input = QLineEdit(
+            activity.title
+        )
+
+        method_input = QComboBox()
+        method_input.addItems(
+            [
+                "Select delivery method...",
+                "Facilitated discussion",
+                "Scripted role-play",
+                "Simulated operational activity",
+                "Live activity",
+                "Decision point",
+                "Information flow / reporting",
+                "Control-cell interaction",
+                "Other",
+            ]
+        )
+
+        method_index = method_input.findText(
+            activity.delivery_method
+        )
+        if method_index >= 0:
+            method_input.setCurrentIndex(
+                method_index
+            )
+
+        phase_input = QLineEdit(
+            activity.phase
+        )
+
+        description_input = QTextEdit()
+        description_input.setPlainText(
+            activity.description
+        )
+        description_input.setMinimumHeight(
+            150
+        )
+
+        notes_input = QTextEdit()
+        notes_input.setPlainText(
+            activity.notes
+        )
+        notes_input.setMinimumHeight(
+            100
+        )
+
+        form.addRow(
+            "Title:",
+            title_input,
+        )
+        form.addRow(
+            "Delivery method:",
+            method_input,
+        )
+        form.addRow(
+            "Phase / placement:",
+            phase_input,
+        )
+        form.addRow(
+            "Description:",
+            description_input,
+        )
+        form.addRow(
+            "Designer notes:",
+            notes_input,
+        )
+
+        protected_label = QLabel(
+            "Parent Design Opportunity and assurance lineage are "
+            "protected during editing."
+        )
+        protected_label.setWordWrap(
+            True
+        )
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(
+            dialog.accept
+        )
+        buttons.rejected.connect(
+            dialog.reject
+        )
+
+        dialog_layout.addLayout(
+            form
+        )
+        dialog_layout.addWidget(
+            protected_label
+        )
+        dialog_layout.addWidget(
+            buttons
+        )
+
+        if (
+            dialog.exec()
+            != QDialog.DialogCode.Accepted
+        ):
+            return
+
+        title = title_input.text().strip()
+        description = (
+            description_input
+            .toPlainText()
+            .strip()
+        )
+
+        if (
+            not title
+            or not description
+            or method_input.currentIndex() == 0
+        ):
+            QMessageBox.warning(
+                self,
+                "Edit Candidate Exercise Activity",
+                "Title, delivery method and description are required.",
+            )
+            return
+
+        activity.title = title
+        activity.delivery_method = (
+            method_input.currentText()
+        )
+        activity.phase = (
+            phase_input.text().strip()
+        )
+        activity.description = description
+        activity.notes = (
+            notes_input
+            .toPlainText()
+            .strip()
+        )
+
+        activity_id = activity.id
+
+        self._refresh_candidate_activities()
+        self._select_candidate_activity_by_id(
+            activity_id
+        )
+
+    def _delete_selected_candidate_activity(self):
+        activity = self._selected_candidate_activity()
+
+        if activity is None:
+            return
+
+        opportunity = self._find_design_opportunity(
+            activity.design_opportunity_id
+        )
+
+        parent_title = (
+            opportunity.title
+            if opportunity is not None
+            else "Unknown Design Opportunity"
+        )
+
+        answer = QMessageBox.question(
+            self,
+            "Delete Candidate Exercise Activity",
+            (
+                "Delete the selected Candidate Exercise Activity?\n\n"
+                f"{activity.title}\n\n"
+                f"Parent Design Opportunity: {parent_title}\n\n"
+                "The parent Design Opportunity and assured CTO "
+                "will remain unchanged."
+            ),
+            (
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No
+            ),
+            QMessageBox.StandardButton.No,
+        )
+
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        self.project.candidate_exercise_activities = [
+            item
+            for item in self.project.candidate_exercise_activities
+            if item.id != activity.id
+        ]
+
+        self._refresh_candidate_activities()
+        self.edit_candidate_activity_button.setEnabled(
+            False
+        )
+        self.delete_candidate_activity_button.setEnabled(
+            False
+        )
 

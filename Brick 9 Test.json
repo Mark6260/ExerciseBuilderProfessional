@@ -24,48 +24,11 @@
     },
     "doctrine_references": [],
     "objectives": [],
-    "candidate_exercise_activities": [
-        {
-            "id": "354e1197-2952-43b7-95d4-a1c15944254d",
-            "title": "Concurrent Incident Coordination Sequence",
-            "description": "A developing sequence of concurrent operational demands requires multiple headquarters cells to prioritise activity, coordinate decisions and maintain a common response.",
-            "delivery_method": "Simulated operational activity",
-            "phase": "Main Play",
-            "notes": "Activity may require several control-cell interactions and should allow sufficient time for genuine coordination rather than forcing an immediate response.",
-            "design_opportunity_id": "79d16c90-13d9-4e65-89b0-1f02b11fcb73",
-            "cto_id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
-            "collective_task_id": "5f4a72bf-1773-4180-b6e6-497ac071af45",
-            "success_factor_id": "97076356-0545-460e-a020-4dcb2abcb45b",
-            "metric_ids": [
-                "bd102bb1-8268-46e2-a663-5c99e904d868"
-            ],
-            "evidence_requirement_ids": [
-                "ae5d9351-a630-4000-b807-b975ea6b6499"
-            ]
-        },
-        {
-            "id": "96a7ac50-0f0a-4f07-b0d3-4c825b231e25",
-            "title": "HQ Multi-Cell Coordination Activity",
-            "description": "A developing sequence of concurrent operational demands requires multiple headquarters cells to prioritise activity, coordinate decisions and maintain a common response.",
-            "delivery_method": "Simulated operational activity",
-            "phase": "Main Play",
-            "notes": "",
-            "design_opportunity_id": "79d16c90-13d9-4e65-89b0-1f02b11fcb73",
-            "cto_id": "c0ea8a17-6758-4492-bfb9-b88b82f654dc",
-            "collective_task_id": "5f4a72bf-1773-4180-b6e6-497ac071af45",
-            "success_factor_id": "97076356-0545-460e-a020-4dcb2abcb45b",
-            "metric_ids": [
-                "bd102bb1-8268-46e2-a663-5c99e904d868"
-            ],
-            "evidence_requirement_ids": [
-                "ae5d9351-a630-4000-b807-b975ea6b6499"
-            ]
-        }
-    ],
+    "candidate_exercise_activities": [],
     "exercise_design_opportunities": [
         {
             "id": "79d16c90-13d9-4e65-89b0-1f02b11fcb73",
-            "title": "Concurrent Incident Coordination Sequence",
+            "title": "Concurrent HQ Coordination Opportunity",
             "description": "Multiple operational demands develop concurrently, requiring the headquarters to coordinate priorities, decisions and activity across relevant cells.",
             "required_conditions": "Multiple operational demands are developing concurrently and require coordination across headquarters cells.",
             "stimulus_information": "Relevant cells receive developing information and competing demands that require prioritisation and coordinating decisions.",
