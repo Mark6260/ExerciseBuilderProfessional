@@ -26,16 +26,35 @@
     "objectives": [],
     "mel_mil_promotions": [],
     "candidate_mel_mil_activities": [],
-    "candidate_exercise_activities": [],
+    "candidate_exercise_activities": [
+        {
+            "id": "2cd1abbc-6233-4abb-a96b-4c1fa525694f",
+            "title": "Cross-departmental prioritisation activity",
+            "description": "Create simultaneous and credible competing demands across departmental functions, requiring the training audience to identify conflicts, agree response priorities, coordinate available capability and communicate an agreed departmental response.",
+            "delivery_method": "Simulated operational activity",
+            "phase": "Main Play",
+            "notes": "The competing demands must both be credible and important enough to require genuine prioritisation. Avoid making one option obviously correct.",
+            "design_opportunity_id": "86a6c5c2-8092-4246-b84e-43fb916f409d",
+            "cto_id": "3a05c13e-84d2-42f9-a427-977abae7f659",
+            "collective_task_id": "505ea14e-1bc0-454c-bb53-bb913c6952a0",
+            "success_factor_id": "8cadd75c-59be-4a5f-80b1-b511099af6dc",
+            "metric_ids": [
+                "87118eb5-b09a-4d84-a300-e19caf26913a"
+            ],
+            "evidence_requirement_ids": [
+                "7c47c6fc-ff3c-44d8-918e-1b36884806dd"
+            ]
+        }
+    ],
     "exercise_design_opportunities": [
         {
             "id": "86a6c5c2-8092-4246-b84e-43fb916f409d",
             "title": "Competing departmental priorities",
             "description": "The developing cyber incident creates competing operational demands across departmental functions, requiring the team to agree priorities, communicate them to relevant functions and coordinate activity within a time-critical response.",
-            "required_conditions": "",
-            "stimulus_information": "",
-            "response_opportunity": "",
-            "evidence_capture_plan": "",
+            "required_conditions": "The cyber incident is affecting more than one departmental function at the same time. Different teams have legitimate but competing operational priorities, limited resources and incomplete information. Decisions made by one function may affect the ability of another function to respond.",
+            "stimulus_information": "Information reaches the team showing that two or more departmental functions require conflicting response actions or access to the same limited capability. The information should be sufficiently credible to require coordination and prioritisation.",
+            "response_opportunity": "The exercise allows the team to identify the competing priorities, establish which requirements are most urgent, coordinate across the affected functions, allocate responsibilities and communicate an agreed departmental response.",
+            "evidence_capture_plan": "Observers must be able to capture how priorities were identified, discussed, agreed and communicated, including the decisions made, responsible owners and any resulting actions. The exercise should enable this through observation and/or a decision or action log.",
             "cto_id": "3a05c13e-84d2-42f9-a427-977abae7f659",
             "collective_task_id": "505ea14e-1bc0-454c-bb53-bb913c6952a0",
             "success_factor_id": "8cadd75c-59be-4a5f-80b1-b511099af6dc",
