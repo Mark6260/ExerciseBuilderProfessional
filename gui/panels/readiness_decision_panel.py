@@ -52,6 +52,10 @@ class ReadinessDecisionPanel(QWidget):
             self._update_record_button
         )
 
+        self.limitations_edit.textChanged.connect(
+            self._update_record_button
+        )
+
         self.exception_combo.currentIndexChanged.connect(
             self._update_exception_state
         )
@@ -725,11 +729,28 @@ class ReadinessDecisionPanel(QWidget):
             self.rationale_edit.toPlainText().strip()
         )
 
+        outcome = self.outcome_combo.currentData()
+
+        limitation_required = (
+            outcome
+            == ReadinessDecisionOutcome.READY_WITH_LIMITATIONS
+        )
+
+        has_required_limitation = (
+            not limitation_required
+            or bool(
+                self.limitations_edit
+                .toPlainText()
+                .strip()
+            )
+        )
+
         self.record_button.setEnabled(
             has_assessment
             and has_outcome
             and has_decision_maker
             and has_rationale
+            and has_required_limitation
         )
 
     def _record_readiness_decision(self):
@@ -756,6 +777,19 @@ class ReadinessDecisionPanel(QWidget):
         if not decision_maker or not rationale:
             return
 
+        limitations = (
+            self.limitations_edit
+            .toPlainText()
+            .strip()
+        )
+
+        if (
+            outcome
+            == ReadinessDecisionOutcome.READY_WITH_LIMITATIONS
+            and not limitations
+        ):
+            return
+
         decision = ReadinessDecision()
 
         decision.outcome = outcome
@@ -767,9 +801,7 @@ class ReadinessDecisionPanel(QWidget):
 
         decision.rationale = rationale
 
-        decision.limitations = (
-            self.limitations_edit.toPlainText().strip()
-        )
+        decision.limitations = limitations
 
         decision.required_action = (
             self.required_action_edit.toPlainText().strip()
