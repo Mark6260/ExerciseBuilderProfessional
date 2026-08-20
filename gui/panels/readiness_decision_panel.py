@@ -59,6 +59,13 @@ class ReadinessDecisionPanel(QWidget):
         self.record_button.clicked.connect(
             self._record_readiness_decision
         )
+        self.new_decision_button.clicked.connect(
+            self._start_new_decision
+        )
+
+        self.decision_history_list.currentRowChanged.connect(
+            self._show_historical_decision
+        )
 
     def _build_ui(self):
         main_layout = QHBoxLayout(self)
@@ -98,6 +105,28 @@ class ReadinessDecisionPanel(QWidget):
         left_layout.addWidget(guidance)
         left_layout.addWidget(
             self.assessment_list
+        )
+
+        history_heading = QLabel(
+            "AUTHORISED READINESS DECISION HISTORY"
+        )
+        history_heading.setStyleSheet(
+            "font-size: 16px; font-weight: bold;"
+        )
+
+        history_guidance = QLabel(
+            "Select a recorded decision to inspect the "
+            "authorised historical record."
+        )
+        history_guidance.setWordWrap(True)
+
+        self.decision_history_list = QListWidget()
+        self.decision_history_list.setMinimumHeight(150)
+
+        left_layout.addWidget(history_heading)
+        left_layout.addWidget(history_guidance)
+        left_layout.addWidget(
+            self.decision_history_list
         )
 
         # -------------------------------------------------
@@ -315,11 +344,19 @@ class ReadinessDecisionPanel(QWidget):
             guidance_label
         )
 
+        self.new_decision_button = QPushButton(
+            "RECORD NEW DECISION"
+        )
+        self.new_decision_button.setVisible(False)
+
         self.record_button = QPushButton(
             "RECORD READINESS DECISION"
         )
         self.record_button.setEnabled(False)
 
+        right_layout.addWidget(
+            self.new_decision_button
+        )
         right_layout.addWidget(
             self.record_button
         )
@@ -338,42 +375,43 @@ class ReadinessDecisionPanel(QWidget):
         self.project = project
         self._reset_decision_form()
         self.refresh_assessments()
+        self.refresh_decision_history()
         self._load_existing_decision()
 
-    def _reset_decision_form(self):
-        self.assessment_list.setEnabled(True)
+    def refresh_decision_history(self):
+        self.decision_history_list.blockSignals(True)
+        self.decision_history_list.clear()
 
-        self.outcome_combo.setEnabled(True)
-        self.outcome_combo.setCurrentIndex(0)
-
-        self.decision_maker_edit.setReadOnly(False)
-        self.decision_authority_edit.setReadOnly(False)
-        self.rationale_edit.setReadOnly(False)
-        self.limitations_edit.setReadOnly(False)
-        self.required_action_edit.setReadOnly(False)
-
-        self.exception_combo.setEnabled(True)
-        self.exception_combo.setCurrentIndex(0)
-
-        self.exception_explanation_edit.setReadOnly(False)
-        self.exception_explanation_edit.setEnabled(False)
-
-        self.decision_maker_edit.clear()
-        self.decision_authority_edit.clear()
-        self.rationale_edit.clear()
-        self.limitations_edit.clear()
-        self.required_action_edit.clear()
-        self.exception_explanation_edit.clear()
-
-        self.record_button.setText(
-            "RECORD READINESS DECISION"
-        )
-        self.record_button.setEnabled(False)
-
-        self._clear_assessment_summary()
-
-    def _load_existing_decision(self):
         if self.project is None:
+            self.decision_history_list.blockSignals(False)
+            return
+
+        decisions = getattr(
+            self.project,
+            "readiness_decisions",
+            [],
+        )
+
+        for decision in reversed(decisions):
+            recorded_at = decision.recorded_at or "Time not recorded"
+            decision_maker = (
+                decision.decision_maker
+                or "Decision-maker not recorded"
+            )
+            authority = (
+                decision.decision_authority
+                or "Authority not recorded"
+            )
+
+            self.decision_history_list.addItem(
+                f"{recorded_at} | {decision.outcome.value} | "
+                f"{decision_maker} | {authority}"
+            )
+
+        self.decision_history_list.blockSignals(False)
+
+    def _show_historical_decision(self, row):
+        if self.project is None or row < 0:
             return
 
         decisions = getattr(
@@ -383,11 +421,24 @@ class ReadinessDecisionPanel(QWidget):
         )
 
         if not decisions:
-            self._update_record_button()
             return
 
-        decision = decisions[-1]
+        decision_index = len(decisions) - 1 - row
 
+        if not 0 <= decision_index < len(decisions):
+            return
+
+        decision = decisions[decision_index]
+        self._display_decision(
+            decision,
+            historical=True,
+        )
+
+    def _display_decision(
+        self,
+        decision,
+        historical=False,
+    ):
         assessment_ids = set(
             decision.assessment_ids
         )
@@ -409,23 +460,21 @@ class ReadinessDecisionPanel(QWidget):
 
         self.assessment_list.blockSignals(False)
 
-        selected_count = len(
-            self._selected_assessments()
-        )
+        selected = self._selected_assessments()
 
-        if selected_count == 1:
-            selected = self._selected_assessments()[0]
+        if len(selected) == 1:
+            assessment = selected[0]
             self.assessment_summary.setText(
-                f"Assessment: {selected.outcome.value}\n"
-                f"Inject: {selected.inject_number}\n"
+                f"Assessment: {assessment.outcome.value}\\n"
+                f"Inject: {assessment.inject_number}\\n"
                 f"Objective: "
-                f"{selected.objective_title or '-'}\n"
+                f"{assessment.objective_title or '-'}\\n"
                 f"Assessor: "
-                f"{selected.assessor or '-'}"
+                f"{assessment.assessor or '-'}"
             )
-        elif selected_count > 1:
+        elif len(selected) > 1:
             self.assessment_summary.setText(
-                f"{selected_count} professional assessments "
+                f"{len(selected)} professional assessments "
                 "selected for consideration."
             )
         else:
@@ -437,7 +486,6 @@ class ReadinessDecisionPanel(QWidget):
         outcome_index = self.outcome_combo.findData(
             decision.outcome
         )
-
         if outcome_index >= 0:
             self.outcome_combo.setCurrentIndex(
                 outcome_index
@@ -474,9 +522,86 @@ class ReadinessDecisionPanel(QWidget):
             decision.exception_explanation
         )
 
-        self._show_recorded_state(
-            decision
+        self._show_recorded_state(decision)
+
+        if historical:
+            self.record_button.setText(
+                "HISTORICAL READINESS DECISION"
+            )
+            self.new_decision_button.setVisible(True)
+
+    def _start_new_decision(self):
+        if self.project is None:
+            return
+
+        self.decision_history_list.blockSignals(True)
+        self.decision_history_list.clearSelection()
+        self.decision_history_list.setCurrentRow(-1)
+        self.decision_history_list.blockSignals(False)
+
+        self.assessment_list.blockSignals(True)
+        self.assessment_list.clearSelection()
+        self.assessment_list.blockSignals(False)
+
+        self._reset_decision_form()
+        self._clear_assessment_summary()
+        self.new_decision_button.setVisible(False)
+        self._update_record_button()
+
+    def _reset_decision_form(self):
+        self.assessment_list.setEnabled(True)
+
+        self.outcome_combo.setEnabled(True)
+        self.outcome_combo.setCurrentIndex(0)
+
+        self.decision_maker_edit.setReadOnly(False)
+        self.decision_authority_edit.setReadOnly(False)
+        self.rationale_edit.setReadOnly(False)
+        self.limitations_edit.setReadOnly(False)
+        self.required_action_edit.setReadOnly(False)
+
+        self.exception_combo.setEnabled(True)
+        self.exception_combo.setCurrentIndex(0)
+
+        self.exception_explanation_edit.setReadOnly(False)
+        self.exception_explanation_edit.setEnabled(False)
+
+        self.decision_maker_edit.clear()
+        self.decision_authority_edit.clear()
+        self.rationale_edit.clear()
+        self.limitations_edit.clear()
+        self.required_action_edit.clear()
+        self.exception_explanation_edit.clear()
+
+        self.record_button.setText(
+            "RECORD READINESS DECISION"
         )
+        self.record_button.setEnabled(False)
+        self.new_decision_button.setVisible(False)
+
+        self._clear_assessment_summary()
+
+    def _load_existing_decision(self):
+        if self.project is None:
+            return
+
+        decisions = getattr(
+            self.project,
+            "readiness_decisions",
+            [],
+        )
+
+        if not decisions:
+            self._update_record_button()
+            return
+
+        decision = decisions[-1]
+        self._display_decision(decision)
+
+        if self.decision_history_list.count() > 0:
+            self.decision_history_list.blockSignals(True)
+            self.decision_history_list.setCurrentRow(0)
+            self.decision_history_list.blockSignals(False)
 
     def refresh_assessments(self):
         self.assessment_list.clear()
@@ -671,9 +796,16 @@ class ReadinessDecisionPanel(QWidget):
             decision
         )
 
+        self.refresh_decision_history()
+
         self._show_recorded_state(
             decision
         )
+
+        if self.decision_history_list.count() > 0:
+            self.decision_history_list.blockSignals(True)
+            self.decision_history_list.setCurrentRow(0)
+            self.decision_history_list.blockSignals(False)
 
     def _show_recorded_state(
         self,
@@ -697,3 +829,4 @@ class ReadinessDecisionPanel(QWidget):
             "READINESS DECISION RECORDED"
         )
         self.record_button.setEnabled(False)
+        self.new_decision_button.setVisible(True)
