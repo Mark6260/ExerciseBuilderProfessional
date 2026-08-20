@@ -96,7 +96,11 @@ class ExerciseAssurance:
             if readiness_decisions
             else None
         )
-
+        previous_decision = (
+            readiness_decisions[-2]
+            if len(readiness_decisions) >= 2
+            else None
+        )
         return {
             "observation_count": len(observations),
             "reviewed_observation_count": (
@@ -110,6 +114,11 @@ class ExerciseAssurance:
             "readiness_outcome": (
                 latest_decision.outcome.value
                 if latest_decision is not None
+                else ""
+            ),
+            "previous_readiness_outcome": (
+                previous_decision.outcome.value
+                if previous_decision is not None
                 else ""
             ),
             "decision_maker": (

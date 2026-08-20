@@ -108,7 +108,7 @@ class AssurancePanel(QGroupBox):
 
         layout.addWidget(
             self._section_heading(
-                "LATEST AUTHORISED READINESS DECISION"
+                "CURRENT AUTHORISED READINESS POSITION"
             )
         )
 
@@ -131,6 +131,14 @@ class AssurancePanel(QGroupBox):
         )
         self.readiness_detail.setWordWrap(True)
         layout.addWidget(self.readiness_detail)
+
+        self.readiness_change = QLabel("")
+        self.readiness_change.setWordWrap(True)
+        self.readiness_change.setStyleSheet(
+            "font-weight: bold;"
+        )
+        self.readiness_change.setVisible(False)
+        layout.addWidget(self.readiness_change)
 
         self.limitations_heading = QLabel(
             "Limitations"
@@ -329,6 +337,8 @@ class AssurancePanel(QGroupBox):
             self.readiness_detail.setText(
                 "No readiness decision has been recorded."
             )
+            self.readiness_change.setText("")
+            self.readiness_change.setVisible(False)
             self._show_optional_decision_fields(
                 "",
                 "",
@@ -378,6 +388,23 @@ class AssurancePanel(QGroupBox):
         self.readiness_detail.setText(
             "\n".join(detail_lines)
         )
+
+        previous_outcome = performance.get(
+            "previous_readiness_outcome",
+            "",
+        )
+
+        if previous_outcome:
+            self.readiness_change.setText(
+                "Change from previous decision: "
+                f"{previous_outcome.upper()} → {outcome.upper()}"
+            )
+        else:
+            self.readiness_change.setText(
+                "First authorised readiness decision recorded."
+            )
+
+        self.readiness_change.setVisible(True)
 
         self._show_optional_decision_fields(
             performance.get(
@@ -447,6 +474,8 @@ class AssurancePanel(QGroupBox):
         self.readiness_detail.setText(
             "No readiness decision has been recorded."
         )
+        self.readiness_change.setText("")
+        self.readiness_change.setVisible(False)
         self._show_optional_decision_fields(
             "",
             "",
