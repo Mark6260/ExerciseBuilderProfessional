@@ -26,6 +26,7 @@ from gui.dialogs.apprentice_dialog import (
 from gui.dialogs.objective_dialog import ObjectiveDialog
 from gui.panels.assurance_panel import AssurancePanel
 from gui.panels.assessment_panel import AssessmentPanel
+from gui.panels.findings_panel import FindingsPanel
 from gui.panels.readiness_decision_panel import ReadinessDecisionPanel
 from gui.panels.inject_details_panel import InjectDetailsPanel
 from gui.panels.master_events_list_panel import MasterEventsListPanel
@@ -117,6 +118,11 @@ class MainWindow(QMainWindow):
         self.assessment_panel = AssessmentPanel()
         self.assessment_panel.assessment_recorded.connect(
             self._handle_assessment_recorded
+        )
+
+        self.findings_panel = FindingsPanel()
+        self.findings_panel.finding_recorded.connect(
+            self._handle_finding_recorded
         )
 
         self.readiness_decision_panel = ReadinessDecisionPanel()
@@ -217,6 +223,11 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(
             self.readiness_decision_panel,
             "Readiness Decision",
+        )
+
+        self.tabs.addTab(
+            self.findings_panel,
+            "Findings",
         )
 
         self.tabs.addTab(
@@ -384,6 +395,25 @@ class MainWindow(QMainWindow):
             3000,
         )
 
+    def _handle_finding_recorded(
+        self,
+        finding,
+    ):
+        if self.current_project is None:
+            return
+
+        self.current_project.add_finding(
+            finding
+        )
+
+        self.findings_panel.refresh()
+        self.update_assurance()
+
+        self.statusBar().showMessage(
+            "Finding recorded",
+            3000,
+        )
+
     def _handle_readiness_decision_recorded(
         self,
         decision,
@@ -434,6 +464,11 @@ class MainWindow(QMainWindow):
         self.readiness_decision_panel.set_project(
             self.current_project
         )
+
+        self.findings_panel.set_project(
+            self.current_project
+        )
+
         self.update_assurance()
     def show_apprentice(self):
         dialog = ApprenticeDialog(self)
