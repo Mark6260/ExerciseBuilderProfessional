@@ -34,6 +34,7 @@ class ImprovementActionsPanel(QWidget):
     """
 
     action_recorded = Signal(object)
+    action_status_changed = Signal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -68,6 +69,21 @@ class ImprovementActionsPanel(QWidget):
 
         self.record_button.clicked.connect(
             self._record_action
+        )
+        self.change_status_button.clicked.connect(
+            self._start_status_change
+        )
+        self.next_status_input.currentIndexChanged.connect(
+            self._update_status_change_button
+        )
+        self.status_rationale_input.textChanged.connect(
+            self._update_status_change_button
+        )
+        self.status_changed_by_input.textChanged.connect(
+            self._update_status_change_button
+        )
+        self.record_status_change_button.clicked.connect(
+            self._record_status_change
         )
 
     def _build_ui(self):
@@ -247,14 +263,46 @@ class ImprovementActionsPanel(QWidget):
         )
 
         lifecycle_note = QLabel(
-            "GREEN 7-5A records creation and authorisation only. "
-            "Lifecycle changes and completion evidence remain separate "
-            "controlled steps."
+            "Lifecycle status is changed deliberately and separately from "
+            "action authorisation. GREEN 7-6A records status progression "
+            "and rationale. Completion evidence remains a later controlled "
+            "step."
         )
         lifecycle_note.setWordWrap(True)
         lifecycle_note.setStyleSheet(
             "font-style: italic;"
         )
+
+        self.lifecycle_record_detail = QLabel("")
+        self.lifecycle_record_detail.setWordWrap(True)
+        self.lifecycle_record_detail.setVisible(False)
+
+        self.change_status_button = QPushButton(
+            "CHANGE ACTION STATUS"
+        )
+        self.change_status_button.setVisible(False)
+
+        self.next_status_input = QComboBox()
+        self.next_status_input.setVisible(False)
+
+        self.status_rationale_input = QTextEdit()
+        self.status_rationale_input.setPlaceholderText(
+            "Record the reason for this lifecycle status change."
+        )
+        self.status_rationale_input.setMinimumHeight(80)
+        self.status_rationale_input.setVisible(False)
+
+        self.status_changed_by_input = QLineEdit()
+        self.status_changed_by_input.setPlaceholderText(
+            "Status changed by - name / role"
+        )
+        self.status_changed_by_input.setVisible(False)
+
+        self.record_status_change_button = QPushButton(
+            "RECORD STATUS CHANGE"
+        )
+        self.record_status_change_button.setEnabled(False)
+        self.record_status_change_button.setVisible(False)
 
         self.record_button = QPushButton(
             "RECORD AUTHORISED ACTION"
@@ -290,6 +338,12 @@ class ImprovementActionsPanel(QWidget):
         right_layout.addWidget(lifecycle_heading)
         right_layout.addWidget(self.lifecycle_label)
         right_layout.addWidget(lifecycle_note)
+        right_layout.addWidget(self.lifecycle_record_detail)
+        right_layout.addWidget(self.change_status_button)
+        right_layout.addWidget(self.next_status_input)
+        right_layout.addWidget(self.status_rationale_input)
+        right_layout.addWidget(self.status_changed_by_input)
+        right_layout.addWidget(self.record_status_change_button)
         right_layout.addWidget(self.record_button)
 
         main_layout.addWidget(left_frame, 4)
@@ -520,6 +574,7 @@ class ImprovementActionsPanel(QWidget):
         self.lifecycle_label.setText(
             ActionStatus.NOT_STARTED.value
         )
+        self._reset_status_change_controls()
 
         self.recommendations_list.blockSignals(True)
         for row in range(
@@ -589,6 +644,7 @@ class ImprovementActionsPanel(QWidget):
         self.lifecycle_label.setText(
             action.status.value
         )
+        self._show_lifecycle_state(action)
 
         wanted_recommendations = set(
             action.related_recommendation_ids
@@ -649,6 +705,205 @@ class ImprovementActionsPanel(QWidget):
             "ACTION AUTHORISED"
         )
         self.record_button.setEnabled(False)
+
+    @staticmethod
+    def _allowed_status_transitions(status):
+        """
+        Return deliberately permitted lifecycle transitions.
+
+        Completed and Cancelled are terminal in GREEN 7-6A.
+        Completion evidence is handled separately in GREEN 7-6B.
+        """
+        transitions = {
+            ActionStatus.NOT_STARTED: [
+                ActionStatus.IN_PROGRESS,
+                ActionStatus.CANCELLED,
+            ],
+            ActionStatus.IN_PROGRESS: [
+                ActionStatus.BLOCKED,
+                ActionStatus.COMPLETED,
+                ActionStatus.CANCELLED,
+            ],
+            ActionStatus.BLOCKED: [
+                ActionStatus.IN_PROGRESS,
+                ActionStatus.CANCELLED,
+            ],
+            ActionStatus.COMPLETED: [],
+            ActionStatus.CANCELLED: [],
+        }
+
+        return transitions.get(status, [])
+
+    def _reset_status_change_controls(self):
+        self.lifecycle_record_detail.clear()
+        self.lifecycle_record_detail.setVisible(False)
+
+        self.change_status_button.setVisible(False)
+
+        self.next_status_input.clear()
+        self.next_status_input.setVisible(False)
+
+        self.status_rationale_input.clear()
+        self.status_rationale_input.setVisible(False)
+
+        self.status_changed_by_input.clear()
+        self.status_changed_by_input.setVisible(False)
+
+        self.record_status_change_button.setVisible(False)
+        self.record_status_change_button.setEnabled(False)
+
+    def _show_lifecycle_state(self, action):
+        self._reset_status_change_controls()
+
+        transition = getattr(
+            action,
+            "_latest_status_transition",
+            None,
+        )
+
+        if transition:
+            detail_lines = [
+                f"Previous status: {transition.get('from', '-')}",
+                f"Changed by: {transition.get('changed_by', '-')}",
+                f"Recorded: {transition.get('recorded_at', '-')}",
+                f"Rationale: {transition.get('rationale', '-')}",
+            ]
+            self.lifecycle_record_detail.setText(
+                "\n".join(detail_lines)
+            )
+            self.lifecycle_record_detail.setVisible(True)
+
+        allowed = self._allowed_status_transitions(
+            action.status
+        )
+        self.change_status_button.setVisible(
+            bool(allowed)
+        )
+
+    def _start_status_change(self):
+        action = self._selected_action
+        if action is None:
+            return
+
+        allowed = self._allowed_status_transitions(
+            action.status
+        )
+        if not allowed:
+            return
+
+        self.change_status_button.setVisible(False)
+
+        self.next_status_input.clear()
+        self.next_status_input.addItem(
+            "Select next status...",
+            None,
+        )
+        for status in allowed:
+            self.next_status_input.addItem(
+                status.value,
+                status,
+            )
+        self.next_status_input.setVisible(True)
+
+        self.status_rationale_input.clear()
+        self.status_rationale_input.setVisible(True)
+
+        self.status_changed_by_input.clear()
+        self.status_changed_by_input.setVisible(True)
+
+        self.record_status_change_button.setVisible(True)
+        self._update_status_change_button()
+
+    def _update_status_change_button(self, *_):
+        action = self._selected_action
+
+        if action is None:
+            self.record_status_change_button.setEnabled(False)
+            return
+
+        next_status = self.next_status_input.currentData()
+
+        enabled = bool(
+            next_status is not None
+            and next_status
+            in self._allowed_status_transitions(action.status)
+            and self.status_rationale_input
+            .toPlainText()
+            .strip()
+            and self.status_changed_by_input
+            .text()
+            .strip()
+        )
+
+        self.record_status_change_button.setEnabled(
+            enabled
+        )
+
+    def _record_status_change(self):
+        action = self._selected_action
+
+        if action is None:
+            return
+
+        next_status = self.next_status_input.currentData()
+        rationale = (
+            self.status_rationale_input
+            .toPlainText()
+            .strip()
+        )
+        changed_by = (
+            self.status_changed_by_input
+            .text()
+            .strip()
+        )
+
+        if (
+            next_status is None
+            or next_status
+            not in self._allowed_status_transitions(action.status)
+            or not rationale
+            or not changed_by
+        ):
+            return
+
+        from datetime import datetime
+
+        previous_status = action.status
+        action.status = next_status
+
+        # GREEN 7-6A keeps the latest transition as factual lifecycle
+        # metadata without changing the core dataclass yet. GREEN 7-6B
+        # will formalise completion evidence and history persistence.
+        action._latest_status_transition = {
+            "from": previous_status.value,
+            "to": next_status.value,
+            "rationale": rationale,
+            "changed_by": changed_by,
+            "recorded_at": datetime.now().isoformat(
+                timespec="seconds"
+            ),
+        }
+
+        self.lifecycle_label.setText(
+            action.status.value
+        )
+
+        self.action_status_changed.emit(action)
+
+        for row in range(
+            self.actions_list.count()
+        ):
+            item = self.actions_list.item(row)
+            if (
+                item.data(Qt.ItemDataRole.UserRole)
+                == action.action_id
+            ):
+                item.setText(
+                    self._action_display_text(action)
+                )
+                break
+
+        self._show_lifecycle_state(action)
 
     def _set_form_read_only(self, read_only):
         self.title_input.setReadOnly(read_only)

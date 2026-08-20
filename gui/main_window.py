@@ -139,6 +139,9 @@ class MainWindow(QMainWindow):
         self.improvement_actions_panel.action_recorded.connect(
             self._handle_improvement_action_recorded
         )
+        self.improvement_actions_panel.action_status_changed.connect(
+            self._handle_improvement_action_status_changed
+        )
 
         self.readiness_decision_panel = ReadinessDecisionPanel()
         self.readiness_decision_panel.readiness_decision_recorded.connect(
@@ -488,6 +491,21 @@ class MainWindow(QMainWindow):
 
         self.statusBar().showMessage(
             "Improvement action authorised",
+            3000,
+        )
+
+    def _handle_improvement_action_status_changed(
+        self,
+        action,
+    ):
+        if self.current_project is None:
+            return
+
+        self.update_assurance()
+
+        self.statusBar().showMessage(
+            f"Improvement action status changed to "
+            f"{action.status.value}",
             3000,
         )
 
