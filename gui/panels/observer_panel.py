@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
     QListWidget,
     QPushButton,
     QRadioButton,
+    QScrollArea,
+    QSizePolicy,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -48,7 +50,30 @@ class ObserverPanel(QWidget):
             self._update_observer_location
         )
     def _build_ui(self):
-        main_layout = QVBoxLayout(self)
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(
+            0,
+            0,
+            0,
+            0,
+        )
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        scroll_area.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+
+        page = QWidget()
+        page.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.MinimumExpanding,
+        )
+
+        main_layout = QVBoxLayout(page)
         main_layout.setContentsMargins(
             16,
             16,
@@ -206,6 +231,13 @@ class ObserverPanel(QWidget):
         assurance_frame.setFrameShape(
             QFrame.Shape.StyledPanel
         )
+        assurance_frame.setMinimumHeight(
+            210
+        )
+        assurance_frame.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Minimum,
+        )
         assurance_layout = QVBoxLayout(
             assurance_frame
         )
@@ -221,21 +253,33 @@ class ObserverPanel(QWidget):
             "No assured observer tasking for the current MEL/MIL item."
         )
         self.assurance_status_label.setWordWrap(True)
+        self.assurance_status_label.setMinimumHeight(
+            24
+        )
 
         self.success_factor_label = QLabel(
             "Success Factor: -"
         )
         self.success_factor_label.setWordWrap(True)
+        self.success_factor_label.setMinimumHeight(
+            24
+        )
 
         self.observable_metric_label = QLabel(
             "Observable Metric: -"
         )
         self.observable_metric_label.setWordWrap(True)
+        self.observable_metric_label.setMinimumHeight(
+            24
+        )
 
         self.evidence_requirement_label = QLabel(
             "Evidence Requirement: -"
         )
         self.evidence_requirement_label.setWordWrap(True)
+        self.evidence_requirement_label.setMinimumHeight(
+            24
+        )
 
         assurance_note = QLabel(
             "Read-only assurance guidance. Record only what you actually "
@@ -491,6 +535,14 @@ class ObserverPanel(QWidget):
         main_layout.addWidget(
             self.recent_observations_list
         )
+
+        main_layout.setSizeConstraint(
+            QVBoxLayout.SizeConstraint.SetMinimumSize
+        )
+
+        scroll_area.setWidget(page)
+        outer_layout.addWidget(scroll_area)
+
     def _update_observer_location(self):
         if self.session is None:
             return
@@ -677,7 +729,12 @@ class ObserverPanel(QWidget):
 
         if (
             inject is None
-            or inject.status != InjectStatus.READY
+            or inject.status not in (
+                InjectStatus.READY,
+                InjectStatus.ISSUED,
+                InjectStatus.RESPONSE_RECEIVED,
+                InjectStatus.CLOSED,
+            )
         ):
             self.assurance_status_label.setText(
                 "Assurance lineage exists, but this MEL/MIL item is not "
