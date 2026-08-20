@@ -235,10 +235,99 @@
             "recorded_at": "2026-08-20T12:30:52"
         }
     ],
-    "readiness_decisions": [],
-    "findings": [],
-    "recommendations": [],
-    "improvement_actions": [],
+    "readiness_decisions": [
+        {
+            "decision_id": "3791ff05-2c21-4866-8d4f-56e6d28762cf",
+            "outcome": "Ready",
+            "assessment_ids": [
+                "8ba7dcf7-61b9-4536-bb26-74a151b9ae2b",
+                "4cda95ec-eecf-4639-952c-c46bad4ffb3b"
+            ],
+            "rationale": "The assessments and admitted evidence demonstrate that the required performance was achieved.",
+            "limitations": "",
+            "required_action": "",
+            "decision_maker": "Chief Observer",
+            "decision_authority": "Exercise Director",
+            "recorded_at": "2026-08-20T13:23:51",
+            "exception_reason": null,
+            "exception_explanation": ""
+        },
+        {
+            "decision_id": "959ebd67-c63c-47a0-aeb7-e4f569b6740b",
+            "outcome": "Ready With Limitations",
+            "assessment_ids": [
+                "4cda95ec-eecf-4639-952c-c46bad4ffb3b"
+            ],
+            "rationale": "Record all comms",
+            "limitations": "Any Limitations noted",
+            "required_action": "",
+            "decision_maker": "CI",
+            "decision_authority": "EX Dir",
+            "recorded_at": "2026-08-20T14:57:52",
+            "exception_reason": null,
+            "exception_explanation": ""
+        }
+    ],
+    "findings": [
+        {
+            "finding_id": "700f376f-3c3f-4b86-9811-d0d2231a60c9",
+            "title": "Command information flow requires improvement",
+            "finding_type": "Improvement",
+            "description": "Information required to support timely command decisions was not\nconsistently available during the exercise.",
+            "related_decision_id": "959ebd67-c63c-47a0-aeb7-e4f569b6740b",
+            "related_assessment_ids": [
+                "8ba7dcf7-61b9-4536-bb26-74a151b9ae2b"
+            ],
+            "related_evidence_ids": [
+                "ac4ba896-3954-49f2-b8c4-88c6a6110a0f"
+            ],
+            "recorded_by": "Chief Observer",
+            "recorded_at": "2026-08-20T15:39:07"
+        }
+    ],
+    "recommendations": [
+        {
+            "recommendation_id": "d97528a1-de31-497e-9fc4-2a64563294b4",
+            "title": "Improve command information flow",
+            "recommendation_type": "Improvement",
+            "description": "Review and improve the information flow arrangements used to support timely command decisions.",
+            "related_finding_ids": [
+                "700f376f-3c3f-4b86-9811-d0d2231a60c9"
+            ],
+            "disposition": "Accepted",
+            "disposition_rationale": "Recommendation accepted as an appropriate response to the recorded finding.",
+            "disposition_by": "Exercise Director",
+            "disposition_authority": "Exercise Director",
+            "disposition_at": "2026-08-20T21:13:17",
+            "recommended_by": "Chief Observer",
+            "recorded_at": "2026-08-20T21:09:40"
+        }
+    ],
+    "improvement_actions": [
+        {
+            "action_id": "7d094e9e-dac0-451e-9e0c-7749f5555fb8",
+            "title": "Implement revised command information flow",
+            "description": "Implement and test the revised information flow arrangements required to support timely command decisions.",
+            "related_recommendation_ids": [
+                "d97528a1-de31-497e-9fc4-2a64563294b4"
+            ],
+            "related_finding_ids": [
+                "700f376f-3c3f-4b86-9811-d0d2231a60c9"
+            ],
+            "owner": "Exercise Director",
+            "priority": "High",
+            "target_date": "2026-09-19",
+            "status": "Completed",
+            "completion_notes": "Revised command information flow arrangements implemented and tested during a command team validation activity. Information was available to support timely decision-making.",
+            "completion_evidence_ids": [
+                "ac4ba896-3954-49f2-b8c4-88c6a6110a0f"
+            ],
+            "authorised_by": "Exercise Director",
+            "authorised_at": "2026-08-20T21:40:00",
+            "completed_by": "Ex Director",
+            "completed_at": "2026-08-20T22:52:50"
+        }
+    ],
     "training_opportunities": [],
     "candidate_opportunities": [],
     "planning_sources": [],

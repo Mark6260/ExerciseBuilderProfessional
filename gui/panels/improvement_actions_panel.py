@@ -2,6 +2,8 @@ from PySide6.QtCore import Qt, QDate, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
+    QDialog,
+    QDialogButtonBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -22,6 +24,212 @@ from core.improvement.action import (
 from core.improvement.recommendation import (
     RecommendationDisposition,
 )
+
+
+class ActionCompletionDialog(QDialog):
+    """
+    Dedicated completion workflow for an in-progress improvement action.
+
+    Completion records what was done. It does not determine whether the
+    underlying finding or readiness issue has been resolved.
+    """
+
+    def __init__(self, project, action, parent=None):
+        super().__init__(parent)
+
+        self.project = project
+        self.action = action
+
+        self.setWindowTitle("Complete Improvement Action")
+        self.resize(720, 620)
+
+        self._build_ui()
+        self._populate_evidence()
+        self._update_record_button()
+
+    def _build_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 18, 18, 18)
+        layout.setSpacing(12)
+
+        heading = QLabel("COMPLETE IMPROVEMENT ACTION")
+        heading.setStyleSheet(
+            "font-size: 16px; font-weight: bold;"
+        )
+        layout.addWidget(heading)
+
+        action_label = QLabel(
+            f"Action: {self.action.title or 'Untitled action'}"
+        )
+        action_label.setWordWrap(True)
+        action_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+        layout.addWidget(action_label)
+
+        warning = QLabel(
+            "Recording completion confirms that the authorised task was "
+            "completed. It does not demonstrate that the underlying "
+            "readiness issue has been resolved."
+        )
+        warning.setWordWrap(True)
+        warning.setStyleSheet(
+            "font-style: italic;"
+        )
+        layout.addWidget(warning)
+
+        layout.addWidget(QLabel("Completion Notes"))
+
+        self.completion_notes_input = QTextEdit()
+        self.completion_notes_input.setPlaceholderText(
+            "Record what was completed and the outcome of the action."
+        )
+        self.completion_notes_input.setMinimumHeight(140)
+        layout.addWidget(self.completion_notes_input)
+
+        layout.addWidget(QLabel("Completed By"))
+
+        self.completed_by_input = QLineEdit()
+        self.completed_by_input.setPlaceholderText(
+            "Completed by - name / role"
+        )
+        layout.addWidget(self.completed_by_input)
+
+        evidence_heading = QLabel(
+            "COMPLETION EVIDENCE"
+        )
+        evidence_heading.setStyleSheet(
+            "font-weight: bold;"
+        )
+        layout.addWidget(evidence_heading)
+
+        evidence_note = QLabel(
+            "Optional: select existing evidence that supports completion "
+            "of the action. This remains completion evidence only; it is "
+            "not proof that the original readiness issue is resolved."
+        )
+        evidence_note.setWordWrap(True)
+        layout.addWidget(evidence_note)
+
+        self.evidence_list = QListWidget()
+        self.evidence_list.setSelectionMode(
+            QListWidget.SelectionMode.NoSelection
+        )
+        self.evidence_list.setMinimumHeight(180)
+        layout.addWidget(self.evidence_list)
+
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Cancel
+        )
+
+        self.record_button = QPushButton(
+            "RECORD ACTION COMPLETION"
+        )
+        self.record_button.setEnabled(False)
+        self.button_box.addButton(
+            self.record_button,
+            QDialogButtonBox.ButtonRole.AcceptRole,
+        )
+
+        layout.addWidget(self.button_box)
+
+        self.completion_notes_input.textChanged.connect(
+            self._update_record_button
+        )
+        self.completed_by_input.textChanged.connect(
+            self._update_record_button
+        )
+        self.record_button.clicked.connect(
+            self.accept
+        )
+        self.button_box.rejected.connect(
+            self.reject
+        )
+
+    def _populate_evidence(self):
+        self.evidence_list.clear()
+
+        if self.project is None:
+            return
+
+        for evidence in getattr(
+            self.project,
+            "evidence_records",
+            [],
+        ):
+            evidence_id = getattr(
+                evidence,
+                "evidence_id",
+                "",
+            )
+            if not evidence_id:
+                continue
+
+            title = (
+                getattr(evidence, "title", "")
+                or getattr(evidence, "description", "")
+                or evidence_id
+            )
+
+            item = QListWidgetItem(title)
+            item.setData(
+                Qt.ItemDataRole.UserRole,
+                evidence_id,
+            )
+            item.setFlags(
+                item.flags()
+                | Qt.ItemFlag.ItemIsUserCheckable
+            )
+            item.setCheckState(
+                Qt.CheckState.Unchecked
+            )
+            self.evidence_list.addItem(item)
+
+    def _update_record_button(self, *_):
+        enabled = bool(
+            self.completion_notes_input
+            .toPlainText()
+            .strip()
+            and self.completed_by_input
+            .text()
+            .strip()
+        )
+
+        self.record_button.setEnabled(enabled)
+
+    def completion_notes(self):
+        return (
+            self.completion_notes_input
+            .toPlainText()
+            .strip()
+        )
+
+    def completed_by(self):
+        return (
+            self.completed_by_input
+            .text()
+            .strip()
+        )
+
+    def evidence_ids(self):
+        values = []
+
+        for row in range(
+            self.evidence_list.count()
+        ):
+            item = self.evidence_list.item(row)
+
+            if (
+                item.checkState()
+                == Qt.CheckState.Checked
+            ):
+                evidence_id = item.data(
+                    Qt.ItemDataRole.UserRole
+                )
+                if evidence_id:
+                    values.append(evidence_id)
+
+        return values
 
 
 class ImprovementActionsPanel(QWidget):
@@ -84,6 +292,9 @@ class ImprovementActionsPanel(QWidget):
         )
         self.record_status_change_button.clicked.connect(
             self._record_status_change
+        )
+        self.complete_action_button.clicked.connect(
+            self._open_completion_dialog
         )
 
     def _build_ui(self):
@@ -304,6 +515,11 @@ class ImprovementActionsPanel(QWidget):
         self.record_status_change_button.setEnabled(False)
         self.record_status_change_button.setVisible(False)
 
+        self.complete_action_button = QPushButton(
+            "COMPLETE ACTION"
+        )
+        self.complete_action_button.setVisible(False)
+
         self.record_button = QPushButton(
             "RECORD AUTHORISED ACTION"
         )
@@ -344,6 +560,7 @@ class ImprovementActionsPanel(QWidget):
         right_layout.addWidget(self.status_rationale_input)
         right_layout.addWidget(self.status_changed_by_input)
         right_layout.addWidget(self.record_status_change_button)
+        right_layout.addWidget(self.complete_action_button)
         right_layout.addWidget(self.record_button)
 
         main_layout.addWidget(left_frame, 4)
@@ -735,6 +952,7 @@ class ImprovementActionsPanel(QWidget):
         return transitions.get(status, [])
 
     def _reset_status_change_controls(self):
+        self._reset_completion_controls()
         self.lifecycle_record_detail.clear()
         self.lifecycle_record_detail.setVisible(False)
 
@@ -776,6 +994,15 @@ class ImprovementActionsPanel(QWidget):
         allowed = self._allowed_status_transitions(
             action.status
         )
+
+        if action.status == ActionStatus.IN_PROGRESS:
+            allowed = [
+                status
+                for status in allowed
+                if status != ActionStatus.COMPLETED
+            ]
+            self._show_completion_controls(action)
+
         self.change_status_button.setVisible(
             bool(allowed)
         )
@@ -788,6 +1015,12 @@ class ImprovementActionsPanel(QWidget):
         allowed = self._allowed_status_transitions(
             action.status
         )
+        if action.status == ActionStatus.IN_PROGRESS:
+            allowed = [
+                status
+                for status in allowed
+                if status != ActionStatus.COMPLETED
+            ]
         if not allowed:
             return
 
@@ -859,6 +1092,7 @@ class ImprovementActionsPanel(QWidget):
 
         if (
             next_status is None
+            or next_status == ActionStatus.COMPLETED
             or next_status
             not in self._allowed_status_transitions(action.status)
             or not rationale
@@ -882,6 +1116,75 @@ class ImprovementActionsPanel(QWidget):
             "recorded_at": datetime.now().isoformat(
                 timespec="seconds"
             ),
+        }
+
+        self.lifecycle_label.setText(
+            action.status.value
+        )
+
+        self.action_status_changed.emit(action)
+
+        for row in range(
+            self.actions_list.count()
+        ):
+            item = self.actions_list.item(row)
+            if (
+                item.data(Qt.ItemDataRole.UserRole)
+                == action.action_id
+            ):
+                item.setText(
+                    self._action_display_text(action)
+                )
+                break
+
+        self._show_lifecycle_state(action)
+
+    def _reset_completion_controls(self):
+        self.complete_action_button.setVisible(False)
+
+    def _show_completion_controls(self, action):
+        self.complete_action_button.setVisible(
+            action.status == ActionStatus.IN_PROGRESS
+        )
+
+    def _open_completion_dialog(self):
+        action = self._selected_action
+
+        if (
+            action is None
+            or action.status != ActionStatus.IN_PROGRESS
+        ):
+            return
+
+        dialog = ActionCompletionDialog(
+            self.project,
+            action,
+            self,
+        )
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        completion_notes = dialog.completion_notes()
+        completed_by = dialog.completed_by()
+
+        if not completion_notes or not completed_by:
+            return
+
+        action.completion_notes = completion_notes
+        action.completed_by = completed_by
+        action.completion_evidence_ids = (
+            dialog.evidence_ids()
+        )
+        action.status = ActionStatus.COMPLETED
+        action.mark_completed_now()
+
+        action._latest_status_transition = {
+            "from": ActionStatus.IN_PROGRESS.value,
+            "to": ActionStatus.COMPLETED.value,
+            "rationale": completion_notes,
+            "changed_by": completed_by,
+            "recorded_at": action.completed_at,
         }
 
         self.lifecycle_label.setText(
