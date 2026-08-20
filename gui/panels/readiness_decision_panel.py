@@ -336,7 +336,147 @@ class ReadinessDecisionPanel(QWidget):
 
     def set_project(self, project):
         self.project = project
+        self._reset_decision_form()
         self.refresh_assessments()
+        self._load_existing_decision()
+
+    def _reset_decision_form(self):
+        self.assessment_list.setEnabled(True)
+
+        self.outcome_combo.setEnabled(True)
+        self.outcome_combo.setCurrentIndex(0)
+
+        self.decision_maker_edit.setReadOnly(False)
+        self.decision_authority_edit.setReadOnly(False)
+        self.rationale_edit.setReadOnly(False)
+        self.limitations_edit.setReadOnly(False)
+        self.required_action_edit.setReadOnly(False)
+
+        self.exception_combo.setEnabled(True)
+        self.exception_combo.setCurrentIndex(0)
+
+        self.exception_explanation_edit.setReadOnly(False)
+        self.exception_explanation_edit.setEnabled(False)
+
+        self.decision_maker_edit.clear()
+        self.decision_authority_edit.clear()
+        self.rationale_edit.clear()
+        self.limitations_edit.clear()
+        self.required_action_edit.clear()
+        self.exception_explanation_edit.clear()
+
+        self.record_button.setText(
+            "RECORD READINESS DECISION"
+        )
+        self.record_button.setEnabled(False)
+
+        self._clear_assessment_summary()
+
+    def _load_existing_decision(self):
+        if self.project is None:
+            return
+
+        decisions = getattr(
+            self.project,
+            "readiness_decisions",
+            [],
+        )
+
+        if not decisions:
+            self._update_record_button()
+            return
+
+        decision = decisions[-1]
+
+        assessment_ids = set(
+            decision.assessment_ids
+        )
+
+        assessments = getattr(
+            self.project,
+            "assessment_records",
+            [],
+        )
+
+        self.assessment_list.blockSignals(True)
+        self.assessment_list.clearSelection()
+
+        for row, assessment in enumerate(assessments):
+            if assessment.assessment_id in assessment_ids:
+                item = self.assessment_list.item(row)
+                if item is not None:
+                    item.setSelected(True)
+
+        self.assessment_list.blockSignals(False)
+
+        selected_count = len(
+            self._selected_assessments()
+        )
+
+        if selected_count == 1:
+            selected = self._selected_assessments()[0]
+            self.assessment_summary.setText(
+                f"Assessment: {selected.outcome.value}\n"
+                f"Inject: {selected.inject_number}\n"
+                f"Objective: "
+                f"{selected.objective_title or '-'}\n"
+                f"Assessor: "
+                f"{selected.assessor or '-'}"
+            )
+        elif selected_count > 1:
+            self.assessment_summary.setText(
+                f"{selected_count} professional assessments "
+                "selected for consideration."
+            )
+        else:
+            self.assessment_summary.setText(
+                "Assessment: Recorded assessment references "
+                "could not be resolved."
+            )
+
+        outcome_index = self.outcome_combo.findData(
+            decision.outcome
+        )
+
+        if outcome_index >= 0:
+            self.outcome_combo.setCurrentIndex(
+                outcome_index
+            )
+
+        self.decision_maker_edit.setText(
+            decision.decision_maker
+        )
+        self.decision_authority_edit.setText(
+            decision.decision_authority
+        )
+        self.rationale_edit.setPlainText(
+            decision.rationale
+        )
+        self.limitations_edit.setPlainText(
+            decision.limitations
+        )
+        self.required_action_edit.setPlainText(
+            decision.required_action
+        )
+
+        if decision.exception_reason is None:
+            self.exception_combo.setCurrentIndex(0)
+        else:
+            exception_index = self.exception_combo.findData(
+                decision.exception_reason
+            )
+            if exception_index >= 0:
+                self.exception_combo.setCurrentIndex(
+                    exception_index
+                )
+
+        self.exception_explanation_edit.setPlainText(
+            decision.exception_explanation
+        )
+
+        self._show_recorded_state(
+            decision
+        )
 
     def refresh_assessments(self):
         self.assessment_list.clear()
