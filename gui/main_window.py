@@ -27,6 +27,7 @@ from gui.dialogs.objective_dialog import ObjectiveDialog
 from gui.panels.assurance_panel import AssurancePanel
 from gui.panels.assessment_panel import AssessmentPanel
 from gui.panels.findings_panel import FindingsPanel
+from gui.panels.recommendations_panel import RecommendationsPanel
 from gui.panels.readiness_decision_panel import ReadinessDecisionPanel
 from gui.panels.inject_details_panel import InjectDetailsPanel
 from gui.panels.master_events_list_panel import MasterEventsListPanel
@@ -123,6 +124,11 @@ class MainWindow(QMainWindow):
         self.findings_panel = FindingsPanel()
         self.findings_panel.finding_recorded.connect(
             self._handle_finding_recorded
+        )
+
+        self.recommendations_panel = RecommendationsPanel()
+        self.recommendations_panel.recommendation_recorded.connect(
+            self._handle_recommendation_recorded
         )
 
         self.readiness_decision_panel = ReadinessDecisionPanel()
@@ -228,6 +234,11 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(
             self.findings_panel,
             "Findings",
+        )
+
+        self.tabs.addTab(
+            self.recommendations_panel,
+            "Recommendations",
         )
 
         self.tabs.addTab(
@@ -414,6 +425,25 @@ class MainWindow(QMainWindow):
             3000,
         )
 
+    def _handle_recommendation_recorded(
+        self,
+        recommendation,
+    ):
+        if self.current_project is None:
+            return
+
+        self.current_project.add_recommendation(
+            recommendation
+        )
+
+        self.recommendations_panel.refresh()
+        self.update_assurance()
+
+        self.statusBar().showMessage(
+            "Recommendation recorded",
+            3000,
+        )
+
     def _handle_readiness_decision_recorded(
         self,
         decision,
@@ -466,6 +496,10 @@ class MainWindow(QMainWindow):
         )
 
         self.findings_panel.set_project(
+            self.current_project
+        )
+
+        self.recommendations_panel.set_project(
             self.current_project
         )
 
