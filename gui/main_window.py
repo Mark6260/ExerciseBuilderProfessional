@@ -28,6 +28,7 @@ from gui.panels.assurance_panel import AssurancePanel
 from gui.panels.assessment_panel import AssessmentPanel
 from gui.panels.findings_panel import FindingsPanel
 from gui.panels.recommendations_panel import RecommendationsPanel
+from gui.panels.improvement_actions_panel import ImprovementActionsPanel
 from gui.panels.readiness_decision_panel import ReadinessDecisionPanel
 from gui.panels.inject_details_panel import InjectDetailsPanel
 from gui.panels.master_events_list_panel import MasterEventsListPanel
@@ -132,6 +133,11 @@ class MainWindow(QMainWindow):
         )
         self.recommendations_panel.recommendation_dispositioned.connect(
             self._handle_recommendation_dispositioned
+        )
+
+        self.improvement_actions_panel = ImprovementActionsPanel()
+        self.improvement_actions_panel.action_recorded.connect(
+            self._handle_improvement_action_recorded
         )
 
         self.readiness_decision_panel = ReadinessDecisionPanel()
@@ -242,6 +248,11 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(
             self.recommendations_panel,
             "Recommendations",
+        )
+
+        self.tabs.addTab(
+            self.improvement_actions_panel,
+            "Improvement Actions",
         )
 
         self.tabs.addTab(
@@ -461,6 +472,25 @@ class MainWindow(QMainWindow):
             3000,
         )
 
+    def _handle_improvement_action_recorded(
+        self,
+        action,
+    ):
+        if self.current_project is None:
+            return
+
+        self.current_project.add_improvement_action(
+            action
+        )
+
+        self.improvement_actions_panel.refresh()
+        self.update_assurance()
+
+        self.statusBar().showMessage(
+            "Improvement action authorised",
+            3000,
+        )
+
     def _handle_readiness_decision_recorded(
         self,
         decision,
@@ -517,6 +547,10 @@ class MainWindow(QMainWindow):
         )
 
         self.recommendations_panel.set_project(
+            self.current_project
+        )
+
+        self.improvement_actions_panel.set_project(
             self.current_project
         )
 
