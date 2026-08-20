@@ -12,7 +12,6 @@ from PySide6.QtWidgets import (
 
 
 class ObservationReviewPanel(QWidget):
-    evidence_admitted = Signal(object)
     """
     Workspace for reviewing recorded observations.
 
@@ -20,15 +19,19 @@ class ObservationReviewPanel(QWidget):
     Assessment and readiness decisions do not belong here.
     """
 
+    evidence_admitted = Signal(object)
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self.project = None
 
         self._build_ui()
+
         self.observation_list.currentRowChanged.connect(
             self._show_selected_observation
         )
+
         self.mark_reviewed_button.clicked.connect(
             self._mark_selected_reviewed
         )
@@ -36,35 +39,7 @@ class ObservationReviewPanel(QWidget):
         self.admit_evidence_button.clicked.connect(
             self._admit_selected_as_evidence
         )
-    def _mark_selected_reviewed(self):
-        observation = self._selected_observation()
 
-        if observation is None:
-            return
-
-        reviewer_name = "Chief Observer"
-
-        observation.mark_reviewed(
-            reviewed_by=reviewer_name
-        )
-
-        self.status_label.setText(
-            f"Status: {observation.status.value}"
-        )
-
-        self.admit_evidence_button.setEnabled(
-            True
-        )
-
-        self.refresh_observations()
-
-        row = self.project.observations.index(
-            observation
-        )
-
-        self.observation_list.setCurrentRow(
-            row
-        )
     def _build_ui(self):
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(16, 16, 16, 16)
@@ -138,6 +113,7 @@ class ObservationReviewPanel(QWidget):
             "Location: -"
         )
         self.location_label.setWordWrap(True)
+
         description_heading = QLabel(
             "WHAT WAS OBSERVED"
         )
@@ -210,6 +186,7 @@ class ObservationReviewPanel(QWidget):
 
         main_layout.addWidget(left_frame, 4)
         main_layout.addWidget(right_frame, 6)
+
     def _selected_observation(self):
         if self.project is None:
             return None
@@ -232,24 +209,26 @@ class ObservationReviewPanel(QWidget):
 
         if observation is None:
             self.status_label.setText(
-                "Status: "-""
+                "Status: -"
             )
             self.observer_label.setText(
-                "Observer: "-""
+                "Observer: -"
             )
             self.exercise_time_label.setText(
-                f"Exercise Time: {observation.exercise_time or '-'}"
+                "Exercise Time: -"
             )
             self.inject_label.setText(
-                "Inject: "-""
+                "Inject: -"
             )
             self.objective_label.setText(
-                "Objective: "-""
+                "Objective: -"
             )
             self.location_label.setText(
-                "Location: "-""
+                "Location: -"
             )
+
             self.description_text.clear()
+
             self.admit_evidence_button.setEnabled(
                 False
             )
@@ -258,7 +237,9 @@ class ObservationReviewPanel(QWidget):
         self.status_label.setText(
             f"Status: {observation.status.value}"
         )
-
+        self.mark_reviewed_button.setEnabled(
+            observation.status.value == "Recorded"
+        )
         observer_text = observation.observer_name
 
         if observation.observer_role:
@@ -283,7 +264,7 @@ class ObservationReviewPanel(QWidget):
             str(observation.related_inject_number)
             if observation.related_inject_number
             is not None
-            else ""-""
+            else "-"
         )
 
         self.inject_label.setText(
@@ -295,7 +276,7 @@ class ObservationReviewPanel(QWidget):
                 observation.related_objective_titles
             )
         else:
-            objective_text = ""-""
+            objective_text = "-"
 
         self.objective_label.setText(
             f"Objective: {objective_text}"
@@ -325,7 +306,7 @@ class ObservationReviewPanel(QWidget):
         location_text = (
             " | ".join(location_parts)
             if location_parts
-            else ""-""
+            else "-"
         )
 
         self.location_label.setText(
@@ -339,6 +320,38 @@ class ObservationReviewPanel(QWidget):
         self.admit_evidence_button.setEnabled(
             observation.status.value
             == "Reviewed"
+        )
+
+    def _mark_selected_reviewed(self):
+        observation = self._selected_observation()
+
+        if observation is None:
+            return
+        self.mark_reviewed_button.setEnabled(
+            False
+        )
+        reviewer_name = "Chief Observer"
+
+        observation.mark_reviewed(
+            reviewed_by=reviewer_name
+        )
+
+        self.status_label.setText(
+            f"Status: {observation.status.value}"
+        )
+
+        self.admit_evidence_button.setEnabled(
+            True
+        )
+
+        self.refresh_observations()
+
+        row = self.project.observations.index(
+            observation
+        )
+
+        self.observation_list.setCurrentRow(
+            row
         )
 
     def set_project(self, project):
@@ -360,6 +373,7 @@ class ObservationReviewPanel(QWidget):
             self.observation_list.addItem(
                 item_text
             )
+
     def _admit_selected_as_evidence(self):
         observation = self._selected_observation()
 

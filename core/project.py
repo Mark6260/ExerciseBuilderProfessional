@@ -526,6 +526,17 @@ class Project:
                     "assessment_id": assessment.assessment_id,
                     "inject_number": assessment.inject_number,
                     "objective_title": assessment.objective_title,
+                    "cto_id": assessment.cto_id,
+                    "collective_task_id": (
+                        assessment.collective_task_id
+                    ),
+                    "success_factor_id": (
+                        assessment.success_factor_id
+                    ),
+                    "metric_ids": assessment.metric_ids,
+                    "evidence_requirement_ids": (
+                        assessment.evidence_requirement_ids
+                    ),
                     "outcome": assessment.outcome.value,
                     "evidence_ids": assessment.evidence_ids,
                     "comments": assessment.comments,
@@ -2009,6 +2020,26 @@ class Project:
                 objective_title=item.get(
                     "objective_title",
                     "",
+                ),
+                cto_id=item.get(
+                    "cto_id",
+                    "",
+                ),
+                collective_task_id=item.get(
+                    "collective_task_id",
+                    "",
+                ),
+                success_factor_id=item.get(
+                    "success_factor_id",
+                    "",
+                ),
+                metric_ids=item.get(
+                    "metric_ids",
+                    [],
+                ),
+                evidence_requirement_ids=item.get(
+                    "evidence_requirement_ids",
+                    [],
                 ),
                 outcome=cls._parse_assessment_outcome(
                     item.get(

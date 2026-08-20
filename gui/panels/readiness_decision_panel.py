@@ -1,0 +1,559 @@
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
+from core.readiness.readiness_decision import (
+    ReadinessDecision,
+    ReadinessDecisionOutcome,
+    AssessmentExceptionReason,
+)
+
+
+class ReadinessDecisionPanel(QWidget):
+    """
+    Workspace for recording an authorised readiness decision.
+
+    Exercise Director presents the assessments and evidence available
+    to the decision-maker. It does not determine readiness automatically.
+    """
+
+    readiness_decision_recorded = Signal(object)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.project = None
+
+        self._build_ui()
+
+        self.assessment_list.itemSelectionChanged.connect(
+            self._show_selected_assessment
+        )
+
+        self.outcome_combo.currentIndexChanged.connect(
+            self._update_record_button
+        )
+
+        self.decision_maker_edit.textChanged.connect(
+            self._update_record_button
+        )
+
+        self.rationale_edit.textChanged.connect(
+            self._update_record_button
+        )
+
+        self.exception_combo.currentIndexChanged.connect(
+            self._update_exception_state
+        )
+
+        self.record_button.clicked.connect(
+            self._record_readiness_decision
+        )
+
+    def _build_ui(self):
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(16)
+
+        # -------------------------------------------------
+        # Assessment records
+        # -------------------------------------------------
+
+        left_frame = QFrame()
+        left_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+
+        left_layout = QVBoxLayout(left_frame)
+
+        heading = QLabel(
+            "RECORDED ASSESSMENTS"
+        )
+        heading.setStyleSheet(
+            "font-size: 16px; font-weight: bold;"
+        )
+
+        guidance = QLabel(
+            "Select the professional assessments that the "
+            "authorised decision-maker wishes to consider."
+        )
+        guidance.setWordWrap(True)
+
+        self.assessment_list = QListWidget()
+        self.assessment_list.setSelectionMode(
+            QListWidget.SelectionMode.MultiSelection
+        )
+
+        left_layout.addWidget(heading)
+        left_layout.addWidget(guidance)
+        left_layout.addWidget(
+            self.assessment_list
+        )
+
+        # -------------------------------------------------
+        # Readiness decision
+        # -------------------------------------------------
+
+        right_frame = QFrame()
+        right_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+
+        right_layout = QVBoxLayout(right_frame)
+
+        decision_heading = QLabel(
+            "AUTHORISED READINESS DECISION"
+        )
+        decision_heading.setStyleSheet(
+            "font-size: 16px; font-weight: bold;"
+        )
+
+        right_layout.addWidget(
+            decision_heading
+        )
+
+        self.assessment_summary = QLabel(
+            "Assessment: -"
+        )
+        self.assessment_summary.setWordWrap(True)
+
+        right_layout.addWidget(
+            self.assessment_summary
+        )
+
+        outcome_heading = QLabel(
+            "READINESS OUTCOME"
+        )
+        outcome_heading.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        right_layout.addWidget(
+            outcome_heading
+        )
+
+        self.outcome_combo = QComboBox()
+
+        self.outcome_combo.addItem(
+            "Select readiness outcome...",
+            None,
+        )
+
+        for outcome in ReadinessDecisionOutcome:
+            if outcome == ReadinessDecisionOutcome.NOT_ASSESSED:
+                continue
+
+            self.outcome_combo.addItem(
+                outcome.value,
+                outcome,
+            )
+
+        right_layout.addWidget(
+            self.outcome_combo
+        )
+
+        authority_heading = QLabel(
+            "DECISION AUTHORITY"
+        )
+        authority_heading.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        right_layout.addWidget(
+            authority_heading
+        )
+
+        self.decision_maker_edit = QLineEdit()
+        self.decision_maker_edit.setPlaceholderText(
+            "Decision-maker name"
+        )
+
+        self.decision_authority_edit = QLineEdit()
+        self.decision_authority_edit.setPlaceholderText(
+            "Role / decision authority"
+        )
+
+        right_layout.addWidget(
+            self.decision_maker_edit
+        )
+        right_layout.addWidget(
+            self.decision_authority_edit
+        )
+
+        rationale_heading = QLabel(
+            "RATIONALE"
+        )
+        rationale_heading.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        right_layout.addWidget(
+            rationale_heading
+        )
+
+        self.rationale_edit = QTextEdit()
+        self.rationale_edit.setPlaceholderText(
+            "Record the professional rationale for the "
+            "readiness decision, including the assessments "
+            "and evidence considered."
+        )
+
+        right_layout.addWidget(
+            self.rationale_edit
+        )
+
+        limitations_heading = QLabel(
+            "LIMITATIONS"
+        )
+        limitations_heading.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        right_layout.addWidget(
+            limitations_heading
+        )
+
+        self.limitations_edit = QTextEdit()
+        self.limitations_edit.setPlaceholderText(
+            "Record any limitations attached to this "
+            "readiness decision."
+        )
+
+        right_layout.addWidget(
+            self.limitations_edit
+        )
+
+        required_action_heading = QLabel(
+            "REQUIRED ACTION"
+        )
+        required_action_heading.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        right_layout.addWidget(
+            required_action_heading
+        )
+
+        self.required_action_edit = QTextEdit()
+        self.required_action_edit.setPlaceholderText(
+            "Record any action required following this decision."
+        )
+
+        right_layout.addWidget(
+            self.required_action_edit
+        )
+
+        # -------------------------------------------------
+        # Assessment exception
+        # -------------------------------------------------
+
+        exception_heading = QLabel(
+            "ASSESSMENT EXCEPTION"
+        )
+        exception_heading.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        right_layout.addWidget(
+            exception_heading
+        )
+
+        self.exception_combo = QComboBox()
+
+        self.exception_combo.addItem(
+            "No assessment exception",
+            None,
+        )
+
+        for reason in AssessmentExceptionReason:
+            self.exception_combo.addItem(
+                reason.value,
+                reason,
+            )
+
+        right_layout.addWidget(
+            self.exception_combo
+        )
+
+        self.exception_explanation_edit = QTextEdit()
+        self.exception_explanation_edit.setPlaceholderText(
+            "Explain why the required assessment could not "
+            "be completed or why an exception applies."
+        )
+
+        self.exception_explanation_edit.setEnabled(
+            False
+        )
+
+        right_layout.addWidget(
+            self.exception_explanation_edit
+        )
+
+        guidance_label = QLabel(
+            "Exercise Director records the authorised "
+            "professional judgement, the assessments considered "
+            "and any limitations or exceptions. It does not "
+            "determine readiness automatically."
+        )
+
+        guidance_label.setWordWrap(True)
+        guidance_label.setStyleSheet(
+            "font-style: italic;"
+        )
+
+        right_layout.addWidget(
+            guidance_label
+        )
+
+        self.record_button = QPushButton(
+            "RECORD READINESS DECISION"
+        )
+        self.record_button.setEnabled(False)
+
+        right_layout.addWidget(
+            self.record_button
+        )
+
+        main_layout.addWidget(
+            left_frame,
+            4,
+        )
+
+        main_layout.addWidget(
+            right_frame,
+            6,
+        )
+
+    def set_project(self, project):
+        self.project = project
+        self.refresh_assessments()
+
+    def refresh_assessments(self):
+        self.assessment_list.clear()
+
+        if self.project is None:
+            self._clear_assessment_summary()
+            return
+
+        for assessment in getattr(
+            self.project,
+            "assessment_records",
+            [],
+        ):
+            item_text = (
+                f"{assessment.outcome.value}"
+                f" - Inject {assessment.inject_number}"
+                f" - {assessment.objective_title or 'Objective not recorded'}"
+            )
+
+            self.assessment_list.addItem(
+                item_text
+            )
+
+        self._clear_assessment_summary()
+        self._update_record_button()
+
+    def _selected_assessments(self):
+        if self.project is None:
+            return []
+
+        selected_rows = sorted(
+            {
+                self.assessment_list.row(item)
+                for item in self.assessment_list.selectedItems()
+            }
+        )
+
+        assessments = getattr(
+            self.project,
+            "assessment_records",
+            [],
+        )
+
+        return [
+            assessments[row]
+            for row in selected_rows
+            if 0 <= row < len(assessments)
+        ]
+
+    def _show_selected_assessment(self):
+        selected = self._selected_assessments()
+
+        if not selected:
+            self._clear_assessment_summary()
+            self._update_record_button()
+            return
+
+        if len(selected) == 1:
+            assessment = selected[0]
+
+            summary = (
+                f"Assessment: {assessment.outcome.value}\n"
+                f"Inject: {assessment.inject_number}\n"
+                f"Objective: "
+                f"{assessment.objective_title or '-'}\n"
+                f"Assessor: "
+                f"{assessment.assessor or '-'}"
+            )
+
+        else:
+            summary = (
+                f"{len(selected)} professional assessments "
+                "selected for consideration."
+            )
+
+        self.assessment_summary.setText(
+            summary
+        )
+
+        self._update_record_button()
+
+    def _clear_assessment_summary(self):
+        self.assessment_summary.setText(
+            "Assessment: -"
+        )
+
+    def _update_exception_state(self):
+        has_exception = (
+            self.exception_combo.currentData()
+            is not None
+        )
+
+        self.exception_explanation_edit.setEnabled(
+            has_exception
+        )
+
+        if not has_exception:
+            self.exception_explanation_edit.clear()
+
+    def _update_record_button(self):
+        if not hasattr(
+            self,
+            "record_button",
+        ):
+            return
+
+        has_assessment = bool(
+            self._selected_assessments()
+        )
+
+        has_outcome = (
+            self.outcome_combo.currentData()
+            is not None
+        )
+
+        has_decision_maker = bool(
+            self.decision_maker_edit.text().strip()
+        )
+
+        has_rationale = bool(
+            self.rationale_edit.toPlainText().strip()
+        )
+
+        self.record_button.setEnabled(
+            has_assessment
+            and has_outcome
+            and has_decision_maker
+            and has_rationale
+        )
+
+    def _record_readiness_decision(self):
+        selected_assessments = (
+            self._selected_assessments()
+        )
+
+        if not selected_assessments:
+            return
+
+        outcome = self.outcome_combo.currentData()
+
+        if outcome is None:
+            return
+
+        decision_maker = (
+            self.decision_maker_edit.text().strip()
+        )
+
+        rationale = (
+            self.rationale_edit.toPlainText().strip()
+        )
+
+        if not decision_maker or not rationale:
+            return
+
+        decision = ReadinessDecision()
+
+        decision.outcome = outcome
+        decision.decision_maker = decision_maker
+
+        decision.decision_authority = (
+            self.decision_authority_edit.text().strip()
+        )
+
+        decision.rationale = rationale
+
+        decision.limitations = (
+            self.limitations_edit.toPlainText().strip()
+        )
+
+        decision.required_action = (
+            self.required_action_edit.toPlainText().strip()
+        )
+
+        decision.exception_reason = (
+            self.exception_combo.currentData()
+        )
+
+        decision.exception_explanation = (
+            self.exception_explanation_edit
+            .toPlainText()
+            .strip()
+        )
+
+        for assessment in selected_assessments:
+            decision.add_assessment_id(
+                assessment.assessment_id
+            )
+
+        decision.mark_recorded_now()
+
+        self.readiness_decision_recorded.emit(
+            decision
+        )
+
+        self._show_recorded_state(
+            decision
+        )
+
+    def _show_recorded_state(
+        self,
+        decision,
+    ):
+        self.outcome_combo.setEnabled(False)
+        self.decision_maker_edit.setReadOnly(True)
+        self.decision_authority_edit.setReadOnly(True)
+        self.rationale_edit.setReadOnly(True)
+        self.limitations_edit.setReadOnly(True)
+        self.required_action_edit.setReadOnly(True)
+
+        self.exception_combo.setEnabled(False)
+        self.exception_explanation_edit.setReadOnly(
+            True
+        )
+
+        self.assessment_list.setEnabled(False)
+
+        self.record_button.setText(
+            "READINESS DECISION RECORDED"
+        )
+        self.record_button.setEnabled(False)

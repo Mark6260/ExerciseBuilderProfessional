@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QScrollArea,
+    QHBoxLayout,
+    QPushButton,
 )
 
 
@@ -52,7 +54,31 @@ class InjectDetailsPanel(QGroupBox):
         form.addRow("Audience:", self.audience)
 
         overview.setLayout(form)
+        conduct = QGroupBox("Conduct Control")
+        conduct_layout = QVBoxLayout(conduct)
 
+        self.status = QLabel("Status: -")
+
+        status_font = QFont()
+        status_font.setBold(True)
+        self.status.setFont(status_font)
+
+        conduct_layout.addWidget(self.status)
+
+        button_layout = QHBoxLayout()
+
+        self.advance_button = QPushButton("Conduct Action")
+        self.advance_button.setEnabled(False)
+
+        self.withdraw_button = QPushButton("Withdraw")
+        self.withdraw_button.setEnabled(False)
+
+        button_layout.addWidget(self.advance_button)
+        button_layout.addWidget(self.withdraw_button)
+
+        conduct_layout.addLayout(button_layout)
+
+        layout.addWidget(conduct)
         layout.addWidget(overview)
 
         self.content = self.make_section(layout, "Content", 180)

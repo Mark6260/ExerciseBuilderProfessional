@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 
 from core.assurance import ExerciseAssurance
 from core.project import Project
+from core.inject import InjectStatus
 from core.word_parser import WordParser
 from gui.dialogs.exercise_definition_dialog import (
     ExerciseDefinitionDialog,
@@ -24,6 +25,8 @@ from gui.dialogs.apprentice_dialog import (
 )
 from gui.dialogs.objective_dialog import ObjectiveDialog
 from gui.panels.assurance_panel import AssurancePanel
+from gui.panels.assessment_panel import AssessmentPanel
+from gui.panels.readiness_decision_panel import ReadinessDecisionPanel
 from gui.panels.inject_details_panel import InjectDetailsPanel
 from gui.panels.master_events_list_panel import MasterEventsListPanel
 from gui.panels.apprentice_notebook_panel import (
@@ -111,6 +114,16 @@ class MainWindow(QMainWindow):
         self.mel_panel = MasterEventsListPanel()
         self.inject_details_panel = InjectDetailsPanel()
         self.assurance_panel = AssurancePanel()
+        self.assessment_panel = AssessmentPanel()
+        self.assessment_panel.assessment_recorded.connect(
+            self._handle_assessment_recorded
+        )
+
+        self.readiness_decision_panel = ReadinessDecisionPanel()
+        self.readiness_decision_panel.readiness_decision_recorded.connect(
+            self._handle_readiness_decision_recorded
+        )
+
         self.observer_panel = ObserverPanel()
         self.observation_review_panel = ObservationReviewPanel()
         self.observation_review_panel.evidence_admitted.connect(
@@ -137,6 +150,14 @@ class MainWindow(QMainWindow):
 
         self.mel_panel.inject_selected.connect(
             self.show_inject_details
+        )
+        
+        self.inject_details_panel.advance_button.clicked.connect(
+            self.advance_selected_inject
+        )
+
+        self.inject_details_panel.withdraw_button.clicked.connect(
+            self.withdraw_selected_inject
         )
 
         self.objectives_panel.add_objective_requested.connect(
@@ -186,6 +207,16 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(
             self.observation_review_panel,
             "Observation Review",
+        )
+
+        self.tabs.addTab(
+            self.assessment_panel,
+            "Assessment",
+        )
+
+        self.tabs.addTab(
+            self.readiness_decision_panel,
+            "Readiness Decision",
         )
 
         self.tabs.addTab(
@@ -253,20 +284,19 @@ class MainWindow(QMainWindow):
         if self.observer_panel.session is None:
             return
 
-        if row < 0:
-            self.observer_panel.session.set_current_inject(
-                None
-            )
-            self.observer_panel.refresh_session_view()
-            return
-
-        if row >= len(self.current_project.injects):
+        if row < 0 or row >= len(self.current_project.injects):
             return
 
         inject = self.current_project.injects[row]
 
-        # Keep Observer Mode on the exact live project object being used
-        # by the workspace before resolving any assurance lineage.
+        # Workspace selection alone does not make an item live
+        # for observers. Only an ISSUED item becomes current.
+        if inject.status != InjectStatus.ISSUED:
+            return
+
+        self._set_observer_current_inject(inject)
+        
+    def _set_observer_current_inject(self, inject):
         self.observer_panel.set_project(
             self.current_project
         )
@@ -327,8 +357,44 @@ class MainWindow(QMainWindow):
             evidence
         )
 
+        self.assessment_panel.refresh_evidence()
+
         self.statusBar().showMessage(
             "Observation admitted as evidence",
+            3000,
+        )
+
+    def _handle_assessment_recorded(
+        self,
+        assessment,
+    ):
+        if self.current_project is None:
+            return
+
+        self.current_project.add_assessment(
+            assessment
+        )
+
+        self.readiness_decision_panel.refresh_assessments()
+
+        self.statusBar().showMessage(
+            "Professional assessment recorded",
+            3000,
+        )
+
+    def _handle_readiness_decision_recorded(
+        self,
+        decision,
+    ):
+        if self.current_project is None:
+            return
+
+        self.current_project.add_readiness_decision(
+            decision
+        )
+
+        self.statusBar().showMessage(
+            "Readiness decision recorded",
             3000,
         )
 
@@ -354,6 +420,14 @@ class MainWindow(QMainWindow):
         )
 
         self.observation_review_panel.set_project(
+            self.current_project
+        )
+
+        self.assessment_panel.set_project(
+            self.current_project
+        )
+
+        self.readiness_decision_panel.set_project(
             self.current_project
         )
     def show_apprentice(self):
@@ -419,6 +493,10 @@ class MainWindow(QMainWindow):
         panel.expected.clear()
         panel.notes.clear()
         panel.attachments.setText("None")
+        panel.status.setText("Status: -")
+        panel.advance_button.setText("Conduct Action")
+        panel.advance_button.setEnabled(False)
+        panel.withdraw_button.setEnabled(False)
 
     def show_inject_details(self, row):
         if (
@@ -430,7 +508,24 @@ class MainWindow(QMainWindow):
 
         inject = self.current_project.injects[row]
         panel = self.inject_details_panel
+        panel.status.setText(
+            f"Status: {inject.status.value}"
+        )
 
+        panel.advance_button.setText(
+            inject.next_action or "Conduct Complete"
+        )
+
+        panel.advance_button.setEnabled(
+            inject.can_advance
+        )
+
+        panel.withdraw_button.setEnabled(
+            inject.status not in (
+                InjectStatus.CLOSED,
+                InjectStatus.WITHDRAWN,
+            )
+        )
         panel.title.setText(
             inject.title or f"Inject {inject.number}"
         )
@@ -466,7 +561,73 @@ class MainWindow(QMainWindow):
             attachment_text = "None"
 
             panel.attachments.setText(attachment_text)
+            
+    def advance_selected_inject(self):
+        row = self.mel_panel.list_widget.currentRow()
 
+        if (
+            row < 0
+            or row >= len(self.current_project.injects)
+        ):
+            return
+
+        inject = self.current_project.injects[row]
+
+        if not inject.can_advance:
+            return
+
+        inject.advance()
+
+        if inject.status == InjectStatus.ISSUED:
+            if self.observer_panel.session is not None:
+                self._set_observer_current_inject(inject)
+
+        self.show_inject_details(row)
+
+        self.statusBar().showMessage(
+            f"{inject.title}: {inject.status.value}",
+            3000,
+        )
+
+    def withdraw_selected_inject(self):
+        row = self.mel_panel.list_widget.currentRow()
+
+        if (
+            row < 0
+            or row >= len(self.current_project.injects)
+        ):
+            return
+
+        inject = self.current_project.injects[row]
+
+        if inject.status in (
+            InjectStatus.CLOSED,
+            InjectStatus.WITHDRAWN,
+        ):
+            return
+
+        answer = QMessageBox.question(
+            self,
+            "Withdraw MEL/MIL Item",
+            (
+                f"Withdraw '{inject.title}' from exercise conduct?"
+            ),
+            QMessageBox.StandardButton.Yes
+            | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        inject.withdraw()
+
+        self.show_inject_details(row)
+
+        self.statusBar().showMessage(
+            f"{inject.title}: Withdrawn",
+            3000,
+        )
     def new_project(self):
         apprentice = ApprenticeDialog(self)
 

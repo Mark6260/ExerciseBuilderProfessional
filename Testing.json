@@ -24,8 +24,47 @@
     },
     "doctrine_references": [],
     "objectives": [],
-    "mel_mil_promotions": [],
-    "candidate_mel_mil_activities": [],
+    "mel_mil_promotions": [
+        {
+            "id": "563a17f7-d932-4f02-9cfa-a4608f03387c",
+            "inject_number": 1,
+            "candidate_mel_mil_activity_id": "ac92c9e9-d6b1-46df-a2ae-d3ff07a34bf6",
+            "candidate_activity_id": "2cd1abbc-6233-4abb-a96b-4c1fa525694f",
+            "design_opportunity_id": "86a6c5c2-8092-4246-b84e-43fb916f409d",
+            "cto_id": "3a05c13e-84d2-42f9-a427-977abae7f659",
+            "collective_task_id": "505ea14e-1bc0-454c-bb53-bb913c6952a0",
+            "success_factor_id": "8cadd75c-59be-4a5f-80b1-b511099af6dc",
+            "metric_ids": [
+                "87118eb5-b09a-4d84-a300-e19caf26913a"
+            ],
+            "evidence_requirement_ids": [
+                "7c47c6fc-ff3c-44d8-918e-1b36884806dd"
+            ]
+        }
+    ],
+    "candidate_mel_mil_activities": [
+        {
+            "id": "ac92c9e9-d6b1-46df-a2ae-d3ff07a34bf6",
+            "title": "Competing operational demands emerge",
+            "activity_type": "Control-cell action",
+            "phase": "",
+            "timing_window": "During escalation",
+            "event_summary": "Two credible and competing operational demands are presented through separate departmental channels, each requiring access to constrained response capability and creating consequences for the other if prioritised.",
+            "intended_effect": "The training audience must recognise the conflict, establish relative priorities, coordinate across the affected departmental functions, allocate responsibility and communicate an agreed response.",
+            "control_notes": "",
+            "candidate_activity_id": "2cd1abbc-6233-4abb-a96b-4c1fa525694f",
+            "design_opportunity_id": "86a6c5c2-8092-4246-b84e-43fb916f409d",
+            "cto_id": "3a05c13e-84d2-42f9-a427-977abae7f659",
+            "collective_task_id": "505ea14e-1bc0-454c-bb53-bb913c6952a0",
+            "success_factor_id": "8cadd75c-59be-4a5f-80b1-b511099af6dc",
+            "metric_ids": [
+                "87118eb5-b09a-4d84-a300-e19caf26913a"
+            ],
+            "evidence_requirement_ids": [
+                "7c47c6fc-ff3c-44d8-918e-1b36884806dd"
+            ]
+        }
+    ],
     "candidate_exercise_activities": [
         {
             "id": "2cd1abbc-6233-4abb-a96b-4c1fa525694f",
@@ -108,9 +147,94 @@
             ]
         }
     ],
-    "observations": [],
-    "evidence_records": [],
-    "assessment_records": [],
+    "observations": [
+        {
+            "observation_id": "a2c57cbd-8498-407c-9aaf-8e70348e0f88",
+            "exercise_time": "",
+            "observed_at": "2026-08-20T11:53:37",
+            "observer_name": "MM",
+            "grid_reference": "",
+            "latitude": null,
+            "longitude": null,
+            "location_description": "",
+            "observer_role": "CI",
+            "observation_type": "Effective Practice",
+            "title": "The team agreed the response priority and communicated th...",
+            "description": "The team agreed the response priority and communicated the decision to the affected departmental functions.",
+            "related_inject_number": 1,
+            "related_objective_titles": [],
+            "related_activity_id": "ac92c9e9-d6b1-46df-a2ae-d3ff07a34bf6",
+            "evidence_ids": [
+                "ac4ba896-3954-49f2-b8c4-88c6a6110a0f"
+            ],
+            "status": "Reviewed",
+            "recorded_at": "2026-08-20T11:53:37",
+            "reviewed_by": "Chief Observer",
+            "reviewed_at": "2026-08-20T11:55:28",
+            "withdrawal_reason": "",
+            "withdrawn_by": "",
+            "withdrawn_at": ""
+        }
+    ],
+    "evidence_records": [
+        {
+            "evidence_id": "ac4ba896-3954-49f2-b8c4-88c6a6110a0f",
+            "title": "The team agreed the response priority and communicated th...",
+            "evidence_type": "Observation",
+            "description": "The team agreed the response priority and communicated the decision to the affected departmental functions.",
+            "source": "MM - CI",
+            "related_standard": "",
+            "related_objective": "",
+            "related_inject": 1,
+            "recorded_by": "MM",
+            "recorded_at": "2026-08-20T11:53:37",
+            "reference": "a2c57cbd-8498-407c-9aaf-8e70348e0f88"
+        }
+    ],
+    "assessment_records": [
+        {
+            "assessment_id": "8ba7dcf7-61b9-4536-bb26-74a151b9ae2b",
+            "inject_number": 1,
+            "objective_title": "",
+            "cto_id": "3a05c13e-84d2-42f9-a427-977abae7f659",
+            "collective_task_id": "505ea14e-1bc0-454c-bb53-bb913c6952a0",
+            "success_factor_id": "8cadd75c-59be-4a5f-80b1-b511099af6dc",
+            "metric_ids": [
+                "87118eb5-b09a-4d84-a300-e19caf26913a"
+            ],
+            "evidence_requirement_ids": [
+                "7c47c6fc-ff3c-44d8-918e-1b36884806dd"
+            ],
+            "outcome": "Achieved",
+            "evidence_ids": [
+                "ac4ba896-3954-49f2-b8c4-88c6a6110a0f"
+            ],
+            "comments": "The admitted evidence demonstrates that the training audience agreed a response priority and communicated the decision across the affected departmental functions. This provides relevant evidence against the tasked observable metric.",
+            "assessor": "Chief Observer",
+            "recorded_at": "2026-08-20T12:27:30"
+        },
+        {
+            "assessment_id": "4cda95ec-eecf-4639-952c-c46bad4ffb3b",
+            "inject_number": 1,
+            "objective_title": "",
+            "cto_id": "3a05c13e-84d2-42f9-a427-977abae7f659",
+            "collective_task_id": "505ea14e-1bc0-454c-bb53-bb913c6952a0",
+            "success_factor_id": "8cadd75c-59be-4a5f-80b1-b511099af6dc",
+            "metric_ids": [
+                "87118eb5-b09a-4d84-a300-e19caf26913a"
+            ],
+            "evidence_requirement_ids": [
+                "7c47c6fc-ff3c-44d8-918e-1b36884806dd"
+            ],
+            "outcome": "Achieved",
+            "evidence_ids": [
+                "ac4ba896-3954-49f2-b8c4-88c6a6110a0f"
+            ],
+            "comments": "The admitted evidence demonstrates that the training audience agreed a response priority and communicated the decision across the affected departmental functions. This provides relevant evidence against the tasked observable metric.",
+            "assessor": "Chief Observer",
+            "recorded_at": "2026-08-20T12:30:52"
+        }
+    ],
     "readiness_decisions": [],
     "findings": [],
     "recommendations": [],
@@ -120,5 +244,21 @@
     "planning_sources": [],
     "planned_activities": [],
     "discovery_requirements": [],
-    "injects": []
+    "injects": [
+        {
+            "number": 1,
+            "title": "Competing operational demands emerge",
+            "exercise_time": "During escalation",
+            "phase": "Initial",
+            "source": "Exercise Design",
+            "method": "Control-cell action",
+            "audience": "DESNZ Cells",
+            "category": "Assured MEL/MIL",
+            "inject_text": "Two credible and competing operational demands are presented through separate departmental channels, each requiring access to constrained response capability and creating consequences for the other if prioritised.",
+            "expected_action": "The training audience must recognise the conflict, establish relative priorities, coordinate across the affected departmental functions, allocate responsibility and communicate an agreed response.",
+            "facilitator_notes": "",
+            "attachments": [],
+            "status": "Issued"
+        }
+    ]
 }
