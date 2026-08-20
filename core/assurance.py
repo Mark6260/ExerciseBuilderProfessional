@@ -18,6 +18,9 @@ class ExerciseAssurance:
 
     The engine records facts about missing or incomplete information.
     It does not judge whether an exercise is good or bad.
+
+    Pre-delivery design assurance findings remain separate from the
+    evidence, assessment and authorised readiness-decision trail.
     """
 
     def __init__(self, project: Project):
@@ -25,7 +28,8 @@ class ExerciseAssurance:
 
     def check(self):
         """
-        Return a summary and a list of actionable assurance findings.
+        Return design-assurance findings plus a factual summary of the
+        evidence, assessment and authorised readiness-decision trail.
         """
 
         findings = []
@@ -40,6 +44,99 @@ class ExerciseAssurance:
             "objective_count": len(self.project.objectives),
             "finding_count": len(findings),
             "findings": findings,
+            "performance_assurance": (
+                self.performance_assurance_summary()
+            ),
+        }
+
+    def performance_assurance_summary(self):
+        """
+        Report facts about the post-conduct assurance chain.
+
+        This method does not infer readiness from observations, evidence
+        or assessment outcomes. It only reports what has been recorded.
+        """
+
+        observations = getattr(
+            self.project,
+            "observations",
+            [],
+        )
+
+        evidence_records = getattr(
+            self.project,
+            "evidence_records",
+            [],
+        )
+
+        assessment_records = getattr(
+            self.project,
+            "assessment_records",
+            [],
+        )
+
+        readiness_decisions = getattr(
+            self.project,
+            "readiness_decisions",
+            [],
+        )
+
+        reviewed_observation_count = sum(
+            getattr(
+                getattr(observation, "status", None),
+                "value",
+                "",
+            )
+            == "Reviewed"
+            for observation in observations
+        )
+
+        latest_decision = (
+            readiness_decisions[-1]
+            if readiness_decisions
+            else None
+        )
+
+        return {
+            "observation_count": len(observations),
+            "reviewed_observation_count": (
+                reviewed_observation_count
+            ),
+            "evidence_count": len(evidence_records),
+            "assessment_count": len(assessment_records),
+            "readiness_decision_count": len(
+                readiness_decisions
+            ),
+            "readiness_outcome": (
+                latest_decision.outcome.value
+                if latest_decision is not None
+                else ""
+            ),
+            "decision_maker": (
+                latest_decision.decision_maker
+                if latest_decision is not None
+                else ""
+            ),
+            "decision_authority": (
+                latest_decision.decision_authority
+                if latest_decision is not None
+                else ""
+            ),
+            "recorded_at": (
+                latest_decision.recorded_at
+                if latest_decision is not None
+                else ""
+            ),
+            "limitations": (
+                latest_decision.limitations
+                if latest_decision is not None
+                else ""
+            ),
+            "required_action": (
+                latest_decision.required_action
+                if latest_decision is not None
+                else ""
+            ),
         }
 
     def check_project(self):

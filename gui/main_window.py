@@ -377,6 +377,8 @@ class MainWindow(QMainWindow):
 
         self.readiness_decision_panel.refresh_assessments()
 
+        self.update_assurance()
+
         self.statusBar().showMessage(
             "Professional assessment recorded",
             3000,
@@ -392,6 +394,8 @@ class MainWindow(QMainWindow):
         self.current_project.add_readiness_decision(
             decision
         )
+
+        self.update_assurance()
 
         self.statusBar().showMessage(
             "Readiness decision recorded",
@@ -430,6 +434,7 @@ class MainWindow(QMainWindow):
         self.readiness_decision_panel.set_project(
             self.current_project
         )
+        self.update_assurance()
     def show_apprentice(self):
         dialog = ApprenticeDialog(self)
 
