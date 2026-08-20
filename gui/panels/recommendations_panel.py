@@ -29,6 +29,7 @@ class RecommendationsPanel(QWidget):
     """
 
     recommendation_recorded = Signal(object)
+    recommendation_dispositioned = Signal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -58,6 +59,24 @@ class RecommendationsPanel(QWidget):
         )
         self.new_button.clicked.connect(
             self._prepare_new_recommendation
+        )
+        self.start_disposition_button.clicked.connect(
+            self._start_disposition_review
+        )
+        self.disposition_input.currentIndexChanged.connect(
+            self._update_disposition_button
+        )
+        self.disposition_rationale_input.textChanged.connect(
+            self._update_disposition_button
+        )
+        self.disposition_by_input.textChanged.connect(
+            self._update_disposition_button
+        )
+        self.disposition_authority_input.textChanged.connect(
+            self._update_disposition_button
+        )
+        self.record_disposition_button.clicked.connect(
+            self._record_disposition
         )
 
     def _build_ui(self):
@@ -166,15 +185,16 @@ class RecommendationsPanel(QWidget):
         self.findings_list.setMinimumHeight(130)
 
         disposition_heading = QLabel(
-            "DISPOSITION"
+            "AUTHORISED DISPOSITION"
         )
         disposition_heading.setStyleSheet(
             "font-weight: bold;"
         )
 
         disposition_note = QLabel(
-            "New recommendations are recorded as Not Reviewed. "
-            "Authorised disposition is a separate professional decision."
+            "A recorded recommendation remains professional advice until "
+            "an authorised person records its disposition. Disposition does "
+            "not itself create or authorise an improvement action."
         )
         disposition_note.setWordWrap(True)
         disposition_note.setStyleSheet(
@@ -184,6 +204,56 @@ class RecommendationsPanel(QWidget):
         self.disposition_label = QLabel(
             RecommendationDisposition.NOT_REVIEWED.value
         )
+        self.disposition_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        self.disposition_record_detail = QLabel("")
+        self.disposition_record_detail.setWordWrap(True)
+        self.disposition_record_detail.setVisible(False)
+
+        self.start_disposition_button = QPushButton(
+            "REVIEW RECOMMENDATION DISPOSITION"
+        )
+        self.start_disposition_button.setVisible(False)
+
+        self.disposition_input = QComboBox()
+        self.disposition_input.addItem(
+            "Select disposition...",
+            None,
+        )
+        for disposition in RecommendationDisposition:
+            if disposition != RecommendationDisposition.NOT_REVIEWED:
+                self.disposition_input.addItem(
+                    disposition.value,
+                    disposition,
+                )
+        self.disposition_input.setVisible(False)
+
+        self.disposition_rationale_input = QTextEdit()
+        self.disposition_rationale_input.setPlaceholderText(
+            "Record the professional rationale for this disposition."
+        )
+        self.disposition_rationale_input.setMinimumHeight(90)
+        self.disposition_rationale_input.setVisible(False)
+
+        self.disposition_by_input = QLineEdit()
+        self.disposition_by_input.setPlaceholderText(
+            "Disposition by - name / role"
+        )
+        self.disposition_by_input.setVisible(False)
+
+        self.disposition_authority_input = QLineEdit()
+        self.disposition_authority_input.setPlaceholderText(
+            "Disposition authority / role"
+        )
+        self.disposition_authority_input.setVisible(False)
+
+        self.record_disposition_button = QPushButton(
+            "RECORD AUTHORISED DISPOSITION"
+        )
+        self.record_disposition_button.setEnabled(False)
+        self.record_disposition_button.setVisible(False)
 
         note = QLabel(
             "Exercise Director records professional advice and its "
@@ -224,6 +294,13 @@ class RecommendationsPanel(QWidget):
         right_layout.addWidget(disposition_heading)
         right_layout.addWidget(disposition_note)
         right_layout.addWidget(self.disposition_label)
+        right_layout.addWidget(self.disposition_record_detail)
+        right_layout.addWidget(self.start_disposition_button)
+        right_layout.addWidget(self.disposition_input)
+        right_layout.addWidget(self.disposition_rationale_input)
+        right_layout.addWidget(self.disposition_by_input)
+        right_layout.addWidget(self.disposition_authority_input)
+        right_layout.addWidget(self.record_disposition_button)
         right_layout.addWidget(note)
         right_layout.addWidget(self.record_button)
 
@@ -396,6 +473,9 @@ class RecommendationsPanel(QWidget):
         self.disposition_label.setText(
             recommendation.disposition.value
         )
+        self._show_disposition_state(
+            recommendation
+        )
 
         self._set_checked_ids(
             self.findings_list,
@@ -440,6 +520,7 @@ class RecommendationsPanel(QWidget):
         self.disposition_label.setText(
             RecommendationDisposition.NOT_REVIEWED.value
         )
+        self._reset_disposition_controls()
 
         self._set_checked_ids(
             self.findings_list,
@@ -451,6 +532,201 @@ class RecommendationsPanel(QWidget):
             "RECORD RECOMMENDATION"
         )
         self._update_record_button()
+
+    def _reset_disposition_controls(self):
+        self.disposition_record_detail.clear()
+        self.disposition_record_detail.setVisible(False)
+        self.start_disposition_button.setVisible(False)
+
+        self.disposition_input.setCurrentIndex(0)
+        self.disposition_input.setVisible(False)
+
+        self.disposition_rationale_input.clear()
+        self.disposition_rationale_input.setVisible(False)
+
+        self.disposition_by_input.clear()
+        self.disposition_by_input.setVisible(False)
+
+        self.disposition_authority_input.clear()
+        self.disposition_authority_input.setVisible(False)
+
+        self.record_disposition_button.setVisible(False)
+        self.record_disposition_button.setEnabled(False)
+
+    def _show_disposition_state(self, recommendation):
+        self._reset_disposition_controls()
+
+        if (
+            recommendation.disposition
+            == RecommendationDisposition.NOT_REVIEWED
+        ):
+            self.start_disposition_button.setVisible(True)
+            return
+
+        detail_lines = []
+
+        if recommendation.disposition_by:
+            detail_lines.append(
+                f"Disposition by: {recommendation.disposition_by}"
+            )
+
+        if recommendation.disposition_authority:
+            detail_lines.append(
+                "Authority: "
+                f"{recommendation.disposition_authority}"
+            )
+
+        if recommendation.disposition_at:
+            detail_lines.append(
+                f"Recorded: {recommendation.disposition_at}"
+            )
+
+        if recommendation.disposition_rationale:
+            detail_lines.append(
+                "Rationale: "
+                f"{recommendation.disposition_rationale}"
+            )
+
+        self.disposition_record_detail.setText(
+            "\n".join(detail_lines)
+        )
+        self.disposition_record_detail.setVisible(
+            bool(detail_lines)
+        )
+
+    def _start_disposition_review(self):
+        recommendation = self._selected_recommendation
+
+        if recommendation is None:
+            return
+
+        if (
+            recommendation.disposition
+            != RecommendationDisposition.NOT_REVIEWED
+        ):
+            return
+
+        self.start_disposition_button.setVisible(False)
+
+        self.disposition_input.setCurrentIndex(0)
+        self.disposition_input.setVisible(True)
+
+        self.disposition_rationale_input.clear()
+        self.disposition_rationale_input.setVisible(True)
+
+        self.disposition_by_input.clear()
+        self.disposition_by_input.setVisible(True)
+
+        self.disposition_authority_input.clear()
+        self.disposition_authority_input.setVisible(True)
+
+        self.record_disposition_button.setVisible(True)
+        self._update_disposition_button()
+
+    def _update_disposition_button(self, *_):
+        recommendation = self._selected_recommendation
+
+        if recommendation is None:
+            self.record_disposition_button.setEnabled(False)
+            return
+
+        if (
+            recommendation.disposition
+            != RecommendationDisposition.NOT_REVIEWED
+        ):
+            self.record_disposition_button.setEnabled(False)
+            return
+
+        enabled = bool(
+            self.disposition_input.currentData() is not None
+            and self.disposition_rationale_input
+            .toPlainText()
+            .strip()
+            and self.disposition_by_input
+            .text()
+            .strip()
+            and self.disposition_authority_input
+            .text()
+            .strip()
+        )
+
+        self.record_disposition_button.setEnabled(
+            enabled
+        )
+
+    def _record_disposition(self):
+        recommendation = self._selected_recommendation
+
+        if recommendation is None:
+            return
+
+        if (
+            recommendation.disposition
+            != RecommendationDisposition.NOT_REVIEWED
+        ):
+            return
+
+        disposition = self.disposition_input.currentData()
+        rationale = (
+            self.disposition_rationale_input
+            .toPlainText()
+            .strip()
+        )
+        disposition_by = (
+            self.disposition_by_input
+            .text()
+            .strip()
+        )
+        authority = (
+            self.disposition_authority_input
+            .text()
+            .strip()
+        )
+
+        if (
+            disposition is None
+            or not rationale
+            or not disposition_by
+            or not authority
+        ):
+            return
+
+        recommendation.disposition = disposition
+        recommendation.disposition_rationale = rationale
+        recommendation.disposition_by = disposition_by
+        recommendation.disposition_authority = authority
+        recommendation.mark_dispositioned_now()
+
+        self.recommendation_dispositioned.emit(
+            recommendation
+        )
+
+        self.disposition_label.setText(
+            recommendation.disposition.value
+        )
+        self._show_disposition_state(
+            recommendation
+        )
+
+        self.recommendations_list.blockSignals(True)
+
+        for row in range(
+            self.recommendations_list.count()
+        ):
+            item = self.recommendations_list.item(row)
+
+            if (
+                item.data(Qt.ItemDataRole.UserRole)
+                == recommendation.recommendation_id
+            ):
+                item.setText(
+                    self._recommendation_display_text(
+                        recommendation
+                    )
+                )
+                break
+
+        self.recommendations_list.blockSignals(False)
 
     def _set_form_read_only(
         self,

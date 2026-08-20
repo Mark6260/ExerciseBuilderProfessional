@@ -130,6 +130,9 @@ class MainWindow(QMainWindow):
         self.recommendations_panel.recommendation_recorded.connect(
             self._handle_recommendation_recorded
         )
+        self.recommendations_panel.recommendation_dispositioned.connect(
+            self._handle_recommendation_dispositioned
+        )
 
         self.readiness_decision_panel = ReadinessDecisionPanel()
         self.readiness_decision_panel.readiness_decision_recorded.connect(
@@ -441,6 +444,20 @@ class MainWindow(QMainWindow):
 
         self.statusBar().showMessage(
             "Recommendation recorded",
+            3000,
+        )
+
+    def _handle_recommendation_dispositioned(
+        self,
+        recommendation,
+    ):
+        if self.current_project is None:
+            return
+
+        self.update_assurance()
+
+        self.statusBar().showMessage(
+            "Recommendation disposition recorded",
             3000,
         )
 
