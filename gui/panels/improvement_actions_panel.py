@@ -1089,6 +1089,9 @@ class ImprovementActionsPanel(QWidget):
         self.view_lineage_button.clicked.connect(
             self._open_lineage_dialog
         )
+        self.action_filter_input.currentIndexChanged.connect(
+            self._apply_action_filter
+        )
 
     def _build_ui(self):
         main_layout = QHBoxLayout(self)
@@ -1119,6 +1122,61 @@ class ImprovementActionsPanel(QWidget):
         )
         left_note.setWordWrap(True)
 
+        self.overview_frame = QFrame()
+        self.overview_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+        overview_layout = QVBoxLayout(
+            self.overview_frame
+        )
+        overview_layout.setContentsMargins(
+            10, 8, 10, 8
+        )
+        overview_layout.setSpacing(3)
+
+        overview_heading = QLabel(
+            "IMPROVEMENT OVERVIEW"
+        )
+        overview_heading.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        self.overview_actions_label = QLabel("")
+        self.overview_actions_label.setWordWrap(True)
+
+        self.overview_verification_label = QLabel("")
+        self.overview_verification_label.setWordWrap(True)
+
+        self.overview_follow_up_label = QLabel("")
+        self.overview_follow_up_label.setWordWrap(True)
+
+        overview_layout.addWidget(overview_heading)
+        overview_layout.addWidget(
+            self.overview_actions_label
+        )
+        overview_layout.addWidget(
+            self.overview_verification_label
+        )
+        overview_layout.addWidget(
+            self.overview_follow_up_label
+        )
+
+        self.action_filter_input = QComboBox()
+        self.action_filter_input.addItem("All", "all")
+        self.action_filter_input.addItem("Open", "open")
+        self.action_filter_input.addItem(
+            "Completed",
+            "completed",
+        )
+        self.action_filter_input.addItem(
+            "Further Improvement",
+            "further_improvement",
+        )
+        self.action_filter_input.addItem(
+            "Critical",
+            "critical",
+        )
+
         self.actions_list = QListWidget()
 
         self.new_button = QPushButton(
@@ -1127,6 +1185,8 @@ class ImprovementActionsPanel(QWidget):
 
         left_layout.addWidget(left_heading)
         left_layout.addWidget(left_note)
+        left_layout.addWidget(self.overview_frame)
+        left_layout.addWidget(self.action_filter_input)
         left_layout.addWidget(self.actions_list)
         left_layout.addWidget(self.new_button)
 
@@ -1449,18 +1509,35 @@ class ImprovementActionsPanel(QWidget):
         self.refresh()
 
     def refresh(self):
-        self.actions_list.clear()
         self._populate_recommendations()
         self._prepare_new_action()
+        self._refresh_improvement_overview()
+        self._apply_action_filter()
+
+    def _apply_action_filter(self, *_):
+        self.actions_list.blockSignals(True)
+        self.actions_list.clear()
 
         if self.project is None:
+            self.actions_list.blockSignals(False)
             return
 
-        for action in getattr(
-            self.project,
-            "improvement_actions",
-            [],
-        ):
+        filter_key = self.action_filter_input.currentData()
+        actions = list(
+            getattr(
+                self.project,
+                "improvement_actions",
+                [],
+            )
+        )
+
+        for action in actions:
+            if not self._action_matches_filter(
+                action,
+                filter_key,
+            ):
+                continue
+
             item = QListWidgetItem(
                 self._action_display_text(action)
             )
@@ -1469,6 +1546,132 @@ class ImprovementActionsPanel(QWidget):
                 action.action_id,
             )
             self.actions_list.addItem(item)
+
+        self.actions_list.blockSignals(False)
+
+    def _action_matches_filter(
+        self,
+        action,
+        filter_key,
+    ):
+        if filter_key in (None, "all"):
+            return True
+
+        if filter_key == "open":
+            return action.status in {
+                ActionStatus.NOT_STARTED,
+                ActionStatus.IN_PROGRESS,
+                ActionStatus.BLOCKED,
+            }
+
+        if filter_key == "completed":
+            return action.status == ActionStatus.COMPLETED
+
+        if filter_key == "critical":
+            return action.priority == ActionPriority.CRITICAL
+
+        if filter_key == "further_improvement":
+            verification = self._find_verification_for_action(
+                action
+            )
+            return bool(
+                verification is not None
+                and verification.follow_up_state().value
+                == "Further Improvement Required"
+            )
+
+        return True
+
+    def _refresh_improvement_overview(self):
+        actions = list(
+            getattr(
+                self.project,
+                "improvement_actions",
+                [],
+            )
+        ) if self.project is not None else []
+
+        verifications = list(
+            getattr(
+                self.project,
+                "improvement_verifications",
+                [],
+            )
+        ) if self.project is not None else []
+
+        action_counts = {
+            status: 0
+            for status in ActionStatus
+        }
+        for action in actions:
+            if action.status in action_counts:
+                action_counts[action.status] += 1
+
+        verification_counts = {
+            outcome: 0
+            for outcome in VerificationOutcome
+        }
+        follow_up_counts = {}
+
+        for verification in verifications:
+            if verification.outcome in verification_counts:
+                verification_counts[verification.outcome] += 1
+
+            follow_up_value = (
+                verification.follow_up_state().value
+            )
+            follow_up_counts[follow_up_value] = (
+                follow_up_counts.get(follow_up_value, 0) + 1
+            )
+
+        self.overview_actions_label.setText(
+            "ACTIONS  |  "
+            f"Total {len(actions)}  •  "
+            f"Not Started "
+            f"{action_counts[ActionStatus.NOT_STARTED]}  •  "
+            f"In Progress "
+            f"{action_counts[ActionStatus.IN_PROGRESS]}  •  "
+            f"Blocked "
+            f"{action_counts[ActionStatus.BLOCKED]}  •  "
+            f"Completed "
+            f"{action_counts[ActionStatus.COMPLETED]}  •  "
+            f"Cancelled "
+            f"{action_counts[ActionStatus.CANCELLED]}"
+        )
+
+        self.overview_verification_label.setText(
+            "VERIFICATION  |  "
+            f"Resolved "
+            f"{verification_counts[VerificationOutcome.RESOLVED]}  •  "
+            f"Partially Resolved "
+            f"{verification_counts[VerificationOutcome.PARTIALLY_RESOLVED]}  •  "
+            f"Not Resolved "
+            f"{verification_counts[VerificationOutcome.NOT_RESOLVED]}  •  "
+            f"Insufficient Evidence "
+            f"{verification_counts[VerificationOutcome.INSUFFICIENT_EVIDENCE]}"
+        )
+
+        ordered_follow_up_states = [
+            "Closed",
+            "Further Improvement Required",
+            "Further Evidence Required",
+        ]
+        extra_states = sorted(
+            state
+            for state in follow_up_counts
+            if state not in ordered_follow_up_states
+        )
+
+        follow_up_parts = []
+        for state in ordered_follow_up_states + extra_states:
+            follow_up_parts.append(
+                f"{state} {follow_up_counts.get(state, 0)}"
+            )
+
+        self.overview_follow_up_label.setText(
+            "FOLLOW-UP  |  "
+            + "  •  ".join(follow_up_parts)
+        )
 
     @staticmethod
     def _action_display_text(action):
@@ -2029,6 +2232,7 @@ class ImprovementActionsPanel(QWidget):
         )
 
         self.action_status_changed.emit(action)
+        self._refresh_improvement_overview()
 
         for row in range(
             self.actions_list.count()
@@ -2044,6 +2248,7 @@ class ImprovementActionsPanel(QWidget):
                 break
 
         self._show_lifecycle_state(action)
+        self._apply_action_filter()
 
     def _reset_completion_controls(self):
         self.complete_action_button.setVisible(False)
@@ -2227,6 +2432,8 @@ class ImprovementActionsPanel(QWidget):
                 break
 
         self._show_lifecycle_state(action)
+        self._refresh_improvement_overview()
+        self._apply_action_filter()
 
     def _action_has_verification(self, action):
         if self.project is None:
@@ -2293,9 +2500,11 @@ class ImprovementActionsPanel(QWidget):
             verification
         )
         self.verification_recorded.emit(verification)
+        self._refresh_improvement_overview()
 
         self.verify_improvement_button.setVisible(False)
         self._show_verification_record(verification)
+        self._apply_action_filter()
 
     def _set_form_read_only(self, read_only):
         self.title_input.setReadOnly(read_only)
