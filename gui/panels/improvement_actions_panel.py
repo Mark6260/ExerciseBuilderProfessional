@@ -24,6 +24,10 @@ from core.improvement.action import (
 from core.improvement.recommendation import (
     RecommendationDisposition,
 )
+from core.improvement.verification import (
+    ImprovementVerification,
+    VerificationOutcome,
+)
 
 
 class ActionCompletionDialog(QDialog):
@@ -232,6 +236,264 @@ class ActionCompletionDialog(QDialog):
         return values
 
 
+class ImprovementVerificationDialog(QDialog):
+    """
+    Records a professional verification assessment for a completed
+    improvement action.
+
+    Verification is separate from completion and does not alter the
+    original finding, recommendation or improvement action.
+    """
+
+    def __init__(self, project, action, parent=None):
+        super().__init__(parent)
+
+        self.project = project
+        self.action = action
+
+        self.setWindowTitle("Verify Improvement")
+        self.resize(760, 720)
+
+        self._build_ui()
+        self._populate_findings()
+        self._populate_evidence()
+        self._update_record_button()
+
+    def _build_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 18, 18, 18)
+        layout.setSpacing(12)
+
+        heading = QLabel("VERIFY IMPROVEMENT")
+        heading.setStyleSheet(
+            "font-size: 16px; font-weight: bold;"
+        )
+        layout.addWidget(heading)
+
+        action_label = QLabel(
+            f"Completed action: "
+            f"{self.action.title or 'Untitled action'}"
+        )
+        action_label.setWordWrap(True)
+        action_label.setStyleSheet("font-weight: bold;")
+        layout.addWidget(action_label)
+
+        warning = QLabel(
+            "Verification is a separate professional assessment of whether "
+            "the underlying issue has been resolved. Recording a verification "
+            "does not rewrite the original finding, recommendation or action."
+        )
+        warning.setWordWrap(True)
+        warning.setStyleSheet("font-style: italic;")
+        layout.addWidget(warning)
+
+        findings_heading = QLabel("RELATED FINDINGS")
+        findings_heading.setStyleSheet("font-weight: bold;")
+        layout.addWidget(findings_heading)
+
+        self.findings_list = QListWidget()
+        self.findings_list.setSelectionMode(
+            QListWidget.SelectionMode.NoSelection
+        )
+        self.findings_list.setMinimumHeight(90)
+        layout.addWidget(self.findings_list)
+
+        layout.addWidget(QLabel("Verification Outcome"))
+
+        self.outcome_input = QComboBox()
+        self.outcome_input.addItem(
+            "Select verification outcome...",
+            None,
+        )
+        for outcome in VerificationOutcome:
+            self.outcome_input.addItem(
+                outcome.value,
+                outcome,
+            )
+        layout.addWidget(self.outcome_input)
+
+        layout.addWidget(QLabel("Assessment Rationale"))
+
+        self.rationale_input = QTextEdit()
+        self.rationale_input.setPlaceholderText(
+            "Record the evidence-based rationale for this verification "
+            "assessment."
+        )
+        self.rationale_input.setMinimumHeight(120)
+        layout.addWidget(self.rationale_input)
+
+        layout.addWidget(QLabel("Assessed By"))
+
+        self.assessed_by_input = QLineEdit()
+        self.assessed_by_input.setPlaceholderText(
+            "Assessed by - name / role"
+        )
+        layout.addWidget(self.assessed_by_input)
+
+        layout.addWidget(QLabel("Assessment Authority"))
+
+        self.assessment_authority_input = QLineEdit()
+        self.assessment_authority_input.setPlaceholderText(
+            "Authority under which this assessment is made"
+        )
+        layout.addWidget(self.assessment_authority_input)
+
+        evidence_heading = QLabel("VERIFICATION EVIDENCE")
+        evidence_heading.setStyleSheet("font-weight: bold;")
+        layout.addWidget(evidence_heading)
+
+        evidence_note = QLabel(
+            "Optional: select existing evidence considered during the "
+            "verification assessment."
+        )
+        evidence_note.setWordWrap(True)
+        layout.addWidget(evidence_note)
+
+        self.evidence_list = QListWidget()
+        self.evidence_list.setSelectionMode(
+            QListWidget.SelectionMode.NoSelection
+        )
+        self.evidence_list.setMinimumHeight(140)
+        layout.addWidget(self.evidence_list)
+
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Cancel
+        )
+
+        self.record_button = QPushButton(
+            "RECORD VERIFICATION"
+        )
+        self.record_button.setEnabled(False)
+        self.button_box.addButton(
+            self.record_button,
+            QDialogButtonBox.ButtonRole.AcceptRole,
+        )
+        layout.addWidget(self.button_box)
+
+        self.outcome_input.currentIndexChanged.connect(
+            self._update_record_button
+        )
+        self.rationale_input.textChanged.connect(
+            self._update_record_button
+        )
+        self.assessed_by_input.textChanged.connect(
+            self._update_record_button
+        )
+        self.assessment_authority_input.textChanged.connect(
+            self._update_record_button
+        )
+        self.record_button.clicked.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+    def _populate_findings(self):
+        self.findings_list.clear()
+        wanted_ids = set(
+            getattr(
+                self.action,
+                "related_finding_ids",
+                [],
+            )
+        )
+
+        for finding in getattr(
+            self.project,
+            "findings",
+            [],
+        ):
+            if finding.finding_id not in wanted_ids:
+                continue
+
+            finding_type = getattr(
+                finding.finding_type,
+                "value",
+                str(finding.finding_type),
+            )
+            item = QListWidgetItem(
+                f"{finding_type} | "
+                f"{finding.title or 'Untitled finding'}"
+            )
+            item.setData(
+                Qt.ItemDataRole.UserRole,
+                finding.finding_id,
+            )
+            item.setFlags(
+                item.flags()
+                & ~Qt.ItemFlag.ItemIsEnabled
+            )
+            self.findings_list.addItem(item)
+
+    def _populate_evidence(self):
+        self.evidence_list.clear()
+
+        for evidence in getattr(
+            self.project,
+            "evidence_records",
+            [],
+        ):
+            evidence_id = getattr(
+                evidence,
+                "evidence_id",
+                "",
+            )
+            if not evidence_id:
+                continue
+
+            title = (
+                getattr(evidence, "title", "")
+                or getattr(evidence, "description", "")
+                or evidence_id
+            )
+
+            item = QListWidgetItem(title)
+            item.setData(
+                Qt.ItemDataRole.UserRole,
+                evidence_id,
+            )
+            item.setFlags(
+                item.flags()
+                | Qt.ItemFlag.ItemIsUserCheckable
+            )
+            item.setCheckState(
+                Qt.CheckState.Unchecked
+            )
+            self.evidence_list.addItem(item)
+
+    def _update_record_button(self, *_):
+        enabled = bool(
+            self.outcome_input.currentData() is not None
+            and self.rationale_input.toPlainText().strip()
+            and self.assessed_by_input.text().strip()
+            and self.assessment_authority_input.text().strip()
+        )
+        self.record_button.setEnabled(enabled)
+
+    def outcome(self):
+        return self.outcome_input.currentData()
+
+    def rationale(self):
+        return self.rationale_input.toPlainText().strip()
+
+    def assessed_by(self):
+        return self.assessed_by_input.text().strip()
+
+    def assessment_authority(self):
+        return self.assessment_authority_input.text().strip()
+
+    def evidence_ids(self):
+        values = []
+
+        for row in range(self.evidence_list.count()):
+            item = self.evidence_list.item(row)
+            if item.checkState() == Qt.CheckState.Checked:
+                evidence_id = item.data(
+                    Qt.ItemDataRole.UserRole
+                )
+                if evidence_id:
+                    values.append(evidence_id)
+
+        return values
+
+
 class ImprovementActionsPanel(QWidget):
     """
     Records authorised improvement actions arising from accepted
@@ -243,6 +505,7 @@ class ImprovementActionsPanel(QWidget):
 
     action_recorded = Signal(object)
     action_status_changed = Signal(object)
+    verification_recorded = Signal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -295,6 +558,9 @@ class ImprovementActionsPanel(QWidget):
         )
         self.complete_action_button.clicked.connect(
             self._open_completion_dialog
+        )
+        self.verify_improvement_button.clicked.connect(
+            self._open_verification_dialog
         )
 
     def _build_ui(self):
@@ -520,6 +786,11 @@ class ImprovementActionsPanel(QWidget):
         )
         self.complete_action_button.setVisible(False)
 
+        self.verify_improvement_button = QPushButton(
+            "VERIFY IMPROVEMENT"
+        )
+        self.verify_improvement_button.setVisible(False)
+
         self.record_button = QPushButton(
             "RECORD AUTHORISED ACTION"
         )
@@ -561,6 +832,7 @@ class ImprovementActionsPanel(QWidget):
         right_layout.addWidget(self.status_changed_by_input)
         right_layout.addWidget(self.record_status_change_button)
         right_layout.addWidget(self.complete_action_button)
+        right_layout.addWidget(self.verify_improvement_button)
         right_layout.addWidget(self.record_button)
 
         main_layout.addWidget(left_frame, 4)
@@ -1003,6 +1275,11 @@ class ImprovementActionsPanel(QWidget):
             ]
             self._show_completion_controls(action)
 
+        if action.status == ActionStatus.COMPLETED:
+            self.verify_improvement_button.setVisible(
+                not self._action_has_verification(action)
+            )
+
         self.change_status_button.setVisible(
             bool(allowed)
         )
@@ -1141,6 +1418,7 @@ class ImprovementActionsPanel(QWidget):
 
     def _reset_completion_controls(self):
         self.complete_action_button.setVisible(False)
+        self.verify_improvement_button.setVisible(False)
 
     def _show_completion_controls(self, action):
         self.complete_action_button.setVisible(
@@ -1207,6 +1485,74 @@ class ImprovementActionsPanel(QWidget):
                 break
 
         self._show_lifecycle_state(action)
+
+    def _action_has_verification(self, action):
+        if self.project is None:
+            return False
+
+        return any(
+            verification.related_action_id == action.action_id
+            for verification in getattr(
+                self.project,
+                "improvement_verifications",
+                [],
+            )
+        )
+
+    def _open_verification_dialog(self):
+        action = self._selected_action
+
+        if (
+            self.project is None
+            or action is None
+            or action.status != ActionStatus.COMPLETED
+            or self._action_has_verification(action)
+        ):
+            return
+
+        dialog = ImprovementVerificationDialog(
+            self.project,
+            action,
+            self,
+        )
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        outcome = dialog.outcome()
+        rationale = dialog.rationale()
+        assessed_by = dialog.assessed_by()
+        assessment_authority = (
+            dialog.assessment_authority()
+        )
+
+        if (
+            outcome is None
+            or not rationale
+            or not assessed_by
+            or not assessment_authority
+        ):
+            return
+
+        verification = ImprovementVerification(
+            related_action_id=action.action_id,
+            related_finding_ids=list(
+                action.related_finding_ids
+            ),
+            related_evidence_ids=dialog.evidence_ids(),
+            outcome=outcome,
+            rationale=rationale,
+            assessed_by=assessed_by,
+            assessment_authority=assessment_authority,
+        )
+        verification.mark_recorded_now()
+
+        self.project.add_improvement_verification(
+            verification
+        )
+        self.verification_recorded.emit(verification)
+
+        self.verify_improvement_button.setVisible(False)
 
     def _set_form_read_only(self, read_only):
         self.title_input.setReadOnly(read_only)

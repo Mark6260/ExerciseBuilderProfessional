@@ -328,6 +328,23 @@
             "completed_at": "2026-08-20T22:52:50"
         }
     ],
+    "improvement_verifications": [
+        {
+            "verification_id": "310e368e-9a4c-4e0b-9bd8-a71e1b059e64",
+            "related_action_id": "7d094e9e-dac0-451e-9e0c-7749f5555fb8",
+            "related_finding_ids": [
+                "700f376f-3c3f-4b86-9811-d0d2231a60c9"
+            ],
+            "related_evidence_ids": [
+                "ac4ba896-3954-49f2-b8c4-88c6a6110a0f"
+            ],
+            "outcome": "Resolved",
+            "rationale": "Revised information flow arrangements were tested and demonstrated timely transmission of command information.",
+            "assessed_by": "Chief Observer",
+            "assessment_authority": "Exercise Director",
+            "recorded_at": "2026-08-21T11:18:35"
+        }
+    ],
     "training_opportunities": [],
     "candidate_opportunities": [],
     "planning_sources": [],

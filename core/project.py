@@ -34,6 +34,10 @@ from core.improvement.action import (
     ActionStatus,
     ImprovementAction,
 )
+from core.improvement.verification import (
+    ImprovementVerification,
+    VerificationOutcome,
+)
 from core.improvement.training_opportunity import (
     TrainingOpportunity,
     TrainingOpportunityStatus,
@@ -91,6 +95,7 @@ class Project:
         self.findings: list[Finding] = []
         self.recommendations: list[Recommendation] = []
         self.improvement_actions: list[ImprovementAction] = []
+        self.improvement_verifications: list[ImprovementVerification] = []
         self.training_opportunities: list[TrainingOpportunity] = []
         self.candidate_opportunities: list[CandidateOpportunity] = []
         self.discovery_requirements: list[DiscoveryRequirement] = []
@@ -177,6 +182,12 @@ class Project:
         action: ImprovementAction,
     ):
         self.improvement_actions.append(action)
+
+    def add_improvement_verification(
+        self,
+        verification: ImprovementVerification,
+    ):
+        self.improvement_verifications.append(verification)
 
     def add_training_opportunity(
         self,
@@ -641,6 +652,24 @@ class Project:
                 }
                 for action in self.improvement_actions
             ],
+
+            "improvement_verifications": [
+                {
+                    "verification_id": verification.verification_id,
+                    "related_action_id": verification.related_action_id,
+                    "related_finding_ids": verification.related_finding_ids,
+                    "related_evidence_ids": verification.related_evidence_ids,
+                    "outcome": verification.outcome.value,
+                    "rationale": verification.rationale,
+                    "assessed_by": verification.assessed_by,
+                    "assessment_authority": (
+                        verification.assessment_authority
+                    ),
+                    "recorded_at": verification.recorded_at,
+                }
+                for verification in self.improvement_verifications
+            ],
+
             "training_opportunities": [
                 {
                     "opportunity_id": opportunity.opportunity_id,
@@ -958,6 +987,38 @@ class Project:
         for action in project.improvement_actions:
             if not action.action_id:
                 action.action_id = str(uuid4())
+
+        saved_improvement_verifications = project_data.get(
+            "improvement_verifications",
+            [],
+        )
+
+        project.improvement_verifications = [
+            ImprovementVerification(
+                verification_id=item.get("verification_id", ""),
+                related_action_id=item.get("related_action_id", ""),
+                related_finding_ids=item.get("related_finding_ids", []),
+                related_evidence_ids=item.get("related_evidence_ids", []),
+                outcome=cls._parse_verification_outcome(
+                    item.get(
+                        "outcome",
+                        VerificationOutcome.INSUFFICIENT_EVIDENCE.value,
+                    )
+                ),
+                rationale=item.get("rationale", ""),
+                assessed_by=item.get("assessed_by", ""),
+                assessment_authority=item.get(
+                    "assessment_authority",
+                    "",
+                ),
+                recorded_at=item.get("recorded_at", ""),
+            )
+            for item in saved_improvement_verifications
+        ]
+
+        for verification in project.improvement_verifications:
+            if not verification.verification_id:
+                verification.verification_id = str(uuid4())
 
         project.operational_requirement = OperationalRequirement(
             title=saved_operational_requirement.get(
@@ -2387,6 +2448,14 @@ class Project:
                 return status
 
         return ActionStatus.NOT_STARTED
+
+    @staticmethod
+    def _parse_verification_outcome(value):
+        for outcome in VerificationOutcome:
+            if outcome.value == value:
+                return outcome
+
+        return VerificationOutcome.INSUFFICIENT_EVIDENCE
 
     @staticmethod
     def _parse_training_opportunity_status(value):
