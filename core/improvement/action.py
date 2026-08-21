@@ -41,6 +41,9 @@ class ImprovementAction:
     related_finding_ids: list[str] = field(
         default_factory=list
     )
+    related_verification_ids: list[str] = field(
+        default_factory=list
+    )
 
     owner: str = ""
     priority: ActionPriority = ActionPriority.MEDIUM
@@ -74,6 +77,15 @@ class ImprovementAction:
             and finding_id not in self.related_finding_ids
         ):
             self.related_finding_ids.append(finding_id)
+
+    def add_verification_id(self, verification_id: str):
+        if (
+            verification_id
+            and verification_id not in self.related_verification_ids
+        ):
+            self.related_verification_ids.append(
+                verification_id
+            )
 
     def add_completion_evidence_id(self, evidence_id: str):
         if (

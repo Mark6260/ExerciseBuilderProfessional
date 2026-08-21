@@ -634,8 +634,11 @@ class Project:
                     "related_recommendation_ids": (
                         action.related_recommendation_ids
                     ),
-                    "related_finding_ids": (
+                     "related_finding_ids": (
                         action.related_finding_ids
+                    ),
+                    "related_verification_ids": (
+                        action.related_verification_ids
                     ),
                     "owner": action.owner,
                     "priority": action.priority.value,
@@ -934,6 +937,10 @@ class Project:
                 ),
                 related_finding_ids=item.get(
                     "related_finding_ids",
+                    [],
+                ),
+                related_verification_ids=item.get(
+                    "related_verification_ids",
                     [],
                 ),
                 owner=item.get(

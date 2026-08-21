@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFrame,
+    QScrollArea,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -494,6 +495,157 @@ class ImprovementVerificationDialog(QDialog):
         return values
 
 
+class VerificationRecordDialog(QDialog):
+    """
+    Read-only presentation of an immutable improvement verification record.
+    """
+
+    def __init__(self, project, verification, parent=None):
+        super().__init__(parent)
+
+        self.project = project
+        self.verification = verification
+
+        self.setWindowTitle("Improvement Verification Record")
+        self.resize(760, 620)
+
+        self._build_ui()
+
+    def _build_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 18, 18, 18)
+        layout.setSpacing(12)
+
+        heading = QLabel("IMPROVEMENT VERIFICATION RECORD")
+        heading.setStyleSheet(
+            "font-size: 16px; font-weight: bold;"
+        )
+        layout.addWidget(heading)
+
+        outcome = getattr(
+            self.verification.outcome,
+            "value",
+            str(self.verification.outcome),
+        )
+        follow_up = self.verification.follow_up_state().value
+
+        outcome_label = QLabel(
+            f"Outcome: {outcome}"
+        )
+        outcome_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+        layout.addWidget(outcome_label)
+
+        follow_up_label = QLabel(
+            f"Follow-up state: {follow_up}"
+        )
+        follow_up_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+        layout.addWidget(follow_up_label)
+
+        layout.addWidget(QLabel("Assessment Rationale"))
+
+        rationale = QTextEdit()
+        rationale.setPlainText(
+            self.verification.rationale or "-"
+        )
+        rationale.setReadOnly(True)
+        rationale.setMinimumHeight(140)
+        layout.addWidget(rationale)
+
+        layout.addWidget(QLabel(
+            f"Assessed by: "
+            f"{self.verification.assessed_by or '-'}"
+        ))
+        layout.addWidget(QLabel(
+            "Assessment authority: "
+            f"{self.verification.assessment_authority or '-'}"
+        ))
+        layout.addWidget(QLabel(
+            f"Recorded: "
+            f"{self.verification.recorded_at or '-'}"
+        ))
+
+        evidence_heading = QLabel("VERIFICATION EVIDENCE")
+        evidence_heading.setStyleSheet(
+            "font-weight: bold;"
+        )
+        layout.addWidget(evidence_heading)
+
+        evidence_list = QListWidget()
+        evidence_list.setSelectionMode(
+            QListWidget.SelectionMode.NoSelection
+        )
+        evidence_list.setMinimumHeight(150)
+
+        evidence_ids = list(
+            getattr(
+                self.verification,
+                "related_evidence_ids",
+                [],
+            )
+        )
+
+        if evidence_ids:
+            for evidence_id in evidence_ids:
+                title = self._find_evidence_title(
+                    evidence_id
+                )
+                item = QListWidgetItem(title)
+                item.setFlags(
+                    item.flags()
+                    & ~Qt.ItemFlag.ItemIsEnabled
+                )
+                evidence_list.addItem(item)
+        else:
+            item = QListWidgetItem(
+                "No verification evidence linked."
+            )
+            item.setFlags(
+                item.flags()
+                & ~Qt.ItemFlag.ItemIsEnabled
+            )
+            evidence_list.addItem(item)
+
+        layout.addWidget(evidence_list)
+
+        note = QLabel(
+            "This record is read-only. Verification does not rewrite the "
+            "original finding, recommendation or improvement action."
+        )
+        note.setWordWrap(True)
+        note.setStyleSheet(
+            "font-style: italic;"
+        )
+        layout.addWidget(note)
+
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Close
+        )
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+
+    def _find_evidence_title(self, evidence_id):
+        for evidence in getattr(
+            self.project,
+            "evidence_records",
+            [],
+        ):
+            if (
+                getattr(evidence, "evidence_id", "")
+                == evidence_id
+            ):
+                return (
+                    getattr(evidence, "title", "")
+                    or getattr(evidence, "description", "")
+                    or evidence_id
+                )
+
+        return evidence_id
+
+
 class ImprovementActionsPanel(QWidget):
     """
     Records authorised improvement actions arising from accepted
@@ -512,6 +664,7 @@ class ImprovementActionsPanel(QWidget):
 
         self.project = None
         self._selected_action = None
+        self._pending_follow_up_verification_id = ""
 
         self._build_ui()
 
@@ -562,6 +715,12 @@ class ImprovementActionsPanel(QWidget):
         self.verify_improvement_button.clicked.connect(
             self._open_verification_dialog
         )
+        self.view_verification_button.clicked.connect(
+            self._open_verification_record_dialog
+        )
+        self.follow_up_action_button.clicked.connect(
+            self._prepare_follow_up_action
+        )
 
     def _build_ui(self):
         main_layout = QHBoxLayout(self)
@@ -611,7 +770,23 @@ class ImprovementActionsPanel(QWidget):
         right_frame.setFrameShape(
             QFrame.Shape.StyledPanel
         )
-        right_layout = QVBoxLayout(right_frame)
+
+        right_outer_layout = QVBoxLayout(right_frame)
+        right_outer_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.review_scroll_area = QScrollArea()
+        self.review_scroll_area.setWidgetResizable(True)
+        self.review_scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+
+        review_content = QWidget()
+        right_layout = QVBoxLayout(review_content)
+        right_layout.setContentsMargins(12, 12, 12, 12)
+        right_layout.setSpacing(8)
+
+        self.review_scroll_area.setWidget(review_content)
+        right_outer_layout.addWidget(self.review_scroll_area)
 
         heading = QLabel(
             "IMPROVEMENT ACTION REVIEW"
@@ -791,6 +966,62 @@ class ImprovementActionsPanel(QWidget):
         )
         self.verify_improvement_button.setVisible(False)
 
+        self.verification_record_frame = QFrame()
+        self.verification_record_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+        verification_layout = QVBoxLayout(
+            self.verification_record_frame
+        )
+        verification_layout.setContentsMargins(
+            10, 8, 10, 8
+        )
+        verification_layout.setSpacing(4)
+
+        verification_heading = QLabel(
+            "IMPROVEMENT VERIFICATION"
+        )
+        verification_heading.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        self.verification_outcome_label = QLabel("")
+        self.verification_outcome_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        self.verification_follow_up_label = QLabel("")
+        self.verification_follow_up_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        self.view_verification_button = QPushButton(
+            "VIEW VERIFICATION RECORD"
+        )
+
+        self.follow_up_action_button = QPushButton(
+            "CREATE FOLLOW-UP IMPROVEMENT ACTION"
+        )
+        self.follow_up_action_button.setVisible(False)
+
+        verification_layout.addWidget(
+            verification_heading
+        )
+        verification_layout.addWidget(
+            self.verification_outcome_label
+        )
+        verification_layout.addWidget(
+            self.verification_follow_up_label
+        )
+        verification_layout.addWidget(
+            self.view_verification_button
+        )
+        verification_layout.addWidget(
+            self.follow_up_action_button
+        )
+
+        self.verification_record_frame.setVisible(False)
+
         self.record_button = QPushButton(
             "RECORD AUTHORISED ACTION"
         )
@@ -833,6 +1064,7 @@ class ImprovementActionsPanel(QWidget):
         right_layout.addWidget(self.record_status_change_button)
         right_layout.addWidget(self.complete_action_button)
         right_layout.addWidget(self.verify_improvement_button)
+        right_layout.addWidget(self.verification_record_frame)
         right_layout.addWidget(self.record_button)
 
         main_layout.addWidget(left_frame, 4)
@@ -1030,6 +1262,7 @@ class ImprovementActionsPanel(QWidget):
             self.findings_list.addItem(item)
 
     def _prepare_new_action(self):
+        self._pending_follow_up_verification_id = ""
         self._selected_action = None
 
         self.actions_list.blockSignals(True)
@@ -1276,9 +1509,16 @@ class ImprovementActionsPanel(QWidget):
             self._show_completion_controls(action)
 
         if action.status == ActionStatus.COMPLETED:
-            self.verify_improvement_button.setVisible(
-                not self._action_has_verification(action)
+            verification = self._find_verification_for_action(
+                action
             )
+            self.verify_improvement_button.setVisible(
+                verification is None
+            )
+            if verification is not None:
+                self._show_verification_record(
+                    verification
+                )
 
         self.change_status_button.setVisible(
             bool(allowed)
@@ -1419,6 +1659,119 @@ class ImprovementActionsPanel(QWidget):
     def _reset_completion_controls(self):
         self.complete_action_button.setVisible(False)
         self.verify_improvement_button.setVisible(False)
+        self._hide_verification_record()
+
+    def _hide_verification_record(self):
+        self.verification_outcome_label.clear()
+        self.verification_follow_up_label.clear()
+        self.follow_up_action_button.setVisible(False)
+        self.verification_record_frame.setVisible(False)
+
+    def _find_verification_for_action(self, action):
+        if self.project is None:
+            return None
+
+        for verification in getattr(
+            self.project,
+            "improvement_verifications",
+            [],
+        ):
+            if verification.related_action_id == action.action_id:
+                return verification
+
+        return None
+
+    def _show_verification_record(self, verification):
+        if verification is None:
+            self._hide_verification_record()
+            return
+
+        outcome = getattr(
+            verification.outcome,
+            "value",
+            str(verification.outcome),
+        )
+        follow_up_state = verification.follow_up_state()
+
+        self.verification_outcome_label.setText(
+            f"Outcome: {outcome}"
+        )
+        self.verification_follow_up_label.setText(
+            f"Follow-up state: {follow_up_state.value}"
+        )
+        self.follow_up_action_button.setVisible(
+            follow_up_state.value == "Further Improvement Required"
+        )
+        self.verification_record_frame.setVisible(True)
+
+    def _prepare_follow_up_action(self):
+        source_action = self._selected_action
+
+        if self.project is None or source_action is None:
+            return
+
+        verification = self._find_verification_for_action(
+            source_action
+        )
+        if verification is None:
+            return
+
+        follow_up_state = verification.follow_up_state()
+        if follow_up_state.value != "Further Improvement Required":
+            return
+
+        recommendation_ids = list(
+            source_action.related_recommendation_ids
+        )
+
+        self._prepare_new_action()
+        self._pending_follow_up_verification_id = (
+            verification.verification_id
+        )
+
+        self.title_input.setText(
+            f"Follow-up: {source_action.title or 'Improvement action'}"
+        )
+        self.description_input.setPlainText(
+            "Follow-up improvement action arising from verification of: "
+            f"{source_action.title or 'Untitled action'}"
+        )
+
+        self.recommendations_list.blockSignals(True)
+        for row in range(self.recommendations_list.count()):
+            item = self.recommendations_list.item(row)
+            recommendation_id = item.data(
+                Qt.ItemDataRole.UserRole
+            )
+            item.setCheckState(
+                Qt.CheckState.Checked
+                if recommendation_id in recommendation_ids
+                else Qt.CheckState.Unchecked
+            )
+        self.recommendations_list.blockSignals(False)
+
+        self._populate_related_findings()
+        self._update_record_button()
+        self.review_scroll_area.verticalScrollBar().setValue(0)
+
+    def _open_verification_record_dialog(self):
+        action = self._selected_action
+
+        if action is None:
+            return
+
+        verification = self._find_verification_for_action(
+            action
+        )
+        if verification is None:
+            return
+
+        dialog = VerificationRecordDialog(
+            self.project,
+            verification,
+            self,
+        )
+        dialog.exec()
 
     def _show_completion_controls(self, action):
         self.complete_action_button.setVisible(
@@ -1553,6 +1906,7 @@ class ImprovementActionsPanel(QWidget):
         self.verification_recorded.emit(verification)
 
         self.verify_improvement_button.setVisible(False)
+        self._show_verification_record(verification)
 
     def _set_form_read_only(self, read_only):
         self.title_input.setReadOnly(read_only)
@@ -1670,6 +2024,11 @@ class ImprovementActionsPanel(QWidget):
             ],
             related_finding_ids=list(
                 recommendation.related_finding_ids
+            ),
+            related_verification_ids=(
+                [self._pending_follow_up_verification_id]
+                if self._pending_follow_up_verification_id
+                else []
             ),
             owner=owner,
             priority=self.priority_input.currentData(),

@@ -11,6 +11,12 @@ class VerificationOutcome(Enum):
     INSUFFICIENT_EVIDENCE = "Insufficient Evidence"
 
 
+class VerificationFollowUpState(Enum):
+    CLOSED = "Closed"
+    FURTHER_IMPROVEMENT_REQUIRED = "Further Improvement Required"
+    FURTHER_EVIDENCE_REQUIRED = "Further Evidence Required"
+
+
 @dataclass
 class ImprovementVerification:
     """
@@ -50,3 +56,27 @@ class ImprovementVerification:
 
     def mark_recorded_now(self):
         self.recorded_at = datetime.now().isoformat(timespec="seconds")
+
+    def follow_up_state(self) -> VerificationFollowUpState:
+        """
+        Derive the permitted follow-up state from the immutable
+        verification outcome.
+
+        This method does not create a recommendation, action, evidence
+        record or assessment. It only reports what kind of follow-up is
+        required by the recorded verification outcome.
+        """
+
+        if self.outcome == VerificationOutcome.RESOLVED:
+            return VerificationFollowUpState.CLOSED
+
+        if self.outcome in {
+            VerificationOutcome.PARTIALLY_RESOLVED,
+            VerificationOutcome.NOT_RESOLVED,
+        }:
+            return VerificationFollowUpState.FURTHER_IMPROVEMENT_REQUIRED
+
+        return VerificationFollowUpState.FURTHER_EVIDENCE_REQUIRED
+
+    def requires_follow_up(self) -> bool:
+        return self.follow_up_state() != VerificationFollowUpState.CLOSED
