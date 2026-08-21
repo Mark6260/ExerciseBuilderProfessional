@@ -1161,6 +1161,41 @@ class ImprovementActionsPanel(QWidget):
             self.overview_follow_up_label
         )
 
+        self.attention_frame = QFrame()
+        self.attention_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+        attention_layout = QVBoxLayout(
+            self.attention_frame
+        )
+        attention_layout.setContentsMargins(
+            10, 8, 10, 8
+        )
+        attention_layout.setSpacing(3)
+
+        attention_heading = QLabel(
+            "ATTENTION PICTURE"
+        )
+        attention_heading.setStyleSheet(
+            "font-weight: bold;"
+        )
+
+        self.attention_summary_label = QLabel("")
+        self.attention_summary_label.setWordWrap(True)
+
+        self.attention_detail_label = QLabel("")
+        self.attention_detail_label.setWordWrap(True)
+
+        attention_layout.addWidget(
+            attention_heading
+        )
+        attention_layout.addWidget(
+            self.attention_summary_label
+        )
+        attention_layout.addWidget(
+            self.attention_detail_label
+        )
+
         self.action_filter_input = QComboBox()
         self.action_filter_input.addItem("All", "all")
         self.action_filter_input.addItem("Open", "open")
@@ -1186,6 +1221,7 @@ class ImprovementActionsPanel(QWidget):
         left_layout.addWidget(left_heading)
         left_layout.addWidget(left_note)
         left_layout.addWidget(self.overview_frame)
+        left_layout.addWidget(self.attention_frame)
         left_layout.addWidget(self.action_filter_input)
         left_layout.addWidget(self.actions_list)
         left_layout.addWidget(self.new_button)
@@ -1671,6 +1707,227 @@ class ImprovementActionsPanel(QWidget):
         self.overview_follow_up_label.setText(
             "FOLLOW-UP  |  "
             + "  •  ".join(follow_up_parts)
+        )
+
+        self._refresh_attention_picture(
+            actions,
+            verifications,
+        )
+
+    def _refresh_attention_picture(
+        self,
+        actions,
+        verifications,
+    ):
+        today = QDate.currentDate()
+
+        verification_by_action_id = {
+            verification.related_action_id: verification
+            for verification in verifications
+            if getattr(
+                verification,
+                "related_action_id",
+                "",
+            )
+        }
+
+        verification_by_id = {
+            verification.verification_id: verification
+            for verification in verifications
+            if getattr(
+                verification,
+                "verification_id",
+                "",
+            )
+        }
+
+        finding_ids = {
+            finding.finding_id
+            for finding in getattr(
+                self.project,
+                "findings",
+                [],
+            )
+            if getattr(
+                finding,
+                "finding_id",
+                "",
+            )
+        } if self.project is not None else set()
+
+        recommendation_ids = {
+            recommendation.recommendation_id
+            for recommendation in getattr(
+                self.project,
+                "recommendations",
+                [],
+            )
+            if getattr(
+                recommendation,
+                "recommendation_id",
+                "",
+            )
+        } if self.project is not None else set()
+
+        action_ids = {
+            action.action_id
+            for action in actions
+            if getattr(
+                action,
+                "action_id",
+                "",
+            )
+        }
+
+        open_statuses = {
+            ActionStatus.NOT_STARTED,
+            ActionStatus.IN_PROGRESS,
+            ActionStatus.BLOCKED,
+        }
+
+        overdue_open = []
+        critical_open = []
+        completed_unverified = []
+        further_improvement = []
+        further_evidence = []
+        broken_provenance = []
+
+        for action in actions:
+            if action.status in open_statuses:
+                target_date = QDate.fromString(
+                    getattr(
+                        action,
+                        "target_date",
+                        "",
+                    ),
+                    "yyyy-MM-dd",
+                )
+
+                if (
+                    target_date.isValid()
+                    and target_date < today
+                ):
+                    overdue_open.append(action)
+
+                if (
+                    action.priority
+                    == ActionPriority.CRITICAL
+                ):
+                    critical_open.append(action)
+
+            verification = verification_by_action_id.get(
+                action.action_id
+            )
+
+            if (
+                action.status == ActionStatus.COMPLETED
+                and verification is None
+            ):
+                completed_unverified.append(action)
+
+            if verification is not None:
+                follow_up_state = (
+                    verification.follow_up_state().value
+                )
+
+                if (
+                    follow_up_state
+                    == "Further Improvement Required"
+                ):
+                    further_improvement.append(action)
+
+                if (
+                    follow_up_state
+                    == "Further Evidence Required"
+                ):
+                    further_evidence.append(action)
+
+            broken = False
+
+            for finding_id in getattr(
+                action,
+                "related_finding_ids",
+                [],
+            ):
+                if finding_id not in finding_ids:
+                    broken = True
+                    break
+
+            if not broken:
+                for recommendation_id in getattr(
+                    action,
+                    "related_recommendation_ids",
+                    [],
+                ):
+                    if (
+                        recommendation_id
+                        not in recommendation_ids
+                    ):
+                        broken = True
+                        break
+
+            if not broken:
+                for verification_id in getattr(
+                    action,
+                    "related_verification_ids",
+                    [],
+                ):
+                    linked_verification = (
+                        verification_by_id.get(
+                            verification_id
+                        )
+                    )
+                    if linked_verification is None:
+                        broken = True
+                        break
+
+                    parent_action_id = getattr(
+                        linked_verification,
+                        "related_action_id",
+                        "",
+                    )
+                    if (
+                        not parent_action_id
+                        or parent_action_id
+                        not in action_ids
+                    ):
+                        broken = True
+                        break
+
+            if broken:
+                broken_provenance.append(action)
+
+        attention_count = len({
+            action.action_id
+            for group in (
+                overdue_open,
+                critical_open,
+                completed_unverified,
+                further_improvement,
+                further_evidence,
+                broken_provenance,
+            )
+            for action in group
+        })
+
+        self.attention_summary_label.setText(
+            "ITEMS REQUIRING ATTENTION  |  "
+            f"{attention_count}"
+        )
+
+        self.attention_detail_label.setText(
+            "Overdue Open "
+            f"{len(overdue_open)}  •  "
+            "Critical Open "
+            f"{len(critical_open)}  •  "
+            "Completed Unverified "
+            f"{len(completed_unverified)}  •  "
+            "Further Improvement "
+            f"{len(further_improvement)}  •  "
+            "Further Evidence "
+            f"{len(further_evidence)}  •  "
+            "Broken Provenance "
+            f"{len(broken_provenance)}"
         )
 
     @staticmethod
