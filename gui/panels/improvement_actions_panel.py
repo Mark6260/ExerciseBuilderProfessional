@@ -646,6 +646,371 @@ class VerificationRecordDialog(QDialog):
         return evidence_id
 
 
+class ImprovementLineageDialog(QDialog):
+    """
+    Read-only view of the provable improvement lineage for an action.
+
+    The lineage is assembled from existing record identifiers only.
+    Missing links are displayed honestly rather than inferred.
+    """
+
+    def __init__(self, project, action, parent=None):
+        super().__init__(parent)
+
+        self.project = project
+        self.action = action
+
+        self.setWindowTitle("Improvement Lineage")
+        self.resize(820, 720)
+
+        self._build_ui()
+
+    def _build_ui(self):
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(18, 18, 18, 18)
+        outer_layout.setSpacing(12)
+
+        heading = QLabel("IMPROVEMENT LINEAGE")
+        heading.setStyleSheet(
+            "font-size: 16px; font-weight: bold;"
+        )
+        outer_layout.addWidget(heading)
+
+        note = QLabel(
+            "This read-only view shows the improvement chain that "
+            "Exercise Director can prove from recorded identifiers. "
+            "It does not alter or infer missing records."
+        )
+        note.setWordWrap(True)
+        note.setStyleSheet("font-style: italic;")
+        outer_layout.addWidget(note)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+
+        chain = self._resolve_lineage()
+
+        for index, node in enumerate(chain):
+            frame = QFrame()
+            frame.setFrameShape(QFrame.Shape.StyledPanel)
+            frame_layout = QVBoxLayout(frame)
+            frame_layout.setContentsMargins(12, 10, 12, 10)
+            frame_layout.setSpacing(4)
+
+            type_label = QLabel(node["type"])
+            type_label.setStyleSheet(
+                "font-weight: bold;"
+            )
+            frame_layout.addWidget(type_label)
+
+            title_label = QLabel(node["title"])
+            title_label.setWordWrap(True)
+            if node.get("current"):
+                title_label.setStyleSheet(
+                    "font-weight: bold; text-decoration: underline;"
+                )
+            frame_layout.addWidget(title_label)
+
+            for detail in node.get("details", []):
+                detail_label = QLabel(detail)
+                detail_label.setWordWrap(True)
+                frame_layout.addWidget(detail_label)
+
+            if node.get("current"):
+                current_label = QLabel("CURRENTLY SELECTED ACTION")
+                current_label.setStyleSheet(
+                    "font-weight: bold;"
+                )
+                frame_layout.addWidget(current_label)
+
+            layout.addWidget(frame)
+
+            if index < len(chain) - 1:
+                arrow = QLabel("↓")
+                arrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                arrow.setStyleSheet(
+                    "font-size: 18px; font-weight: bold;"
+                )
+                layout.addWidget(arrow)
+
+        layout.addStretch()
+
+        scroll.setWidget(content)
+        outer_layout.addWidget(scroll)
+
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Close
+        )
+        button_box.rejected.connect(self.reject)
+        outer_layout.addWidget(button_box)
+
+    def _resolve_lineage(self):
+        actions = list(
+            getattr(
+                self.project,
+                "improvement_actions",
+                [],
+            )
+        )
+        verifications = list(
+            getattr(
+                self.project,
+                "improvement_verifications",
+                [],
+            )
+        )
+        recommendations = list(
+            getattr(
+                self.project,
+                "recommendations",
+                [],
+            )
+        )
+        findings = list(
+            getattr(
+                self.project,
+                "findings",
+                [],
+            )
+        )
+
+        action_by_id = {
+            item.action_id: item
+            for item in actions
+        }
+        verification_by_id = {
+            item.verification_id: item
+            for item in verifications
+        }
+        recommendation_by_id = {
+            item.recommendation_id: item
+            for item in recommendations
+        }
+        finding_by_id = {
+            item.finding_id: item
+            for item in findings
+        }
+
+        current = self.action
+
+        # Walk backwards through verification provenance to the earliest
+        # action that can be proved.
+        action_chain = [current]
+        visited_action_ids = {current.action_id}
+
+        while True:
+            verification_ids = list(
+                getattr(
+                    action_chain[0],
+                    "related_verification_ids",
+                    [],
+                )
+            )
+            if not verification_ids:
+                break
+
+            verification = verification_by_id.get(
+                verification_ids[0]
+            )
+            if verification is None:
+                break
+
+            parent_action = action_by_id.get(
+                verification.related_action_id
+            )
+            if (
+                parent_action is None
+                or parent_action.action_id in visited_action_ids
+            ):
+                break
+
+            action_chain.insert(0, parent_action)
+            visited_action_ids.add(parent_action.action_id)
+
+        nodes = []
+
+        root_action = action_chain[0]
+
+        for finding_id in getattr(
+            root_action,
+            "related_finding_ids",
+            [],
+        ):
+            finding = finding_by_id.get(finding_id)
+            if finding is None:
+                nodes.append({
+                    "type": "FINDING",
+                    "title": f"Missing recorded finding: {finding_id}",
+                    "details": [],
+                })
+                continue
+
+            finding_type = getattr(
+                getattr(finding, "finding_type", ""),
+                "value",
+                str(getattr(finding, "finding_type", "")),
+            )
+            nodes.append({
+                "type": "FINDING",
+                "title": finding.title or "Untitled finding",
+                "details": (
+                    [f"Type: {finding_type}"]
+                    if finding_type
+                    else []
+                ),
+            })
+
+        for recommendation_id in getattr(
+            root_action,
+            "related_recommendation_ids",
+            [],
+        ):
+            recommendation = recommendation_by_id.get(
+                recommendation_id
+            )
+            if recommendation is None:
+                nodes.append({
+                    "type": "RECOMMENDATION",
+                    "title": (
+                        "Missing recorded recommendation: "
+                        f"{recommendation_id}"
+                    ),
+                    "details": [],
+                })
+                continue
+
+            disposition = getattr(
+                getattr(recommendation, "disposition", ""),
+                "value",
+                str(getattr(recommendation, "disposition", "")),
+            )
+            nodes.append({
+                "type": "RECOMMENDATION",
+                "title": (
+                    recommendation.title
+                    or "Untitled recommendation"
+                ),
+                "details": (
+                    [f"Disposition: {disposition}"]
+                    if disposition
+                    else []
+                ),
+            })
+
+        for index, action in enumerate(action_chain):
+            status = getattr(
+                getattr(action, "status", ""),
+                "value",
+                str(getattr(action, "status", "")),
+            )
+            nodes.append({
+                "type": (
+                    "IMPROVEMENT ACTION"
+                    if index == 0
+                    else "FOLLOW-UP IMPROVEMENT ACTION"
+                ),
+                "title": action.title or "Untitled action",
+                "details": [
+                    f"Status: {status or '-'}",
+                    f"Owner: {getattr(action, 'owner', '') or '-'}",
+                ],
+                "current": action.action_id == current.action_id,
+            })
+
+            verification = next(
+                (
+                    item
+                    for item in verifications
+                    if item.related_action_id == action.action_id
+                ),
+                None,
+            )
+
+            if verification is not None:
+                outcome = getattr(
+                    verification.outcome,
+                    "value",
+                    str(verification.outcome),
+                )
+                nodes.append({
+                    "type": "VERIFICATION",
+                    "title": f"Outcome: {outcome}",
+                    "details": [
+                        "Follow-up state: "
+                        f"{verification.follow_up_state().value}",
+                        "Assessed by: "
+                        f"{verification.assessed_by or '-'}",
+                        "Recorded: "
+                        f"{verification.recorded_at or '-'}",
+                    ],
+                })
+
+        # Show direct follow-up actions from the final action if they exist
+        # and are not already in the backwards-resolved chain.
+        final_action = action_chain[-1]
+        final_verification = next(
+            (
+                item
+                for item in verifications
+                if item.related_action_id == final_action.action_id
+            ),
+            None,
+        )
+
+        if final_verification is not None:
+            existing_ids = {
+                item.action_id
+                for item in action_chain
+            }
+            for candidate in actions:
+                if candidate.action_id in existing_ids:
+                    continue
+                if final_verification.verification_id not in getattr(
+                    candidate,
+                    "related_verification_ids",
+                    [],
+                ):
+                    continue
+
+                status = getattr(
+                    getattr(candidate, "status", ""),
+                    "value",
+                    str(getattr(candidate, "status", "")),
+                )
+                nodes.append({
+                    "type": "FOLLOW-UP IMPROVEMENT ACTION",
+                    "title": (
+                        candidate.title
+                        or "Untitled action"
+                    ),
+                    "details": [
+                        f"Status: {status or '-'}",
+                        f"Owner: {candidate.owner or '-'}",
+                    ],
+                    "current": (
+                        candidate.action_id == current.action_id
+                    ),
+                })
+
+        if not nodes:
+            nodes.append({
+                "type": "IMPROVEMENT ACTION",
+                "title": current.title or "Untitled action",
+                "details": ["No additional lineage is recorded."],
+                "current": True,
+            })
+
+        return nodes
+
+
 class ImprovementActionsPanel(QWidget):
     """
     Records authorised improvement actions arising from accepted
@@ -720,6 +1085,9 @@ class ImprovementActionsPanel(QWidget):
         )
         self.follow_up_action_button.clicked.connect(
             self._prepare_follow_up_action
+        )
+        self.view_lineage_button.clicked.connect(
+            self._open_lineage_dialog
         )
 
     def _build_ui(self):
@@ -1022,6 +1390,11 @@ class ImprovementActionsPanel(QWidget):
 
         self.verification_record_frame.setVisible(False)
 
+        self.view_lineage_button = QPushButton(
+            "VIEW IMPROVEMENT LINEAGE"
+        )
+        self.view_lineage_button.setVisible(False)
+
         self.record_button = QPushButton(
             "RECORD AUTHORISED ACTION"
         )
@@ -1065,6 +1438,7 @@ class ImprovementActionsPanel(QWidget):
         right_layout.addWidget(self.complete_action_button)
         right_layout.addWidget(self.verify_improvement_button)
         right_layout.addWidget(self.verification_record_frame)
+        right_layout.addWidget(self.view_lineage_button)
         right_layout.addWidget(self.record_button)
 
         main_layout.addWidget(left_frame, 4)
@@ -1308,6 +1682,7 @@ class ImprovementActionsPanel(QWidget):
         self.recommendations_list.blockSignals(False)
 
         self.findings_list.clear()
+        self.view_lineage_button.setVisible(False)
         self._set_form_read_only(False)
         self.record_button.setText(
             "RECORD AUTHORISED ACTION"
@@ -1423,10 +1798,24 @@ class ImprovementActionsPanel(QWidget):
             )
 
         self._set_form_read_only(True)
+        self.view_lineage_button.setVisible(True)
         self.record_button.setText(
             "ACTION AUTHORISED"
         )
         self.record_button.setEnabled(False)
+
+    def _open_lineage_dialog(self):
+        action = self._selected_action
+
+        if self.project is None or action is None:
+            return
+
+        dialog = ImprovementLineageDialog(
+            self.project,
+            action,
+            self,
+        )
+        dialog.exec()
 
     @staticmethod
     def _allowed_status_transitions(status):
