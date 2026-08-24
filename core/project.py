@@ -1,6 +1,7 @@
 ﻿import json
 from pathlib import Path
 
+from core import assessment
 from core.doctrine import DoctrineReference
 from core.inject import Inject, InjectStatus
 from core.objective import ExerciseObjective
@@ -28,6 +29,14 @@ from core.improvement.recommendation import (
     Recommendation,
     RecommendationDisposition,
     RecommendationType,
+)
+from core.preparedness import (
+    ConfidenceAssessment,
+    ConfidenceStage,
+    DemonstratedStrength,
+    LearningEvent,
+    LearningOpportunityState,
+    PreparednessScope,
 )
 from core.improvement.action import (
     ActionPriority,
@@ -91,6 +100,17 @@ class Project:
         self.observations: list[Observation] = []
         self.evidence_records: list[EvidenceRecord] = []
         self.assessment_records: list[AssessmentRecord] = []
+        self.confidence_assessments: list[
+            ConfidenceAssessment
+        ] = []
+
+        self.learning_events: list[
+            LearningEvent
+        ] = []
+
+        self.demonstrated_strengths: list[
+            DemonstratedStrength
+        ] = []
         self.readiness_decisions: list[ReadinessDecision] = []
         self.findings: list[Finding] = []
         self.recommendations: list[Recommendation] = []
@@ -161,6 +181,29 @@ class Project:
         self.evidence_records.append(evidence)
     def add_assessment(self, assessment: AssessmentRecord):
         self.assessment_records.append(assessment)
+    def add_confidence_assessment(
+        self,
+        assessment: ConfidenceAssessment,
+    ):
+        self.confidence_assessments.append(
+        assessment
+    )
+
+    def add_learning_event(
+        self,
+        learning_event: LearningEvent,
+    ):
+        self.learning_events.append(
+            learning_event
+        )
+
+    def add_demonstrated_strength(
+        self,
+        strength: DemonstratedStrength,
+    ):
+        self.demonstrated_strengths.append(
+            strength
+        )   
 
     def add_readiness_decision(
         self,
@@ -555,6 +598,79 @@ class Project:
                     "recorded_at": assessment.recorded_at,
                 }
                 for assessment in self.assessment_records
+            ],
+                        "confidence_assessments": [
+                {
+                    "assessment_id": (
+                        assessment.assessment_id
+                    ),
+                    "exercise_id": (
+                        assessment.exercise_id
+                    ),
+                    "scope": assessment.scope.value,
+                    "subject_id": assessment.subject_id,
+                    "related_objective_ids": (
+                        assessment.related_objective_ids
+                    ),
+                    "stage": assessment.stage.value,
+                    "confidence_score": (
+                        assessment.confidence_score
+                    ),
+                    "reflection": assessment.reflection,
+                    "recorded_at": assessment.recorded_at,
+                }
+                for assessment
+                in self.confidence_assessments
+            ],
+
+            "learning_events": [
+                {
+                    "learning_event_id": (
+                        event.learning_event_id
+                    ),
+                    "exercise_id": event.exercise_id,
+                    "scope": event.scope.value,
+                    "subject_id": event.subject_id,
+                    "title": event.title,
+                    "description": event.description,
+                    "related_objective_ids": (
+                        event.related_objective_ids
+                    ),
+                    "state": event.state.value,
+                    "related_evidence_ids": (
+                        event.related_evidence_ids
+                    ),
+                    "subsequent_evidence_ids": (
+                        event.subsequent_evidence_ids
+                    ),
+                    "reflection": event.reflection,
+                    "recorded_by": event.recorded_by,
+                    "recorded_at": event.recorded_at,
+                }
+                for event in self.learning_events
+            ],
+
+            "demonstrated_strengths": [
+                {
+                    "strength_id": strength.strength_id,
+                    "exercise_id": strength.exercise_id,
+                    "scope": strength.scope.value,
+                    "subject_id": strength.subject_id,
+                    "title": strength.title,
+                    "description": strength.description,
+                    "related_objective_ids": (
+                        strength.related_objective_ids
+                    ),
+                    "related_evidence_ids": (
+                        strength.related_evidence_ids
+                    ),
+                    "identified_by": (
+                        strength.identified_by
+                    ),
+                    "recorded_at": strength.recorded_at,
+                }
+                for strength
+                in self.demonstrated_strengths
             ],
 
             "readiness_decisions": [
@@ -2073,6 +2189,188 @@ class Project:
             if not observation.observation_id:
                 observation.observation_id = str(uuid4())
 
+        saved_confidence_assessments = project_data.get(
+            "confidence_assessments",
+            [],
+        )
+
+        project.confidence_assessments = [
+            ConfidenceAssessment(
+                assessment_id=item.get(
+                    "assessment_id",
+                    "",
+                ),
+                exercise_id=item.get(
+                    "exercise_id",
+                    "",
+                ),
+                scope=cls._parse_preparedness_scope(
+                    item.get(
+                        "scope",
+                        PreparednessScope.INDIVIDUAL.value,
+                    )
+                ),
+                subject_id=item.get(
+                    "subject_id",
+                    "",
+                ),
+                related_objective_ids=item.get(
+                    "related_objective_ids",
+                    [],
+                ),
+                stage=cls._parse_confidence_stage(
+                    item.get(
+                        "stage",
+                        ConfidenceStage.PRE_EXERCISE.value,
+                    )
+                ),
+                confidence_score=item.get(
+                    "confidence_score"
+                ),
+                reflection=item.get(
+                    "reflection",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+            )
+            for item in saved_confidence_assessments
+        ]
+
+        for assessment in project.confidence_assessments:
+            if not assessment.assessment_id:
+                assessment.assessment_id = str(uuid4())
+
+        saved_learning_events = project_data.get(
+            "learning_events",
+            [],
+        )
+
+        project.learning_events = [
+            LearningEvent(
+                learning_event_id=item.get(
+                    "learning_event_id",
+                    "",
+                ),
+                exercise_id=item.get(
+                    "exercise_id",
+                    "",
+                ),
+                scope=cls._parse_preparedness_scope(
+                    item.get(
+                        "scope",
+                        PreparednessScope.INDIVIDUAL.value,
+                    )
+                ),
+                subject_id=item.get(
+                    "subject_id",
+                    "",
+                ),
+                title=item.get(
+                    "title",
+                    "",
+                ),
+                description=item.get(
+                    "description",
+                    "",
+                ),
+                related_objective_ids=item.get(
+                    "related_objective_ids",
+                    [],
+                ),
+                state=cls._parse_learning_opportunity_state(
+                    item.get(
+                        "state",
+                        LearningOpportunityState.RECEIVED.value,
+                    )
+                ),
+                related_evidence_ids=item.get(
+                    "related_evidence_ids",
+                    [],
+                ),
+                subsequent_evidence_ids=item.get(
+                    "subsequent_evidence_ids",
+                    [],
+                ),
+                reflection=item.get(
+                    "reflection",
+                    "",
+                ),
+                recorded_by=item.get(
+                    "recorded_by",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+            )
+            for item in saved_learning_events
+        ]
+
+        for event in project.learning_events:
+            if not event.learning_event_id:
+                event.learning_event_id = str(uuid4())
+
+        saved_demonstrated_strengths = project_data.get(
+            "demonstrated_strengths",
+            [],
+        )
+
+        project.demonstrated_strengths = [
+            DemonstratedStrength(
+                strength_id=item.get(
+                    "strength_id",
+                    "",
+                ),
+                exercise_id=item.get(
+                    "exercise_id",
+                    "",
+                ),
+                scope=cls._parse_preparedness_scope(
+                    item.get(
+                        "scope",
+                        PreparednessScope.INDIVIDUAL.value,
+                    )
+                ),
+                subject_id=item.get(
+                    "subject_id",
+                    "",
+                ),
+                title=item.get(
+                    "title",
+                    "",
+                ),
+                description=item.get(
+                    "description",
+                    "",
+                ),
+                related_objective_ids=item.get(
+                    "related_objective_ids",
+                    [],
+                ),
+                related_evidence_ids=item.get(
+                    "related_evidence_ids",
+                    [],
+                ),
+                identified_by=item.get(
+                    "identified_by",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+            )
+            for item in saved_demonstrated_strengths
+        ]
+
+        for strength in project.demonstrated_strengths:
+            if not strength.strength_id:
+                strength.strength_id = str(uuid4())
+                
         saved_assessment_records = project_data.get(
             "assessment_records",
             [],
@@ -2138,6 +2436,189 @@ class Project:
         for assessment in project.assessment_records:
             if not assessment.assessment_id:
                 assessment.assessment_id = str(uuid4())
+                
+                
+        saved_confidence_assessments = project_data.get(
+            "confidence_assessments",
+            [],
+        )
+
+        project.confidence_assessments = [
+            ConfidenceAssessment(
+                assessment_id=item.get(
+                    "assessment_id",
+                    "",
+                ),
+                exercise_id=item.get(
+                    "exercise_id",
+                    "",
+                ),
+                scope=cls._parse_preparedness_scope(
+                    item.get(
+                        "scope",
+                        PreparednessScope.INDIVIDUAL.value,
+                    )
+                ),
+                subject_id=item.get(
+                    "subject_id",
+                    "",
+                ),
+                related_objective_ids=item.get(
+                    "related_objective_ids",
+                    [],
+                ),
+                stage=cls._parse_confidence_stage(
+                    item.get(
+                        "stage",
+                        ConfidenceStage.PRE_EXERCISE.value,
+                    )
+                ),
+                confidence_score=item.get(
+                    "confidence_score"
+                ),
+                reflection=item.get(
+                    "reflection",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+            )
+            for item in saved_confidence_assessments
+        ]
+
+        for assessment in project.confidence_assessments:
+            if not assessment.assessment_id:
+                assessment.assessment_id = str(uuid4())
+
+        saved_learning_events = project_data.get(
+            "learning_events",
+            [],
+        )
+
+        project.learning_events = [
+            LearningEvent(
+                learning_event_id=item.get(
+                    "learning_event_id",
+                    "",
+                ),
+                exercise_id=item.get(
+                    "exercise_id",
+                    "",
+                ),
+                scope=cls._parse_preparedness_scope(
+                    item.get(
+                        "scope",
+                        PreparednessScope.INDIVIDUAL.value,
+                    )
+                ),
+                subject_id=item.get(
+                    "subject_id",
+                    "",
+                ),
+                title=item.get(
+                    "title",
+                    "",
+                ),
+                description=item.get(
+                    "description",
+                    "",
+                ),
+                related_objective_ids=item.get(
+                    "related_objective_ids",
+                    [],
+                ),
+                state=cls._parse_learning_opportunity_state(
+                    item.get(
+                        "state",
+                        LearningOpportunityState.RECEIVED.value,
+                    )
+                ),
+                related_evidence_ids=item.get(
+                    "related_evidence_ids",
+                    [],
+                ),
+                subsequent_evidence_ids=item.get(
+                    "subsequent_evidence_ids",
+                    [],
+                ),
+                reflection=item.get(
+                    "reflection",
+                    "",
+                ),
+                recorded_by=item.get(
+                    "recorded_by",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+            )
+            for item in saved_learning_events
+        ]
+
+        for event in project.learning_events:
+            if not event.learning_event_id:
+                event.learning_event_id = str(uuid4())
+
+        saved_demonstrated_strengths = project_data.get(
+            "demonstrated_strengths",
+            [],
+        )
+
+        project.demonstrated_strengths = [
+            DemonstratedStrength(
+                strength_id=item.get(
+                    "strength_id",
+                    "",
+                ),
+                exercise_id=item.get(
+                    "exercise_id",
+                    "",
+                ),
+                scope=cls._parse_preparedness_scope(
+                    item.get(
+                        "scope",
+                        PreparednessScope.INDIVIDUAL.value,
+                    )
+                ),
+                subject_id=item.get(
+                    "subject_id",
+                    "",
+                ),
+                title=item.get(
+                    "title",
+                    "",
+                ),
+                description=item.get(
+                    "description",
+                    "",
+                ),
+                related_objective_ids=item.get(
+                    "related_objective_ids",
+                    [],
+                ),
+                related_evidence_ids=item.get(
+                    "related_evidence_ids",
+                    [],
+                ),
+                identified_by=item.get(
+                    "identified_by",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+            )
+            for item in saved_demonstrated_strengths
+        ]
+
+        for strength in project.demonstrated_strengths:
+            if not strength.strength_id:
+                strength.strength_id = str(uuid4())
 
         saved_readiness_decisions = project_data.get(
             "readiness_decisions",
@@ -2400,7 +2881,31 @@ class Project:
                 return reason
 
         return AssessmentExceptionReason.OTHER
+    
+    @staticmethod
+    def _parse_preparedness_scope(value):
+        for scope in PreparednessScope:
+            if scope.value == value:
+                return scope
 
+        return PreparednessScope.INDIVIDUAL
+
+    @staticmethod
+    def _parse_confidence_stage(value):
+        for stage in ConfidenceStage:
+            if stage.value == value:
+                return stage
+
+        return ConfidenceStage.PRE_EXERCISE
+
+    @staticmethod
+    def _parse_learning_opportunity_state(value):
+        for state in LearningOpportunityState:
+            if state.value == value:
+                return state
+
+        return LearningOpportunityState.RECEIVED
+    
     @staticmethod
     def _parse_evidence_type(value):
         for evidence_type in EvidenceType:
