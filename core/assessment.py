@@ -9,6 +9,9 @@ class AssessmentOutcome(Enum):
     ACHIEVED = "Achieved"
     PARTIALLY_ACHIEVED = "Partially Achieved"
     NOT_ACHIEVED = "Not Achieved"
+    INSUFFICIENT_OPPORTUNITY_OR_EVIDENCE = (
+        "Insufficient Opportunity / Evidence"
+    )
 
 
 @dataclass
@@ -54,6 +57,21 @@ class AssessmentRecord:
     assessor: str = ""
     recorded_at: str = ""
 
+    def validate(self):
+        evidence_required_outcomes = {
+            AssessmentOutcome.ACHIEVED,
+            AssessmentOutcome.PARTIALLY_ACHIEVED,
+            AssessmentOutcome.NOT_ACHIEVED,
+        }
+
+        if (
+            self.outcome in evidence_required_outcomes
+            and not self.evidence_ids
+        ):
+            raise ValueError(
+                "Achieved, Partially Achieved and Not Achieved "
+                "assessment outcomes must be supported by evidence."
+            )
     def add_evidence_id(self, evidence_id: str):
         if (
             evidence_id
