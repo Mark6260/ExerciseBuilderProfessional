@@ -10,10 +10,14 @@ from PySide6.QtWidgets import (
     QWidget,
     QScrollArea,
 )
+from core import objective
 from core.design_assistance import DesignAssistance
 from core.design_assistance import (
     DesignAssistance,
     DesignOptionType,
+)
+from core.design_proposal_builder import (
+    DesignProposalBuilder,
 )
 
 
@@ -36,6 +40,7 @@ class DesignerWorkspacePanel(QWidget):
         self.selected_objective = None
         self.attention_items = []
         self.selected_attention_item = None
+        self.current_design_proposal = None
 
         main_layout = QVBoxLayout(self)
 
@@ -182,6 +187,19 @@ class DesignerWorkspacePanel(QWidget):
         )
 
         content.addWidget(design_group, 3)
+        self.review_success_criteria_proposal_button = QPushButton(
+            "Consider Defining Success Criteria"
+        )
+        self.review_success_criteria_proposal_button.setVisible(
+            False
+        )
+        self.review_success_criteria_proposal_button.clicked.connect(
+            self._review_success_criteria_proposal
+        )
+
+        design_layout.addWidget(
+            self.review_success_criteria_proposal_button
+        )
     def _review_supporting_activity(self):
         if self.selected_attention_item is None:
             return
@@ -211,6 +229,7 @@ class DesignerWorkspacePanel(QWidget):
         self.selected_objective = None
         self.selected_attention_item = None
         self._update_design_attention()
+        self.current_design_proposal = None
 
         self.objectives_list.clear()
         self.open_button.setEnabled(False)
@@ -348,12 +367,19 @@ class DesignerWorkspacePanel(QWidget):
         self._show_selected_objective()
     def _return_to_design_chain(self):
         """
-        Return from Contextual Review to the normal
-        Design Chain for the selected objective.
+        Return from the current review layer.
+
+        Proposal Review returns to Contextual Review.
+        Contextual Review returns to the normal Design Chain.
         """
 
+        if self.current_design_proposal is not None:
+            self.current_design_proposal = None
+            self._show_selected_objective()
+            return
+
         self.selected_attention_item = None
-        self._show_selected_objective()    
+        self._show_selected_objective()     
     def _show_selected_objective(self):
         if self.selected_objective is None:
             return
@@ -372,6 +398,14 @@ class DesignerWorkspacePanel(QWidget):
                 or []
             )
 
+        self.review_success_criteria_proposal_button.setVisible(
+            any(
+                option.option_type
+                is DesignOptionType.DEFINE_SUCCESS_CRITERIA
+                for option in options
+            )
+        )
+
         self.review_supporting_activity_button.setVisible(
             any(
                 option.option_type
@@ -380,11 +414,6 @@ class DesignerWorkspacePanel(QWidget):
             )
         )
 
-        success_criteria = getattr(
-            objective,
-            "success_criteria",
-            [],
-        )
         success_criteria = getattr(
             objective,
             "success_criteria",
@@ -436,13 +465,15 @@ class DesignerWorkspacePanel(QWidget):
                 f"{exercise_time} — {title}"
             )
 
-            if inject_lines:
-                inject_text = "\n".join(inject_lines)
-            else:
-                inject_text = (
-                    "No supporting MEL/MIL activity "
-                    "currently identified."
-                )
+        if inject_lines:
+            inject_text = "\n".join(
+                inject_lines
+            )
+        else:
+            inject_text = (
+                "No supporting MEL/MIL activity "
+                "currently identified."
+            )
 
         doctrine = getattr(
             objective,
@@ -512,6 +543,106 @@ class DesignerWorkspacePanel(QWidget):
             bool(supporting_injects)
         )
 
+    def _review_success_criteria_proposal(self):
+        if (
+            self.project is None
+            or self.selected_objective is None
+            or self.selected_attention_item is None
+        ):
+            return
+
+        options = (
+            self.selected_attention_item.options
+            or []
+        )
+
+        has_proposal_option = any(
+            option.option_type
+            is DesignOptionType.DEFINE_SUCCESS_CRITERIA
+            for option in options
+        )
+
+        if not has_proposal_option:
+            return
+
+        proposal = DesignProposalBuilder(
+            self.project
+        ).build_success_criteria_proposal(
+            self.selected_objective
+        )
+
+        self.current_design_proposal = proposal
+
+        self._show_design_proposal()
+
+    def _show_design_proposal(self):
+        proposal = self.current_design_proposal
+
+        if proposal is None:
+            return
+
+        if proposal.sources:
+            source_lines = []
+
+            for source in proposal.sources:
+                source_lines.append(
+                    f"• {source.source_type} — "
+                    f"{source.source_reference}\n"
+                    f"  {source.source_text}"
+                )
+
+            sources_text = "\n".join(
+                source_lines
+            )
+        else:
+            sources_text = (
+                "No supporting source material identified."
+            )
+
+        if proposal.proposed_content:
+            proposal_lines = []
+
+            for content in proposal.proposed_content:
+                proposal_lines.append(
+                    f"• {content}"
+                )
+
+            proposed_text = "\n".join(
+                proposal_lines
+            )
+        else:
+            proposed_text = (
+                "Exercise Director could not derive candidate "
+                "success criteria from the current supporting "
+                "activity."
+            )
+
+        self.design_chain.setText(
+            f"PROPOSED SUCCESS CRITERIA\n\n"
+            f"Objective\n"
+            f"{proposal.objective_title}\n\n"
+            f"WHAT EXERCISE DIRECTOR CONSIDERED\n"
+            f"{sources_text}\n\n"
+            f"POSSIBLE DRAFT\n"
+            f"{proposed_text}\n\n"
+            f"WHY THIS WAS PROPOSED\n"
+            f"{proposal.rationale}\n\n"
+            f"STATUS\n"
+            f"{proposal.status.value}\n\n"
+            f"Authoritative design remains unchanged."
+        )
+
+        self.review_success_criteria_proposal_button.setVisible(
+            False
+        )
+
+        self.review_supporting_activity_button.setVisible(
+            False
+        )
+
+        self.return_to_design_button.setVisible(
+            True
+        )
     def _find_inject(self, inject_number):
         if self.project is None:
             return None
