@@ -11,8 +11,29 @@ class DesignAttentionType(Enum):
     NO_SUCCESS_CRITERIA = "No Success Criteria"
     NO_SUPPORTING_ACTIVITY = "No Supporting Activity"
     BROKEN_ACTIVITY_LINK = "Broken Activity Link"
+    
+class DesignOptionType(Enum):
+    REVIEW_OBJECTIVE = "Review Objective"
+    REVIEW_SUPPORTING_ACTIVITY = "Review Supporting Activity"
+    DEFINE_SUCCESS_CRITERIA = "Consider Defining Success Criteria"
+    REVIEW_ACTIVITY_LINK = "Review Activity Link"
+    CONSIDER_SUPPORTING_ACTIVITY = "Consider Supporting Activity"
+    LEAVE_UNCHANGED = "Leave Unchanged"
 
+@dataclass
+class DesignOption:
+    """
+    A possible route the designer may consider in response
+    to a design attention item.
 
+    An option does not prescribe an action and does not
+    represent a decision by Exercise Director.
+    """
+
+    option_type: DesignOptionType
+    title: str
+    description: str
+    
 @dataclass
 class DesignAttentionItem:
     """
@@ -37,6 +58,8 @@ class DesignAttentionItem:
     objective_title: str = ""
 
     related_inject_number: int | None = None
+    options: list[DesignOption] | None = None
+    
 class DesignAssistance:
     """
     Reviews the current exercise design for matters that
@@ -103,6 +126,49 @@ class DesignAssistance:
                         "performance should look like or what evidence "
                         "would support assessment."
                     ),
+                    options=[
+                        DesignOption(
+                            option_type=(
+                                DesignOptionType.REVIEW_OBJECTIVE
+                            ),
+                            title="Review the objective",
+                            description=(
+                                "Check that the objective expresses the "
+                                "intended exercise outcome."
+                            ),
+                        ),
+                        DesignOption(
+                            option_type=(
+                                DesignOptionType.REVIEW_SUPPORTING_ACTIVITY
+                            ),
+                            title="Review supporting activity",
+                            description=(
+                                "Examine what the training audience is "
+                                "already being asked to demonstrate."
+                            ),
+                        ),
+                        DesignOption(
+                            option_type=(
+                                DesignOptionType.DEFINE_SUCCESS_CRITERIA
+                            ),
+                            title="Consider defining success criteria",
+                            description=(
+                                "Describe the observable performance that "
+                                "would demonstrate achievement of the "
+                                "objective."
+                            ),
+                        ),
+                        DesignOption(
+                            option_type=(
+                                DesignOptionType.LEAVE_UNCHANGED
+                            ),
+                            title="Leave unchanged",
+                            description=(
+                                "The designer may determine that no change "
+                                "is required."
+                            ),
+                        ),
+                    ],
                     title="Success criteria not defined",
                     message=(
                         "Exercise Director cannot yet determine "

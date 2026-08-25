@@ -1,4 +1,4 @@
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
     QWidget,
+    QScrollArea,
 )
 from core.design_assistance import DesignAssistance
 
@@ -115,6 +116,7 @@ class DesignerWorkspacePanel(QWidget):
         )
 
         content.addWidget(objectives_group, 2)
+        content.addWidget(objectives_group, 2)
 
         design_group = QGroupBox("Design Chain")
         design_layout = QVBoxLayout(design_group)
@@ -124,10 +126,20 @@ class DesignerWorkspacePanel(QWidget):
         )
         self.design_chain.setWordWrap(True)
         self.design_chain.setAlignment(
-            self.design_chain.alignment()
+            Qt.AlignmentFlag.AlignTop
         )
+
+        self.design_chain_scroll = QScrollArea()
+        self.design_chain_scroll.setWidgetResizable(True)
+        self.design_chain_scroll.setFrameShape(
+            QScrollArea.Shape.NoFrame
+        )
+        self.design_chain_scroll.setWidget(
+            self.design_chain
+        )
+
         design_layout.addWidget(
-            self.design_chain,
+            self.design_chain_scroll,
             1,
         )
 
@@ -138,7 +150,22 @@ class DesignerWorkspacePanel(QWidget):
         self.open_button.clicked.connect(
             self._open_supporting_activity
         )
-        design_layout.addWidget(self.open_button)
+
+        self.return_to_design_button = QPushButton(
+            "Return to Design Chain"
+        )
+        self.return_to_design_button.setVisible(False)
+        self.return_to_design_button.clicked.connect(
+            self._return_to_design_chain
+        )
+
+        design_layout.addWidget(
+            self.return_to_design_button
+        )
+
+        design_layout.addWidget(
+            self.open_button
+        )
 
         content.addWidget(design_group, 3)
 
@@ -286,12 +313,22 @@ class DesignerWorkspacePanel(QWidget):
 
         self.selected_attention_item = None
         self._show_selected_objective()
-        
+    def _return_to_design_chain(self):
+        """
+        Return from Contextual Review to the normal
+        Design Chain for the selected objective.
+        """
+
+        self.selected_attention_item = None
+        self._show_selected_objective()    
     def _show_selected_objective(self):
         if self.selected_objective is None:
             return
 
         objective = self.selected_objective
+        self.return_to_design_button.setVisible(
+            self.selected_attention_item is not None
+        )
 
         success_criteria = getattr(
             objective,
@@ -368,39 +405,56 @@ class DesignerWorkspacePanel(QWidget):
                     "No supporting doctrine currently linked."
                 )
 
-            context_text = ""
+                context_text = ""
 
-            if self.selected_attention_item is not None:
-                item = self.selected_attention_item
+                if self.selected_attention_item is not None:
+                    item = self.selected_attention_item
 
-                context_text = (
-                    f"\n\nCONTEXTUAL REVIEW\n"
-                    f"⚠ {item.title}\n\n"
-                    f"WHAT EXERCISE DIRECTOR NOTICED\n"
-                    f"{item.message}\n\n"
-                    f"WHY THIS MATTERS\n"
-                    f"{item.rationale}\n\n"
-                    f"Exercise Director has identified a "
-                    f"design condition for professional review. "
-                    f"It has not made an assessment of whether "
-                    f"the objective itself is appropriate."
-                )
+                    options_text = ""
 
-            self.design_chain.setText(
-                f"WHY?\n"
-                f"{objective.title}\n\n"
-                f"WHAT MUST THEY DEMONSTRATE?\n"
-                f"{criteria_text}\n\n"
-                f"HOW WILL WE CREATE THE OPPORTUNITY?\n"
-                f"{inject_text}\n\n"
-                f"WHAT SUPPORTS THE DESIGN?\n"
-                f"{doctrine_text}"
-                f"{context_text}"
-            )
+                    if item.options:
+                        option_lines = []
 
-            self.open_button.setEnabled(
-                bool(supporting_injects)
-            )
+                        for option in item.options:
+                            option_lines.append(
+                                f"• {option.title}\n"
+                                f"  {option.description}"
+                            )
+
+                        options_text = (
+                            f"\n\nWHAT COULD I DO?\n"
+                            f"{chr(10).join(option_lines)}"
+                        )
+
+                        context_text = (
+                            f"\n\nCONTEXTUAL REVIEW\n"
+                            f"⚠ {item.title}\n\n"
+                            f"WHAT EXERCISE DIRECTOR NOTICED\n"
+                            f"{item.message}\n\n"
+                            f"WHY THIS MATTERS\n"
+                            f"{item.rationale}"
+                            f"{options_text}\n\n"
+                            f"Exercise Director has identified a "
+                            f"design condition for professional review. "
+                            f"It has not selected an option or made an "
+                            f"assessment of whether the objective itself "
+                            f"is appropriate."
+                        )
+                        self.design_chain.setText(
+                            f"WHY?\n"
+                            f"{objective.title}\n\n"
+                            f"WHAT MUST THEY DEMONSTRATE?\n"
+                            f"{criteria_text}\n\n"
+                            f"HOW WILL WE CREATE THE OPPORTUNITY?\n"
+                            f"{inject_text}\n\n"
+                            f"WHAT SUPPORTS THE DESIGN?\n"
+                            f"{doctrine_text}"
+                            f"{context_text}"
+                        )
+
+                        self.open_button.setEnabled(
+                            bool(supporting_injects)
+                        )
 
     def _find_inject(self, inject_number):
         if self.project is None:
