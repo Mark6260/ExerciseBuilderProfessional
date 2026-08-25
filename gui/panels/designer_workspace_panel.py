@@ -29,6 +29,8 @@ class DesignerWorkspacePanel(QWidget):
 
         self.project = None
         self.selected_objective = None
+        self.attention_items = []
+        self.selected_attention_item = None
 
         main_layout = QVBoxLayout(self)
 
@@ -70,6 +72,14 @@ class DesignerWorkspacePanel(QWidget):
             self.attention_summary
         )
 
+        self.attention_list = QListWidget()
+        self.attention_list.currentRowChanged.connect(
+            self._attention_selected
+        )
+        attention_layout.addWidget(
+            self.attention_list
+        )
+
         main_layout.addWidget(
             self.attention_group
         )
@@ -95,6 +105,9 @@ class DesignerWorkspacePanel(QWidget):
         self.objectives_list = QListWidget()
         self.objectives_list.currentRowChanged.connect(
             self._objective_selected
+        )
+        self.objectives_list.itemClicked.connect(
+            self._objective_clicked
         )
         objectives_layout.addWidget(
             self.objectives_list,
@@ -136,6 +149,7 @@ class DesignerWorkspacePanel(QWidget):
 
         self.project = project
         self.selected_objective = None
+        self.selected_attention_item = None
         self._update_design_attention()
 
         self.objectives_list.clear()
@@ -171,6 +185,9 @@ class DesignerWorkspacePanel(QWidget):
 
         self.objectives_list.setCurrentRow(0)
     def _update_design_attention(self):
+        self.attention_list.clear()
+        self.attention_items = []
+
         if self.project is None:
             self.attention_summary.setText(
                 "No project is currently loaded."
@@ -181,25 +198,75 @@ class DesignerWorkspacePanel(QWidget):
             self.project
         ).check()
 
+        self.attention_items = items
+
         if not items:
             self.attention_summary.setText(
                 "No design matters currently require attention."
             )
             return
 
-        lines = []
+        self.attention_summary.setText(
+            f"{len(items)} design matter"
+            f"{'' if len(items) == 1 else 's'} "
+            "may require professional attention."
+        )
 
         for item in items:
-            lines.append(
+            text = (
                 f"⚠ {item.objective_title}\n"
                 f"{item.title}\n"
                 f"{item.message}"
             )
 
-        self.attention_summary.setText(
-            "\n\n".join(lines)
+            self.attention_list.addItem(
+                QListWidgetItem(text)
+            )
+    def _attention_selected(self, row):
+        if (
+            row < 0
+            or row >= len(self.attention_items)
+        ):
+            return
+
+        item = self.attention_items[row]
+        self.selected_attention_item = item
+
+        if (
+            item.objective_index < 0
+            or self.project is None
+            or item.objective_index
+            >= len(self.project.objectives)
+        ):
+            return
+
+        self.objectives_list.setCurrentRow(
+            item.objective_index
         )
-    
+        self._show_selected_objective()
+    def _objective_clicked(self, item):
+        """
+        Explicitly selecting an objective returns the designer
+        to the normal Design Chain view.
+        """
+
+        row = self.objectives_list.row(item)
+
+        if (
+            self.project is None
+            or row < 0
+            or row >= len(self.project.objectives)
+        ):
+            return
+
+        self.selected_objective = (
+            self.project.objectives[row]
+        )
+
+        self.selected_attention_item = None
+
+        self._show_selected_objective()
+         
     def _objective_selected(self, row):
         if (
             self.project is None
@@ -216,6 +283,15 @@ class DesignerWorkspacePanel(QWidget):
 
         objective = self.project.objectives[row]
         self.selected_objective = objective
+
+        self.selected_attention_item = None
+        self._show_selected_objective()
+        
+    def _show_selected_objective(self):
+        if self.selected_objective is None:
+            return
+
+        objective = self.selected_objective
 
         success_criteria = getattr(
             objective,
@@ -268,44 +344,63 @@ class DesignerWorkspacePanel(QWidget):
                 f"{exercise_time} — {title}"
             )
 
-        if inject_lines:
-            inject_text = "\n".join(inject_lines)
-        else:
-            inject_text = (
-                "No supporting MEL/MIL activity "
-                "currently identified."
+            if inject_lines:
+                inject_text = "\n".join(inject_lines)
+            else:
+                inject_text = (
+                    "No supporting MEL/MIL activity "
+                    "currently identified."
+                )
+
+            doctrine = getattr(
+                objective,
+                "supporting_doctrine",
+                [],
             )
 
-        doctrine = getattr(
-            objective,
-            "supporting_doctrine",
-            [],
-        )
+            if doctrine:
+                doctrine_text = "\n".join(
+                    f"• {reference}"
+                    for reference in doctrine
+                )
+            else:
+                doctrine_text = (
+                    "No supporting doctrine currently linked."
+                )
 
-        if doctrine:
-            doctrine_text = "\n".join(
-                f"• {reference}"
-                for reference in doctrine
+            context_text = ""
+
+            if self.selected_attention_item is not None:
+                item = self.selected_attention_item
+
+                context_text = (
+                    f"\n\nCONTEXTUAL REVIEW\n"
+                    f"⚠ {item.title}\n\n"
+                    f"WHAT EXERCISE DIRECTOR NOTICED\n"
+                    f"{item.message}\n\n"
+                    f"WHY THIS MATTERS\n"
+                    f"{item.rationale}\n\n"
+                    f"Exercise Director has identified a "
+                    f"design condition for professional review. "
+                    f"It has not made an assessment of whether "
+                    f"the objective itself is appropriate."
+                )
+
+            self.design_chain.setText(
+                f"WHY?\n"
+                f"{objective.title}\n\n"
+                f"WHAT MUST THEY DEMONSTRATE?\n"
+                f"{criteria_text}\n\n"
+                f"HOW WILL WE CREATE THE OPPORTUNITY?\n"
+                f"{inject_text}\n\n"
+                f"WHAT SUPPORTS THE DESIGN?\n"
+                f"{doctrine_text}"
+                f"{context_text}"
             )
-        else:
-            doctrine_text = (
-                "No supporting doctrine currently linked."
+
+            self.open_button.setEnabled(
+                bool(supporting_injects)
             )
-
-        self.design_chain.setText(
-            f"WHY?\n"
-            f"{objective.title}\n\n"
-            f"WHAT MUST THEY DEMONSTRATE?\n"
-            f"{criteria_text}\n\n"
-            f"HOW WILL WE CREATE THE OPPORTUNITY?\n"
-            f"{inject_text}\n\n"
-            f"WHAT SUPPORTS THE DESIGN?\n"
-            f"{doctrine_text}"
-        )
-
-        self.open_button.setEnabled(
-            bool(supporting_injects)
-        )
 
     def _find_inject(self, inject_number):
         if self.project is None:

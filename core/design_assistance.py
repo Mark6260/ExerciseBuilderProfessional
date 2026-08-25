@@ -27,6 +27,7 @@ class DesignAttentionItem:
     attention_type: DesignAttentionType
     title: str
     message: str
+    rationale: str = ""
 
     level: DesignAttentionLevel = (
         DesignAttentionLevel.ATTENTION
@@ -94,6 +95,14 @@ class DesignAssistance:
                     attention_type=(
                         DesignAttentionType.NO_SUCCESS_CRITERIA
                     ),
+                    rationale=(
+                        "Success criteria connect an exercise objective "
+                        "to observable performance and evidence. Without "
+                        "them, supporting activity may exist, but the "
+                        "design cannot yet establish what successful "
+                        "performance should look like or what evidence "
+                        "would support assessment."
+                    ),
                     title="Success criteria not defined",
                     message=(
                         "Exercise Director cannot yet determine "
@@ -110,6 +119,13 @@ class DesignAssistance:
                 DesignAttentionItem(
                     attention_type=(
                         DesignAttentionType.NO_SUPPORTING_ACTIVITY
+                    ),
+                    rationale=(
+                        "An exercise objective requires a credible "
+                        "opportunity for the training audience to "
+                        "demonstrate the required performance. Without "
+                        "supporting activity, the objective may not be "
+                        "meaningfully exercised or observed."
                     ),
                     title="No supporting activity identified",
                     message=(
@@ -137,6 +153,12 @@ class DesignAssistance:
                 DesignAttentionItem(
                     attention_type=(
                         DesignAttentionType.BROKEN_ACTIVITY_LINK
+                    ),
+                    rationale=(
+                        "The design relationship points to activity that "
+                        "is no longer present in the MEL/MIL. This may "
+                        "leave the objective without the exercise "
+                        "opportunity originally intended to support it."
                     ),
                     title="Supporting activity cannot be found",
                     message=(
