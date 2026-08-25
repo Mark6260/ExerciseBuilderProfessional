@@ -11,6 +11,10 @@ from PySide6.QtWidgets import (
     QScrollArea,
 )
 from core.design_assistance import DesignAssistance
+from core.design_assistance import (
+    DesignAssistance,
+    DesignOptionType,
+)
 
 
 class DesignerWorkspacePanel(QWidget):
@@ -150,7 +154,17 @@ class DesignerWorkspacePanel(QWidget):
         self.open_button.clicked.connect(
             self._open_supporting_activity
         )
+        self.review_supporting_activity_button = QPushButton(
+            "Review Supporting Activity"
+        )
+        self.review_supporting_activity_button.setVisible(False)
+        self.review_supporting_activity_button.clicked.connect(
+            self._review_supporting_activity
+        )
 
+        design_layout.addWidget(
+            self.review_supporting_activity_button
+        )
         self.return_to_design_button = QPushButton(
             "Return to Design Chain"
         )
@@ -168,6 +182,25 @@ class DesignerWorkspacePanel(QWidget):
         )
 
         content.addWidget(design_group, 3)
+    def _review_supporting_activity(self):
+        if self.selected_attention_item is None:
+            return
+
+        options = (
+            self.selected_attention_item.options
+            or []
+        )
+
+        has_review_option = any(
+            option.option_type
+            is DesignOptionType.REVIEW_SUPPORTING_ACTIVITY
+            for option in options
+        )
+
+        if not has_review_option:
+            return
+        
+        self._open_supporting_activity()
 
     def set_project(self, project):
         """
@@ -276,7 +309,7 @@ class DesignerWorkspacePanel(QWidget):
         Explicitly selecting an objective returns the designer
         to the normal Design Chain view.
         """
-
+        
         row = self.objectives_list.row(item)
 
         if (
@@ -326,10 +359,32 @@ class DesignerWorkspacePanel(QWidget):
             return
 
         objective = self.selected_objective
+
         self.return_to_design_button.setVisible(
             self.selected_attention_item is not None
         )
 
+        options = []
+
+        if self.selected_attention_item is not None:
+            options = (
+                self.selected_attention_item.options
+                or []
+            )
+
+        self.review_supporting_activity_button.setVisible(
+            any(
+                option.option_type
+                is DesignOptionType.REVIEW_SUPPORTING_ACTIVITY
+                for option in options
+            )
+        )
+
+        success_criteria = getattr(
+            objective,
+            "success_criteria",
+            [],
+        )
         success_criteria = getattr(
             objective,
             "success_criteria",
@@ -389,72 +444,73 @@ class DesignerWorkspacePanel(QWidget):
                     "currently identified."
                 )
 
-            doctrine = getattr(
-                objective,
-                "supporting_doctrine",
-                [],
+        doctrine = getattr(
+            objective,
+            "supporting_doctrine",
+            [],
+        )
+
+        if doctrine:
+            doctrine_text = "\n".join(
+                f"• {reference}"
+                for reference in doctrine
+            )
+        else:
+            doctrine_text = (
+                "No supporting doctrine currently linked."
             )
 
-            if doctrine:
-                doctrine_text = "\n".join(
-                    f"• {reference}"
-                    for reference in doctrine
+        context_text = ""
+
+        if self.selected_attention_item is not None:
+            item = self.selected_attention_item
+
+            options_text = ""
+
+            if item.options:
+                option_lines = []
+
+                for option in item.options:
+                    option_lines.append(
+                        f"• {option.title}\n"
+                        f"  {option.description}"
+                    )
+
+                options_text = (
+                    f"\n\nWHAT COULD I DO?\n"
+                    f"{chr(10).join(option_lines)}"
                 )
-            else:
-                doctrine_text = (
-                    "No supporting doctrine currently linked."
-                )
 
-                context_text = ""
+            context_text = (
+                f"\n\nCONTEXTUAL REVIEW\n"
+                f"⚠ {item.title}\n\n"
+                f"WHAT EXERCISE DIRECTOR NOTICED\n"
+                f"{item.message}\n\n"
+                f"WHY THIS MATTERS\n"
+                f"{item.rationale}"
+                f"{options_text}\n\n"
+                f"Exercise Director has identified a "
+                f"design condition for professional review. "
+                f"It has not selected an option or made an "
+                f"assessment of whether the objective itself "
+                f"is appropriate."
+            )
 
-                if self.selected_attention_item is not None:
-                    item = self.selected_attention_item
+        self.design_chain.setText(
+            f"WHY?\n"
+            f"{objective.title}\n\n"
+            f"WHAT MUST THEY DEMONSTRATE?\n"
+            f"{criteria_text}\n\n"
+            f"HOW WILL WE CREATE THE OPPORTUNITY?\n"
+            f"{inject_text}\n\n"
+            f"WHAT SUPPORTS THE DESIGN?\n"
+            f"{doctrine_text}"
+            f"{context_text}"
+        )
 
-                    options_text = ""
-
-                    if item.options:
-                        option_lines = []
-
-                        for option in item.options:
-                            option_lines.append(
-                                f"• {option.title}\n"
-                                f"  {option.description}"
-                            )
-
-                        options_text = (
-                            f"\n\nWHAT COULD I DO?\n"
-                            f"{chr(10).join(option_lines)}"
-                        )
-
-                        context_text = (
-                            f"\n\nCONTEXTUAL REVIEW\n"
-                            f"⚠ {item.title}\n\n"
-                            f"WHAT EXERCISE DIRECTOR NOTICED\n"
-                            f"{item.message}\n\n"
-                            f"WHY THIS MATTERS\n"
-                            f"{item.rationale}"
-                            f"{options_text}\n\n"
-                            f"Exercise Director has identified a "
-                            f"design condition for professional review. "
-                            f"It has not selected an option or made an "
-                            f"assessment of whether the objective itself "
-                            f"is appropriate."
-                        )
-                        self.design_chain.setText(
-                            f"WHY?\n"
-                            f"{objective.title}\n\n"
-                            f"WHAT MUST THEY DEMONSTRATE?\n"
-                            f"{criteria_text}\n\n"
-                            f"HOW WILL WE CREATE THE OPPORTUNITY?\n"
-                            f"{inject_text}\n\n"
-                            f"WHAT SUPPORTS THE DESIGN?\n"
-                            f"{doctrine_text}"
-                            f"{context_text}"
-                        )
-
-                        self.open_button.setEnabled(
-                            bool(supporting_injects)
-                        )
+        self.open_button.setEnabled(
+            bool(supporting_injects)
+        )
 
     def _find_inject(self, inject_number):
         if self.project is None:
