@@ -43,6 +43,9 @@ from gui.panels.observer_panel import ObserverPanel
 from gui.panels.observation_review_panel import (
     ObservationReviewPanel,
 )
+from gui.panels.designer_workspace_panel import (
+    DesignerWorkspacePanel,
+)
 
 
 class MainWindow(QMainWindow):
@@ -113,6 +116,9 @@ class MainWindow(QMainWindow):
 
     def create_layout(self):
         self.project_panel = ProjectPanel()
+        self.designer_workspace_panel = (
+            DesignerWorkspacePanel()
+        )
         self.objectives_panel = ObjectivesPanel()
         self.mel_panel = MasterEventsListPanel()
         self.inject_details_panel = InjectDetailsPanel()
@@ -134,7 +140,10 @@ class MainWindow(QMainWindow):
         self.recommendations_panel.recommendation_dispositioned.connect(
             self._handle_recommendation_dispositioned
         )
-
+        self.designer_workspace_panel.open_in_workspace_requested.connect(
+            self._open_designer_supporting_activity
+        )
+        
         self.improvement_actions_panel = ImprovementActionsPanel()
         self.improvement_actions_panel.action_recorded.connect(
             self._handle_improvement_action_recorded
@@ -267,7 +276,10 @@ class MainWindow(QMainWindow):
             self.exercise_design_panel,
             "Exercise Design",
         )
-
+        self.tabs.addTab(
+            self.designer_workspace_panel,
+            "Designer Workspace",
+        )
         self.setCentralWidget(self.tabs)
     def _handle_design_inject_updated(
         self,
@@ -526,12 +538,50 @@ class MainWindow(QMainWindow):
             "Readiness decision recorded",
             3000,
         )
+    def _open_designer_supporting_activity(
+        self,
+        inject_number: int,
+    ):
+        """
+        Open a supporting MEL/MIL activity from the
+        Designer Workspace.
+        """
 
+        for row, inject in enumerate(
+            self.current_project.injects
+        ):
+            if inject.number != inject_number:
+                continue
+
+            self.tabs.setCurrentIndex(1)
+
+            self.mel_panel.select_row(row)
+            self.show_inject_details(row)
+
+            self.statusBar().showMessage(
+                f"Opened supporting activity "
+                f"Inject {inject_number}",
+                3000,
+            )
+            return
+
+        QMessageBox.information(
+            self,
+            "Supporting Activity",
+            (
+                f"Inject {inject_number} is linked to this "
+                "objective but is not present in the "
+                "current MEL/MIL."
+            ),
+        )
     def update_project_view(self):
         requirement = (
             self.current_project.operational_requirement
         )
-
+        self.designer_workspace_panel.set_project(
+            self.current_project
+        )
+        
         self.cto_builder_panel.set_project(
             self.current_project
         )

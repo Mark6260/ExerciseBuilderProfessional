@@ -43,3 +43,12 @@ class MasterEventsListPanel(QGroupBox):
 
     def current_row(self):
         return self.list_widget.currentRow()
+    def select_row(self, row):
+        """
+        Select a MEL/MIL activity by its displayed row.
+        """
+
+        if row < 0 or row >= self.list_widget.count():
+            return
+
+        self.list_widget.setCurrentRow(row)
