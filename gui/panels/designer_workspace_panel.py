@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from core.design_assistance import DesignAssistance
 
 
 class DesignerWorkspacePanel(QWidget):
@@ -52,6 +53,26 @@ class DesignerWorkspacePanel(QWidget):
             "font-size: 16px; font-weight: bold;"
         )
         main_layout.addWidget(question)
+        
+        self.attention_group = QGroupBox(
+            "Needs Your Attention"
+        )
+        attention_layout = QVBoxLayout(
+            self.attention_group
+        )
+
+        self.attention_summary = QLabel(
+            "No design matters currently require attention."
+        )
+        self.attention_summary.setWordWrap(True)
+
+        attention_layout.addWidget(
+            self.attention_summary
+        )
+
+        main_layout.addWidget(
+            self.attention_group
+        )
 
         content = QHBoxLayout()
         main_layout.addLayout(content, 1)
@@ -115,6 +136,7 @@ class DesignerWorkspacePanel(QWidget):
 
         self.project = project
         self.selected_objective = None
+        self._update_design_attention()
 
         self.objectives_list.clear()
         self.open_button.setEnabled(False)
@@ -148,7 +170,36 @@ class DesignerWorkspacePanel(QWidget):
             self.objectives_list.addItem(item)
 
         self.objectives_list.setCurrentRow(0)
+    def _update_design_attention(self):
+        if self.project is None:
+            self.attention_summary.setText(
+                "No project is currently loaded."
+            )
+            return
 
+        items = DesignAssistance(
+            self.project
+        ).check()
+
+        if not items:
+            self.attention_summary.setText(
+                "No design matters currently require attention."
+            )
+            return
+
+        lines = []
+
+        for item in items:
+            lines.append(
+                f"⚠ {item.objective_title}\n"
+                f"{item.title}\n"
+                f"{item.message}"
+            )
+
+        self.attention_summary.setText(
+            "\n\n".join(lines)
+        )
+    
     def _objective_selected(self, row):
         if (
             self.project is None
