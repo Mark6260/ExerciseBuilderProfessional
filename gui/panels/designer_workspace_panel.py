@@ -6,9 +6,11 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QPushButton,
+    QPlainTextEdit,
     QVBoxLayout,
     QWidget,
     QScrollArea,
+    QMessageBox,
 )
 from core import objective
 from core.design_assistance import DesignAssistance
@@ -18,6 +20,12 @@ from core.design_assistance import (
 )
 from core.design_proposal_builder import (
     DesignProposalBuilder,
+)
+from core.design_proposal_applier import (
+    DesignProposalApplier,
+)
+from core.design_proposal import (
+    DesignProposalStatus,
 )
 
 
@@ -125,10 +133,9 @@ class DesignerWorkspacePanel(QWidget):
         )
 
         content.addWidget(objectives_group, 2)
-        content.addWidget(objectives_group, 2)
 
         design_group = QGroupBox("Design Chain")
-        design_layout = QVBoxLayout(design_group)
+        self.design_layout = QVBoxLayout(design_group)
 
         self.design_chain = QLabel(
             "Select an objective to review its design chain."
@@ -146,47 +153,79 @@ class DesignerWorkspacePanel(QWidget):
         self.design_chain_scroll.setWidget(
             self.design_chain
         )
-
-        design_layout.addWidget(
-            self.design_chain_scroll,
+        self.design_layout.addWidget(
+        self.design_chain_scroll,
             1,
+
+        )
+        
+        self.reviewed_content_label = QLabel(
+            "YOUR REVIEWED VERSION"
+        )
+        self.reviewed_content_label.setStyleSheet(
+            "font-weight: bold;"
+        )
+        self.reviewed_content_label.setVisible(False)
+
+        self.design_layout.addWidget(
+            self.reviewed_content_label
         )
 
-        self.open_button = QPushButton(
-            "Open Supporting Activity"
+        self.reviewed_content_editor = QPlainTextEdit()
+        self.reviewed_content_editor.setPlaceholderText(
+            "Enter one success criterion per line."
         )
-        self.open_button.setEnabled(False)
-        self.open_button.clicked.connect(
-            self._open_supporting_activity
-        )
-        self.review_supporting_activity_button = QPushButton(
-            "Review Supporting Activity"
-        )
-        self.review_supporting_activity_button.setVisible(False)
-        self.review_supporting_activity_button.clicked.connect(
-            self._review_supporting_activity
+        self.reviewed_content_editor.setVisible(False)
+        self.reviewed_content_editor.setMinimumHeight(120)
+
+        self.design_layout.addWidget(
+            self.reviewed_content_editor
         )
 
-        design_layout.addWidget(
-            self.review_supporting_activity_button
+        self.save_reviewed_content_button = QPushButton(
+            "Save Reviewed Version"
         )
-        self.return_to_design_button = QPushButton(
-            "Return to Design Chain"
+        self.accept_reviewed_content_button = QPushButton(
+            "Accept Reviewed Version"
         )
-        self.return_to_design_button.setVisible(False)
-        self.return_to_design_button.clicked.connect(
-            self._return_to_design_chain
+        self.apply_proposal_button = QPushButton(
+            "Apply to Design"
         )
-
-        design_layout.addWidget(
-            self.return_to_design_button
-        )
-
-        design_layout.addWidget(
-            self.open_button
+        self.apply_proposal_button.setVisible(False)
+        self.apply_proposal_button.clicked.connect(
+            self._apply_design_proposal
         )
 
-        content.addWidget(design_group, 3)
+        self.design_layout.addWidget(
+            self.apply_proposal_button
+        )
+        self.accept_reviewed_content_button.setVisible(False)
+        self.accept_reviewed_content_button.clicked.connect(
+            self._accept_reviewed_content
+        )
+
+        self.design_layout.addWidget(
+            self.accept_reviewed_content_button
+        )
+        self.save_reviewed_content_button.setVisible(False)
+        self.save_reviewed_content_button.clicked.connect(
+            self._save_reviewed_content
+        )
+
+        self.design_layout.addWidget(
+            self.save_reviewed_content_button
+        )
+
+        self.begin_proposal_review_button = QPushButton(
+            "Begin Designer Review"
+        )
+        self.begin_proposal_review_button.setVisible(False)
+        self.begin_proposal_review_button.clicked.connect(
+            self._begin_proposal_review
+        )
+        self.design_layout.addWidget(
+            self.begin_proposal_review_button
+        )
         self.review_success_criteria_proposal_button = QPushButton(
             "Consider Defining Success Criteria"
         )
@@ -196,10 +235,122 @@ class DesignerWorkspacePanel(QWidget):
         self.review_success_criteria_proposal_button.clicked.connect(
             self._review_success_criteria_proposal
         )
-
-        design_layout.addWidget(
+        self.design_layout.addWidget(
             self.review_success_criteria_proposal_button
         )
+
+        self.review_supporting_activity_button = QPushButton(
+            "Review Supporting Activity"
+        )
+        self.review_supporting_activity_button.setVisible(
+            False
+        )
+        self.review_supporting_activity_button.clicked.connect(
+            self._review_supporting_activity
+        )
+        self.design_layout.addWidget(
+            self.review_supporting_activity_button
+        )
+
+        self.return_to_design_button = QPushButton(
+            "Return to Design Chain"
+        )
+        self.return_to_design_button.setVisible(False)
+        self.return_to_design_button.clicked.connect(
+            self._return_to_design_chain
+        )
+        self.design_layout.addWidget(
+            self.return_to_design_button
+        )
+
+        self.open_button = QPushButton(
+            "Open Supporting Activity"
+        )
+        self.open_button.setEnabled(False)
+        self.open_button.clicked.connect(
+            self._open_supporting_activity
+        )
+        self.design_layout.addWidget(
+            self.open_button
+        )
+
+        content.addWidget(
+            design_group,
+            3,
+        )
+    def _accept_reviewed_content(self):
+        proposal = self.current_design_proposal
+
+        if proposal is None:
+            return
+
+        if (
+            proposal.status
+            is not DesignProposalStatus.UNDER_REVIEW
+        ):
+            return
+
+        lines = (
+            self.reviewed_content_editor
+            .toPlainText()
+            .splitlines()
+        )
+
+        proposal.replace_reviewed_content(lines)
+
+        proposal.accept(
+            reviewed_by="Exercise Designer"
+        )
+
+        self._show_design_proposal()
+        
+    def _apply_design_proposal(self):
+        proposal = self.current_design_proposal
+
+        if (
+            proposal is None
+            or self.selected_objective is None
+        ):
+            return
+
+        applier = DesignProposalApplier()
+
+        try:
+            applier.apply(
+                proposal,
+                self.selected_objective,
+            )
+        except ValueError as error:
+            QMessageBox.warning(
+                self,
+                "Apply Design Proposal",
+                str(error),
+            )
+            return
+
+        self.current_design_proposal = None
+        self.selected_attention_item = None
+
+        self._update_design_attention()
+        self._show_selected_objective()
+
+          
+    def _save_reviewed_content(self):
+        proposal = self.current_design_proposal
+
+        if proposal is None:
+            return
+
+        lines = (
+            self.reviewed_content_editor
+            .toPlainText()
+            .splitlines()
+        )
+
+        proposal.replace_reviewed_content(lines)
+
+        self._show_design_proposal()
+
     def _review_supporting_activity(self):
         if self.selected_attention_item is None:
             return
@@ -389,6 +540,15 @@ class DesignerWorkspacePanel(QWidget):
         self.return_to_design_button.setVisible(
             self.selected_attention_item is not None
         )
+        self.accept_reviewed_content_button.setVisible(
+            False
+        )
+        self.begin_proposal_review_button.setVisible(
+            False
+        )
+        self.apply_proposal_button.setVisible(
+            False
+        )
 
         options = []
 
@@ -411,6 +571,7 @@ class DesignerWorkspacePanel(QWidget):
                 option.option_type
                 is DesignOptionType.REVIEW_SUPPORTING_ACTIVITY
                 for option in options
+                
             )
         )
 
@@ -574,13 +735,65 @@ class DesignerWorkspacePanel(QWidget):
         self.current_design_proposal = proposal
 
         self._show_design_proposal()
-
-    def _show_design_proposal(self):
+        
+    def _begin_proposal_review(self):
         proposal = self.current_design_proposal
 
         if proposal is None:
             return
 
+        proposal.begin_review()
+
+        self._show_design_proposal()
+        
+    def _show_design_proposal(self):
+        proposal = self.current_design_proposal
+
+        if proposal is None:
+            return
+        self.begin_proposal_review_button.setVisible(
+            proposal.status
+            is DesignProposalStatus.DRAFT
+            )
+        is_under_review = (
+            proposal.status
+            is DesignProposalStatus.UNDER_REVIEW
+        )
+        self.apply_proposal_button.setVisible(
+            proposal.status
+            is DesignProposalStatus.ACCEPTED
+        )
+        self.accept_reviewed_content_button.setVisible(
+            is_under_review
+        )
+        
+        self.reviewed_content_label.setVisible(
+            is_under_review
+            
+        )
+        self.reviewed_content_editor.setVisible(
+            is_under_review
+        )
+        self.save_reviewed_content_button.setVisible(
+            is_under_review
+        )
+        if is_under_review:
+            self.reviewed_content_editor.setPlainText(
+                "\n".join(
+                    proposal.reviewed_content
+                )
+            )
+        self.review_success_criteria_proposal_button.setVisible(
+        False
+        )
+        
+        self.return_to_design_button.setVisible(
+            True
+        )
+        
+        self.review_supporting_activity_button.setVisible(
+        False
+        )
         if proposal.sources:
             source_lines = []
 
@@ -616,7 +829,7 @@ class DesignerWorkspacePanel(QWidget):
                 "success criteria from the current supporting "
                 "activity."
             )
-
+        
         self.design_chain.setText(
             f"PROPOSED SUCCESS CRITERIA\n\n"
             f"Objective\n"

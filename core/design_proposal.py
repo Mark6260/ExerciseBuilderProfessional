@@ -9,6 +9,7 @@ class DesignProposalType(Enum):
 
 class DesignProposalStatus(Enum):
     DRAFT = "Draft"
+    UNDER_REVIEW = "Under Review"
     ACCEPTED = "Accepted"
     REJECTED = "Rejected"
 
@@ -45,6 +46,9 @@ class DesignProposal:
     proposed_content: list[str] = field(
         default_factory=list
     )
+    reviewed_content: list[str] = field(
+        default_factory=list
+    )
 
     sources: list[DesignProposalSource] = field(
         default_factory=list
@@ -54,8 +58,11 @@ class DesignProposal:
 
     status: DesignProposalStatus = (
         DesignProposalStatus.DRAFT
+        
     )
-
+    reviewed_by: str = ""
+    decision_rationale: str = ""
+    
     def add_proposed_content(self, content: str):
         content = content.strip()
 
@@ -67,3 +74,94 @@ class DesignProposal:
         source: DesignProposalSource,
     ):
         self.sources.append(source)
+    def begin_review(self):
+        """
+        Begin designer review without altering the original
+        Exercise Director proposal.
+        """
+
+        if self.status is not DesignProposalStatus.DRAFT:
+            return
+
+        self.reviewed_content = list(
+            self.proposed_content
+        )
+
+        self.status = (
+            DesignProposalStatus.UNDER_REVIEW
+        )
+
+    def replace_reviewed_content(
+        self,
+        content: list[str],
+    ):
+        """
+        Replace the designer's working copy while preserving
+        the original proposed content.
+        """
+
+        if (
+            self.status
+            is not DesignProposalStatus.UNDER_REVIEW
+        ):
+            return
+
+        cleaned_content = []
+
+        for item in content:
+            cleaned = item.strip()
+
+            if cleaned and cleaned not in cleaned_content:
+                cleaned_content.append(cleaned)
+
+        self.reviewed_content = cleaned_content
+
+    def accept(
+        self,
+        reviewed_by: str,
+        rationale: str = "",
+    ):
+        """
+        Record the designer's acceptance of the reviewed
+        content.
+
+        This does not amend the authoritative exercise design.
+        """
+
+        if (
+            self.status
+            is not DesignProposalStatus.UNDER_REVIEW
+        ):
+            return
+
+        self.reviewed_by = reviewed_by.strip()
+        self.decision_rationale = rationale.strip()
+
+        self.status = (
+            DesignProposalStatus.ACCEPTED
+        )
+
+    def reject(
+        self,
+        reviewed_by: str,
+        rationale: str = "",
+    ):
+        """
+        Record the designer's rejection of the proposal.
+
+        Rejection does not amend the authoritative exercise
+        design.
+        """
+
+        if self.status not in (
+            DesignProposalStatus.DRAFT,
+            DesignProposalStatus.UNDER_REVIEW,
+        ):
+            return
+
+        self.reviewed_by = reviewed_by.strip()
+        self.decision_rationale = rationale.strip()
+
+        self.status = (
+            DesignProposalStatus.REJECTED
+        )
