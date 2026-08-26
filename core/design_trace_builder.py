@@ -13,7 +13,43 @@ class DesignTraceBuilder:
     The builder inspects design state only. It does not
     modify the proposal or authoritative exercise design.
     """
+    def build_proposal_created_record(
+        self,
+        proposal,
+    ) -> DesignTraceRecord:
+        record = DesignTraceRecord(
+            event_type=(
+                DesignTraceEventType.PROPOSAL_CREATED
+            ),
+            objective_title=proposal.objective_title,
+            proposal_id=proposal.proposal_id,
+            summary=(
+                "Exercise Director created a "
+                "design proposal."
+            ),
+            rationale=proposal.rationale,
+            proposed_content=list(
+                proposal.proposed_content
+            ),
+            recorded_by="Exercise Director",
+        )
 
+        for source in proposal.sources:
+            reference = source.source_type
+
+            if source.source_reference:
+                reference += (
+                    f" — {source.source_reference}"
+                )
+
+            record.add_source_reference(
+                reference
+            )
+
+        record.mark_recorded_now()
+
+        return record
+    
     def build_applied_record(
         self,
         proposal,

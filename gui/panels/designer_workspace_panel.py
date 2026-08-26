@@ -24,6 +24,9 @@ from core.design_proposal_builder import (
 from core.design_proposal_applier import (
     DesignProposalApplier,
 )
+from core.design_trace_builder import (
+    DesignTraceBuilder,
+)
 from core.design_proposal import (
     DesignProposalStatus,
 )
@@ -327,7 +330,18 @@ class DesignerWorkspacePanel(QWidget):
                 str(error),
             )
             return
+        trace_builder = DesignTraceBuilder()
 
+        trace_record = trace_builder.build_applied_record(
+            proposal,
+            self.selected_objective,
+        )
+
+        if self.project is not None:
+            self.project.add_design_trace_record(
+                trace_record
+            )
+            
         self.current_design_proposal = None
         self.selected_attention_item = None
 
@@ -470,9 +484,20 @@ class DesignerWorkspacePanel(QWidget):
         ):
             return
 
+        self.objectives_list.blockSignals(True)
+
         self.objectives_list.setCurrentRow(
             item.objective_index
         )
+
+        self.objectives_list.blockSignals(False)
+
+        self.selected_objective = (
+            self.project.objectives[
+                item.objective_index
+            ]
+        )
+
         self._show_selected_objective()
     def _objective_clicked(self, item):
         """
@@ -730,6 +755,17 @@ class DesignerWorkspacePanel(QWidget):
             self.project
         ).build_success_criteria_proposal(
             self.selected_objective
+        )
+
+        trace_record = (
+            DesignTraceBuilder()
+            .build_proposal_created_record(
+                proposal
+            )
+        )
+
+        self.project.add_design_trace_record(
+            trace_record
         )
 
         self.current_design_proposal = proposal

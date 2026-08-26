@@ -1757,7 +1757,6 @@ class Project:
             )
             for item in saved_design_trace_records
         ]
-        
         saved_mel_mil_promotions = project_data.get(
             "mel_mil_promotions",
             [],
