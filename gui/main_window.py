@@ -46,6 +46,9 @@ from gui.panels.observation_review_panel import (
 from gui.panels.designer_workspace_panel import (
     DesignerWorkspacePanel,
 )
+from gui.panels.design_trace_panel import (
+    DesignTracePanel,
+)
 
 
 class MainWindow(QMainWindow):
@@ -119,6 +122,7 @@ class MainWindow(QMainWindow):
         self.designer_workspace_panel = (
             DesignerWorkspacePanel()
         )
+        self.design_trace_panel = DesignTracePanel()
         self.objectives_panel = ObjectivesPanel()
         self.mel_panel = MasterEventsListPanel()
         self.inject_details_panel = InjectDetailsPanel()
@@ -279,6 +283,10 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(
             self.designer_workspace_panel,
             "Designer Workspace",
+        )
+        self.tabs.addTab(
+            self.design_trace_panel,
+            "Design Trace",
         )
         self.setCentralWidget(self.tabs)
     def _handle_design_inject_updated(
@@ -581,7 +589,9 @@ class MainWindow(QMainWindow):
         self.designer_workspace_panel.set_project(
             self.current_project
         )
-        
+        self.design_trace_panel.set_project(
+            self.current_project
+        )
         self.cto_builder_panel.set_project(
             self.current_project
         )
