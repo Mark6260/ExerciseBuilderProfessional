@@ -129,6 +129,44 @@ class DesignTraceBuilder:
         record.mark_recorded_now()
 
         return record
+    def build_proposal_rejected_record(
+        self,
+        proposal,
+    ) -> DesignTraceRecord:
+        record = DesignTraceRecord(
+            event_type=(
+                DesignTraceEventType.PROPOSAL_REJECTED
+            ),
+            objective_title=proposal.objective_title,
+            proposal_id=proposal.proposal_id,
+            summary=(
+                "Designer rejected the design proposal."
+            ),
+            rationale=proposal.decision_rationale,
+            proposed_content=list(
+                proposal.proposed_content
+            ),
+            reviewed_content=list(
+                proposal.reviewed_content
+            ),
+            recorded_by="Exercise Designer",
+        )
+
+        for source in proposal.sources:
+            reference = source.source_type
+
+            if source.source_reference:
+                reference += (
+                    f" — {source.source_reference}"
+                )
+
+            record.add_source_reference(
+                reference
+            )
+
+        record.mark_recorded_now()
+
+        return record
     def build_proposal_created_record(
         self,
         proposal,

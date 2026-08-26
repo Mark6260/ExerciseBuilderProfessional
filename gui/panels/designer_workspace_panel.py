@@ -191,8 +191,28 @@ class DesignerWorkspacePanel(QWidget):
         self.accept_reviewed_content_button = QPushButton(
             "Accept Reviewed Version"
         )
+        self.save_reviewed_content_button = QPushButton(
+            "Save Reviewed Version"
+        )
+        self.accept_reviewed_content_button = QPushButton(
+            "Accept Reviewed Version"
+        )
+        self.reject_proposal_button = QPushButton(
+            "Reject Proposal"
+        )
         self.apply_proposal_button = QPushButton(
             "Apply to Design"
+        )
+        self.apply_proposal_button = QPushButton(
+            "Apply to Design"
+        )
+        self.reject_proposal_button.setVisible(False)
+        self.reject_proposal_button.clicked.connect(
+            self._reject_design_proposal
+        )
+
+        self.design_layout.addWidget(
+            self.reject_proposal_button
         )
         self.apply_proposal_button.setVisible(False)
         self.apply_proposal_button.clicked.connect(
@@ -281,6 +301,50 @@ class DesignerWorkspacePanel(QWidget):
             design_group,
             3,
         )
+    def _reject_design_proposal(self):
+        proposal = self.current_design_proposal
+
+        if proposal is None:
+            return
+
+        if (
+            proposal.status
+            is not DesignProposalStatus.UNDER_REVIEW
+        ):
+            return
+
+        lines = (
+            self.reviewed_content_editor
+            .toPlainText()
+            .splitlines()
+        )
+
+        proposal.replace_reviewed_content(
+            lines
+        )
+
+        proposal.reject(
+            reviewed_by="Exercise Designer",
+            rationale=(
+                "Designer rejected the reviewed "
+                "design proposal."
+            ),
+        )
+
+        trace_record = (
+            DesignTraceBuilder()
+            .build_proposal_rejected_record(
+                proposal
+            )
+        )
+
+        if self.project is not None:
+            self.project.add_design_trace_record(
+                trace_record
+            )
+
+        self._show_design_proposal()
+    
     def _accept_reviewed_content(self):
         proposal = self.current_design_proposal
 
@@ -592,6 +656,9 @@ class DesignerWorkspacePanel(QWidget):
         self.accept_reviewed_content_button.setVisible(
             False
         )
+        self.reject_proposal_button.setVisible(
+            False
+        )
         self.begin_proposal_review_button.setVisible(
             False
         )
@@ -838,7 +905,9 @@ class DesignerWorkspacePanel(QWidget):
         self.accept_reviewed_content_button.setVisible(
             is_under_review
         )
-        
+        self.reject_proposal_button.setVisible(
+            is_under_review
+        )
         self.reviewed_content_label.setVisible(
             is_under_review
             
