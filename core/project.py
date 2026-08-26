@@ -17,6 +17,11 @@ from core.collective_training_objective import (
     PerformanceMetric,
     EvidenceRequirement,
 )
+
+from core.design_trace import (
+    DesignTraceEventType,
+    DesignTraceRecord,
+)
 from core.readiness import OperationalRequirement
 from core.readiness.readiness import OperationalReadiness
 from core.readiness.readiness_gap import ReadinessGap
@@ -89,6 +94,9 @@ class Project:
 
         self.injects: list[Inject] = []
         self.objectives: list[ExerciseObjective] = []
+        self.design_trace_records: list[
+            DesignTraceRecord
+        ] = []
         self.exercise_design_opportunities: list[ExerciseDesignOpportunity] = []
         self.candidate_exercise_activities: list[CandidateExerciseActivity] = []
         self.candidate_mel_mil_activities: list[CandidateMelMilActivity] = []
@@ -127,6 +135,15 @@ class Project:
 
     def add_objective(self, objective: ExerciseObjective):
         self.objectives.append(objective)
+
+    def add_design_trace_record(
+        self,
+        record: DesignTraceRecord,
+    ):
+        self.design_trace_records.append(
+            record
+        )
+
     def add_exercise_design_opportunity(
         self,
         opportunity: ExerciseDesignOpportunity,
@@ -942,6 +959,37 @@ class Project:
                 }
                 for requirement in self.discovery_requirements
             ],
+            
+            "design_trace_records": [
+                {
+                    "trace_id": record.trace_id,
+                    "event_type": record.event_type.value,
+                    "objective_title": (
+                        record.objective_title
+                    ),
+                    "proposal_id": record.proposal_id,
+                    "summary": record.summary,
+                    "rationale": record.rationale,
+                    "original_content": (
+                        record.original_content
+                    ),
+                    "proposed_content": (
+                        record.proposed_content
+                    ),
+                    "reviewed_content": (
+                        record.reviewed_content
+                    ),
+                    "resulting_content": (
+                        record.resulting_content
+                    ),
+                    "source_references": (
+                        record.source_references
+                    ),
+                    "recorded_by": record.recorded_by,
+                    "recorded_at": record.recorded_at,
+                }
+                for record in self.design_trace_records
+            ],
 
             "injects": [
                 {
@@ -1644,6 +1692,72 @@ class Project:
             )
             for item in saved_objectives
         ]
+        
+        saved_design_trace_records = project_data.get(
+            "design_trace_records",
+            [],
+        )
+
+        project.design_trace_records = [
+            DesignTraceRecord(
+                trace_id=item.get(
+                    "trace_id",
+                    str(uuid4()),
+                ),
+                event_type=cls._parse_design_trace_event_type(
+                    item.get(
+                        "event_type",
+                        DesignTraceEventType.ATTENTION_IDENTIFIED.value,
+                    )
+                ),
+                objective_title=item.get(
+                    "objective_title",
+                    "",
+                ),
+                proposal_id=item.get(
+                    "proposal_id",
+                    "",
+                ),
+                summary=item.get(
+                    "summary",
+                    "",
+                ),
+                rationale=item.get(
+                    "rationale",
+                    "",
+                ),
+                original_content=item.get(
+                    "original_content",
+                    [],
+                ),
+                proposed_content=item.get(
+                    "proposed_content",
+                    [],
+                ),
+                reviewed_content=item.get(
+                    "reviewed_content",
+                    [],
+                ),
+                resulting_content=item.get(
+                    "resulting_content",
+                    [],
+                ),
+                source_references=item.get(
+                    "source_references",
+                    [],
+                ),
+                recorded_by=item.get(
+                    "recorded_by",
+                    "",
+                ),
+                recorded_at=item.get(
+                    "recorded_at",
+                    "",
+                ),
+            )
+            for item in saved_design_trace_records
+        ]
+        
         saved_mel_mil_promotions = project_data.get(
             "mel_mil_promotions",
             [],
@@ -2862,7 +2976,13 @@ class Project:
                 return outcome
 
         return AssessmentOutcome.NOT_ASSESSED
+    @staticmethod
+    def _parse_design_trace_event_type(value):
+        for event_type in DesignTraceEventType:
+            if event_type.value == value:
+                return event_type
 
+        return DesignTraceEventType.ATTENTION_IDENTIFIED
     @staticmethod
     def _parse_readiness_decision_outcome(value):
         for outcome in ReadinessDecisionOutcome:
