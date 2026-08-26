@@ -305,6 +305,18 @@ class DesignerWorkspacePanel(QWidget):
             reviewed_by="Exercise Designer"
         )
 
+        trace_record = (
+            DesignTraceBuilder()
+            .build_proposal_accepted_record(
+                proposal
+            )
+        )
+
+        if self.project is not None:
+            self.project.add_design_trace_record(
+                trace_record
+            )
+
         self._show_design_proposal()
         
     def _apply_design_proposal(self):
@@ -362,6 +374,18 @@ class DesignerWorkspacePanel(QWidget):
         )
 
         proposal.replace_reviewed_content(lines)
+
+        trace_record = (
+            DesignTraceBuilder()
+            .build_designer_edited_record(
+                proposal
+            )
+        )
+
+        if self.project is not None:
+            self.project.add_design_trace_record(
+                trace_record
+            )
 
         self._show_design_proposal()
 
@@ -779,6 +803,18 @@ class DesignerWorkspacePanel(QWidget):
             return
 
         proposal.begin_review()
+
+        trace_record = (
+            DesignTraceBuilder()
+            .build_review_started_record(
+                proposal
+            )
+        )
+
+        if self.project is not None:
+            self.project.add_design_trace_record(
+                trace_record
+            )
 
         self._show_design_proposal()
         
