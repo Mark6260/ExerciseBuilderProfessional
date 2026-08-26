@@ -205,7 +205,11 @@ class DesignTracePanel(QWidget):
                     Qt.ItemDataRole.UserRole,
                     None,
                 )
-
+                case_item.setData(
+                    0,
+                    Qt.ItemDataRole.UserRole + 1,
+                    proposal_id,
+                )
                 case_item.setToolTip(
                     0,
                     f"Proposal ID: {proposal_id}",
@@ -311,6 +315,173 @@ class DesignTracePanel(QWidget):
         return self._format_timestamp(
             latest_record.recorded_at
         )
+    def _show_decision_case(
+        self,
+        proposal_id,
+    ):
+        records = [
+            record
+            for record in self.trace_records
+            if record.proposal_id == proposal_id
+        ]
+
+        if not records:
+            self.detail_label.setText(
+                "No trace records were found "
+                "for this decision case."
+            )
+            return
+
+        first_record = records[0]
+        latest_record = records[-1]
+
+        outcome = self._proposal_outcome(
+            records
+        )
+        event_names = [
+            record.event_type.value
+            for record in records
+        ]
+
+        human_review_completed = (
+            "Review Started" in event_names
+        )
+
+        decision_recorded = (
+            "Proposal Accepted" in event_names
+            or "Proposal Rejected" in event_names
+        )
+
+        applied_to_design = (
+            "Applied to Design" in event_names
+        )
+
+        designer_edited = (
+            "Designer Edited" in event_names
+        )
+
+        rationale_recorded = any(
+            record.rationale.strip()
+            for record in records
+        )
+
+        source_references = []
+
+        for record in records:
+            for reference in record.source_references:
+                if reference not in source_references:
+                    source_references.append(
+                        reference
+                    )
+                human_review_text = (
+            "Completed"
+            if human_review_completed
+            else "Not yet recorded"
+        )
+
+        decision_text = (
+            "Recorded"
+            if decision_recorded
+            else "Not yet recorded"
+        )
+
+        if applied_to_design:
+            application_text = "Applied to authoritative design"
+        elif "Proposal Rejected" in event_names:
+            application_text = (
+                "Not applicable — proposal rejected"
+            )
+        elif "Proposal Accepted" in event_names:
+            application_text = (
+                "Accepted — not yet applied"
+            )
+        else:
+            application_text = "No application recorded"
+
+        amendment_text = (
+            "Yes"
+            if designer_edited
+            else "No saved designer amendment recorded"
+        )
+
+        rationale_text = (
+            "Recorded"
+            if rationale_recorded
+            else "Not recorded"
+        )
+
+        source_text = (
+            f"{len(source_references)} reference"
+            f"{'' if len(source_references) == 1 else 's'} recorded"
+            if source_references
+            else "No source references recorded"
+        )
+
+        if applied_to_design or "Proposal Rejected" in event_names:
+            lifecycle_text = "Complete lifecycle recorded"
+        elif "Proposal Accepted" in event_names:
+            lifecycle_text = (
+                "Decision recorded — application outstanding"
+            )
+        elif human_review_completed:
+            lifecycle_text = "Review underway — decision outstanding"
+        else:
+            lifecycle_text = "Proposal not yet reviewed"
+            
+        event_history = "\n".join(
+            (
+                f"• {record.event_type.value}"
+                f" — "
+                f"{self._format_timestamp(record.recorded_at)}"
+            )
+            for record in records
+        )
+
+        detail = (
+            f"DESIGN DECISION CASE\n\n"
+
+            f"OBJECTIVE\n"
+            f"{first_record.objective_title}\n\n"
+
+            f"OUTCOME\n"
+            f"{outcome}\n\n"
+
+            f"LATEST ACTIVITY\n"
+            f"{self._format_timestamp(latest_record.recorded_at)}\n\n"
+
+            f"PROPOSAL ID\n"
+            f"{proposal_id}\n\n"
+
+            f"DECISION HISTORY\n"
+            f"{event_history}\n\n"
+
+            f"DESIGN ASSURANCE\n\n"
+
+            f"Human Review\n"
+            f"{human_review_text}\n\n"
+
+            f"Decision\n"
+            f"{decision_text}\n\n"
+
+            f"Authoritative Application\n"
+            f"{application_text}\n\n"
+
+            f"Designer Amendment\n"
+            f"{amendment_text}\n\n"
+
+            f"Decision Rationale\n"
+            f"{rationale_text}\n\n"
+
+            f"Source Evidence\n"
+            f"{source_text}\n\n"
+
+            f"Trace Integrity\n"
+            f"{lifecycle_text}"
+            )
+
+        self.detail_label.setText(
+            detail
+        )
     def _trace_selected(
         self,
         current,
@@ -328,17 +499,31 @@ class DesignTracePanel(QWidget):
             Qt.ItemDataRole.UserRole,
         )
 
+        proposal_id = current.data(
+            0,
+            Qt.ItemDataRole.UserRole + 1,
+        )
+
+        if (
+            record is None
+            and proposal_id
+        ):
+            self._show_decision_case(
+                proposal_id
+            )
+            return
+
         if record is None:
             self.detail_label.setText(
-                "Select an event within this "
-                "proposal lifecycle to review "
+                "Select a decision case or "
+                "individual event to review "
                 "its design provenance."
             )
             return
 
         proposed_text = self._format_content(
             record.proposed_content,
-            "No Exercise Director proposal recorded.",
+                "No Exercise Director proposal recorded.",
         )
 
         reviewed_text = self._format_content(
