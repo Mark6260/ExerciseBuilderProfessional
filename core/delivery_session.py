@@ -1,6 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from uuid import uuid4
+
+from core.delivery_event import (
+    DeliveryEvent,
+    DeliveryEventType,
+)
 
 
 class DeliverySessionStatus(Enum):
@@ -29,13 +34,24 @@ class DeliverySession:
     paused_at: str = ""
     resumed_at: str = ""
     ended_at: str = ""
+    
+    events: list = field(
+        default_factory=list
+    )
 
     def __post_init__(self):
         if not self.session_id:
             self.session_id = str(uuid4())
+    def add_event(
+        self,
+        event,
+    ):
+        self.events.append(event)
+        
     def start(
         self,
         timestamp: str,
+        recorded_by: str = "",
     ):
         if (
             self.status
@@ -50,9 +66,21 @@ class DeliverySession:
         self.status = (
             DeliverySessionStatus.RUNNING
         )
+
+        self.add_event(
+            DeliveryEvent(
+                event_type=(
+                    DeliveryEventType.SESSION_STARTED
+                ),
+                timestamp=timestamp,
+                recorded_by=recorded_by,
+            )
+        )
     def resume(
         self,
         timestamp: str,
+        recorded_by: str = "",
+        rationale: str = "",
     ):
         if (
             self.status
@@ -67,9 +95,22 @@ class DeliverySession:
         self.status = (
             DeliverySessionStatus.RUNNING
         )
+
+        self.add_event(
+            DeliveryEvent(
+                event_type=(
+                    DeliveryEventType.SESSION_RESUMED
+                ),
+                timestamp=timestamp,
+                recorded_by=recorded_by,
+                rationale=rationale,
+            )
+        )
     def pause(
         self,
         timestamp: str,
+        recorded_by: str = "",
+        rationale: str = "",
     ):
         if (
             self.status
@@ -84,9 +125,22 @@ class DeliverySession:
         self.status = (
             DeliverySessionStatus.PAUSED
         )
+
+        self.add_event(
+            DeliveryEvent(
+                event_type=(
+                    DeliveryEventType.SESSION_PAUSED
+                ),
+                timestamp=timestamp,
+                recorded_by=recorded_by,
+                rationale=rationale,
+            )
+        )
     def end(
         self,
         timestamp: str,
+        recorded_by: str = "",
+        rationale: str = "",
     ):
         if self.status not in (
             DeliverySessionStatus.RUNNING,
@@ -100,4 +154,15 @@ class DeliverySession:
         self.ended_at = timestamp
         self.status = (
             DeliverySessionStatus.ENDED
+        )
+
+        self.add_event(
+            DeliveryEvent(
+                event_type=(
+                    DeliveryEventType.SESSION_ENDED
+                ),
+                timestamp=timestamp,
+                recorded_by=recorded_by,
+                rationale=rationale,
+            )
         )
