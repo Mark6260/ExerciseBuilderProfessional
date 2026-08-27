@@ -28,6 +28,7 @@ class LiveInjectRecord:
 
     inject_number: int
     planned_time: str = ""
+    delivery_content: str = ""
 
     record_id: str = field(
         default_factory=lambda: str(uuid4())

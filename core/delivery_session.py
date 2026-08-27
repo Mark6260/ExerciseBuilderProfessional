@@ -211,7 +211,57 @@ class DeliverySession:
 
         self.add_live_inject_event(
             event
-        )    
+        )
+    def amend_live_inject_for_delivery(
+        self,
+        inject_number: int,
+        timestamp: str,
+        original_content: str,
+        resulting_content: str,
+        recorded_by: str = "",
+        rationale: str = "",
+    ):
+        record = self.get_live_inject_record(
+            inject_number
+        )
+
+        if record is None:
+            raise ValueError(
+                f"Cannot amend Inject {inject_number}: "
+                "no live inject record exists."
+            )
+
+        original_content = (
+            original_content.strip()
+        )
+        resulting_content = (
+            resulting_content.strip()
+        )
+
+        if not resulting_content:
+            raise ValueError(
+                "Amended delivery content cannot be empty."
+            )
+
+        record.delivery_content = (
+            resulting_content
+        )
+
+        event = LiveInjectEvent(
+            event_type=(
+                LiveInjectEventType.AMENDED_FOR_DELIVERY
+            ),
+            inject_number=inject_number,
+            timestamp=timestamp,
+            recorded_by=recorded_by,
+            rationale=rationale,
+            original_content=original_content,
+            resulting_content=resulting_content,
+        )
+
+        self.add_live_inject_event(
+            event
+        )   
     def start(
         self,
         timestamp: str,
