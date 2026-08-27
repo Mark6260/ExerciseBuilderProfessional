@@ -6,6 +6,10 @@ from core.delivery_event import (
     DeliveryEvent,
     DeliveryEventType,
 )
+from core.live_inject_event import (
+    LiveInjectEvent,
+    LiveInjectEventType,
+)
 
 
 class DeliverySessionStatus(Enum):
@@ -44,7 +48,10 @@ class DeliverySession:
     live_inject_events: list = field(
         default_factory=list
     )
-
+    live_inject_records: list = field(
+        default_factory=list
+    )
+    
     def __post_init__(self):
         if not self.session_id:
             self.session_id = str(uuid4())
@@ -65,6 +72,86 @@ class DeliverySession:
         event,
     ):
         self.live_inject_events.append(
+            event
+        )
+    def add_live_inject_record(
+        self,
+        record,
+    ):
+        self.live_inject_records.append(
+            record
+        )
+    def get_live_inject_record(
+        self,
+        inject_number: int,
+    ):
+        for record in self.live_inject_records:
+            if (
+                record.inject_number
+                == inject_number
+            ):
+                return record
+
+        return None
+    
+    def hold_live_inject(
+        self,
+        inject_number: int,
+        timestamp: str,
+        recorded_by: str = "",
+        rationale: str = "",
+    ):
+        record = self.get_live_inject_record(
+            inject_number
+        )
+
+        if record is None:
+            raise ValueError(
+                f"Cannot hold Inject {inject_number}: "
+                "no live inject record exists."
+            )
+
+        record.hold()
+
+        event = LiveInjectEvent(
+            event_type=LiveInjectEventType.HELD,
+            inject_number=inject_number,
+            timestamp=timestamp,
+            recorded_by=recorded_by,
+            rationale=rationale,
+        )
+
+        self.add_live_inject_event(
+            event
+        )
+    def release_live_inject(
+        self,
+        inject_number: int,
+        timestamp: str,
+        recorded_by: str = "",
+        rationale: str = "",
+    ):
+        record = self.get_live_inject_record(
+            inject_number
+        )
+
+        if record is None:
+            raise ValueError(
+                f"Cannot release Inject {inject_number}: "
+                "no live inject record exists."
+            )
+
+        record.release()
+
+        event = LiveInjectEvent(
+            event_type=LiveInjectEventType.RELEASED,
+            inject_number=inject_number,
+            timestamp=timestamp,
+            recorded_by=recorded_by,
+            rationale=rationale,
+        )
+
+        self.add_live_inject_event(
             event
         )    
     def start(
