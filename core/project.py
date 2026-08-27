@@ -21,6 +21,10 @@ from core.live_inject_record import (
     LiveInjectStatus,
     LiveInjectControlCondition,
 )
+from core.live_inject_event import (
+    LiveInjectEvent,
+    LiveInjectEventType,
+)
 from core.objective import ExerciseObjective
 from core.exercise_design_opportunity import ExerciseDesignOpportunity
 from core.candidate_exercise_activity import CandidateExerciseActivity
@@ -1090,6 +1094,23 @@ class Project:
                             "controlled_by": record.controlled_by,
                         }
                         for record in session.live_inject_records
+                    ],
+                    "live_inject_events": [
+                        {
+                            "event_id": event.event_id,
+                            "event_type": event.event_type.value,
+                            "inject_number": event.inject_number,
+                            "timestamp": event.timestamp,
+                            "recorded_by": event.recorded_by,
+                            "rationale": event.rationale,
+                            "original_content": (
+                                event.original_content
+                            ),
+                            "resulting_content": (
+                                event.resulting_content
+                            ),
+                        }
+                        for event in session.live_inject_events
                     ],
                 }
                 for session in self.delivery_sessions
@@ -3215,6 +3236,52 @@ class Project:
                 for record_item in saved_live_inject_records
             ]
 
+            saved_live_inject_events = item.get(
+                "live_inject_events",
+                [],
+            )
+
+            session.live_inject_events = [
+                LiveInjectEvent(
+                    event_type=(
+                        cls._parse_live_inject_event_type(
+                            event_item.get(
+                                "event_type",
+                                LiveInjectEventType.DELAYED.value,
+                            )
+                        )
+                    ),
+                    inject_number=event_item.get(
+                        "inject_number",
+                        0,
+                    ),
+                    timestamp=event_item.get(
+                        "timestamp",
+                        "",
+                    ),
+                    event_id=event_item.get(
+                        "event_id",
+                        str(uuid4()),
+                    ),
+                    recorded_by=event_item.get(
+                        "recorded_by",
+                        "",
+                    ),
+                    rationale=event_item.get(
+                        "rationale",
+                        "",
+                    ),
+                    original_content=event_item.get(
+                        "original_content",
+                        "",
+                    ),
+                    resulting_content=event_item.get(
+                        "resulting_content",
+                        "",
+                    ),
+                )
+                for event_item in saved_live_inject_events
+            ]
             return project
 
         saved_evidence_records = project_data.get(
@@ -3274,7 +3341,16 @@ class Project:
             if condition.value == value:
                 return condition
 
-        return LiveInjectControlCondition.NORMAL
+        return LiveInjectControlCondition.NORMAL    
+    @staticmethod
+    def _parse_live_inject_event_type(
+        value,
+    ):
+        for event_type in LiveInjectEventType:
+            if event_type.value == value:
+                return event_type
+
+        return LiveInjectEventType.DELAYED
     @staticmethod
     def _parse_assessment_outcome(value):
         for outcome in AssessmentOutcome:
