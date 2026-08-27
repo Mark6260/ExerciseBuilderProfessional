@@ -16,6 +16,11 @@ from core.delivery_activity import (
     DeliveryActivity,
     DeliveryActivityType,
 )
+from core.live_inject_record import (
+    LiveInjectRecord,
+    LiveInjectStatus,
+    LiveInjectControlCondition,
+)
 from core.objective import ExerciseObjective
 from core.exercise_design_opportunity import ExerciseDesignOpportunity
 from core.candidate_exercise_activity import CandidateExerciseActivity
@@ -901,7 +906,7 @@ class Project:
                 for candidate in self.candidate_opportunities
             ],
 
-                        "planning_sources": [
+            "planning_sources": [
                 {
                     "source_id": source.source_id,
                     "name": source.name,
@@ -1068,6 +1073,23 @@ class Project:
                             ),
                         }
                         for activity in session.activities
+                    ],
+                    "live_inject_records": [
+                        {
+                            "inject_number": record.inject_number,
+                            "planned_time": record.planned_time,
+                            "delivery_content": record.delivery_content,
+                            "record_id": record.record_id,
+                            "status": record.status.value,
+                            "control_condition": (
+                                record.control_condition.value
+                            ),
+                            "ready_at": record.ready_at,
+                            "activated_at": record.activated_at,
+                            "closed_at": record.closed_at,
+                            "controlled_by": record.controlled_by,
+                        }
+                        for record in session.live_inject_records
                     ],
                 }
                 for session in self.delivery_sessions
@@ -3136,7 +3158,64 @@ class Project:
                 for activity_item in saved_activities
             ]
 
-        return project
+            saved_live_inject_records = item.get(
+                "live_inject_records",
+                [],
+            )
+
+            session.live_inject_records = [
+                LiveInjectRecord(
+                    inject_number=record_item.get(
+                        "inject_number",
+                        0,
+                    ),
+                    planned_time=record_item.get(
+                        "planned_time",
+                        "",
+                    ),
+                    delivery_content=record_item.get(
+                        "delivery_content",
+                        "",
+                    ),
+                    record_id=record_item.get(
+                        "record_id",
+                        str(uuid4()),
+                    ),
+                    status=cls._parse_live_inject_status(
+                        record_item.get(
+                            "status",
+                            LiveInjectStatus.PENDING.value,
+                        )
+                    ),
+                    control_condition=(
+                        cls._parse_live_inject_control_condition(
+                            record_item.get(
+                                "control_condition",
+                                LiveInjectControlCondition.NORMAL.value,
+                            )
+                        )
+                    ),
+                    ready_at=record_item.get(
+                        "ready_at",
+                        "",
+                    ),
+                    activated_at=record_item.get(
+                        "activated_at",
+                        "",
+                    ),
+                    closed_at=record_item.get(
+                        "closed_at",
+                        "",
+                    ),
+                    controlled_by=record_item.get(
+                        "controlled_by",
+                        "",
+                    ),
+                )
+                for record_item in saved_live_inject_records
+            ]
+
+            return project
 
         saved_evidence_records = project_data.get(
             "evidence_records",
@@ -3176,6 +3255,26 @@ class Project:
                 return activity_type
 
         return DeliveryActivityType.OTHER_ACTIVITY
+
+    @staticmethod
+    def _parse_live_inject_status(
+        value,
+    ):
+        for status in LiveInjectStatus:
+            if status.value == value:
+                return status
+
+        return LiveInjectStatus.PENDING
+
+    @staticmethod
+    def _parse_live_inject_control_condition(
+        value,
+    ):
+        for condition in LiveInjectControlCondition:
+            if condition.value == value:
+                return condition
+
+        return LiveInjectControlCondition.NORMAL
     @staticmethod
     def _parse_assessment_outcome(value):
         for outcome in AssessmentOutcome:
