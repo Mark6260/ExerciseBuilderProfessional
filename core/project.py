@@ -12,6 +12,10 @@ from core.delivery_event import (
     DeliveryEvent,
     DeliveryEventType,
 )
+from core.delivery_activity import (
+    DeliveryActivity,
+    DeliveryActivityType,
+)
 from core.objective import ExerciseObjective
 from core.exercise_design_opportunity import ExerciseDesignOpportunity
 from core.candidate_exercise_activity import CandidateExerciseActivity
@@ -1046,6 +1050,24 @@ class Project:
                             "rationale": event.rationale,
                         }
                         for event in session.events
+                    ],
+                    "activities": [
+                        {
+                            "activity_id": activity.activity_id,
+                            "activity_type": (
+                                activity.activity_type.value
+                            ),
+                            "timestamp": activity.timestamp,
+                            "from_party": activity.from_party,
+                            "to_party": activity.to_party,
+                            "method": activity.method,
+                            "summary": activity.summary,
+                            "recorded_by": activity.recorded_by,
+                            "related_inject_number": (
+                                activity.related_inject_number
+                            ),
+                        }
+                        for activity in session.activities
                     ],
                 }
                 for session in self.delivery_sessions
@@ -3064,6 +3086,56 @@ class Project:
                 for event_item in saved_events
             ]
 
+            saved_activities = item.get(
+                "activities",
+                [],
+            )
+
+            session.activities = [
+                DeliveryActivity(
+                    activity_type=(
+                        cls._parse_delivery_activity_type(
+                            activity_item.get(
+                                "activity_type",
+                                DeliveryActivityType.OTHER_ACTIVITY.value,
+                            )
+                        )
+                    ),
+                    timestamp=activity_item.get(
+                        "timestamp",
+                        "",
+                    ),
+                    activity_id=activity_item.get(
+                        "activity_id",
+                        str(uuid4()),
+                    ),
+                    from_party=activity_item.get(
+                        "from_party",
+                        "",
+                    ),
+                    to_party=activity_item.get(
+                        "to_party",
+                        "",
+                    ),
+                    method=activity_item.get(
+                        "method",
+                        "",
+                    ),
+                    summary=activity_item.get(
+                        "summary",
+                        "",
+                    ),
+                    recorded_by=activity_item.get(
+                        "recorded_by",
+                        "",
+                    ),
+                    related_inject_number=activity_item.get(
+                        "related_inject_number"
+                    ),
+                )
+                for activity_item in saved_activities
+            ]
+
         return project
 
         saved_evidence_records = project_data.get(
@@ -3095,6 +3167,15 @@ class Project:
                 return event_type
 
         return DeliveryEventType.SESSION_STARTED
+    @staticmethod
+    def _parse_delivery_activity_type(
+        value,
+    ):
+        for activity_type in DeliveryActivityType:
+            if activity_type.value == value:
+                return activity_type
+
+        return DeliveryActivityType.OTHER_ACTIVITY
     @staticmethod
     def _parse_assessment_outcome(value):
         for outcome in AssessmentOutcome:
