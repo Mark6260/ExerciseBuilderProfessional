@@ -10,6 +10,10 @@ class LiveInjectStatus(Enum):
     CLOSED = "Closed"
     SKIPPED = "Skipped"
     WITHDRAWN = "Withdrawn"
+    
+class LiveInjectControlCondition(Enum):
+    NORMAL = "Normal"
+    HELD = "Held"
 
 
 @dataclass
@@ -32,7 +36,11 @@ class LiveInjectRecord:
     status: LiveInjectStatus = (
         LiveInjectStatus.PENDING
     )
-
+    
+    control_condition: LiveInjectControlCondition = (
+        LiveInjectControlCondition.NORMAL
+    )
+    
     ready_at: str = ""
     activated_at: str = ""
     closed_at: str = ""
@@ -76,6 +84,14 @@ class LiveInjectRecord:
                 "Live inject can only be activated "
                 "while it is Ready."
             )
+        if (
+            self.control_condition
+            is LiveInjectControlCondition.HELD
+        ):
+            raise ValueError(
+                "Live inject cannot be activated "
+                "while it is Held."
+            )    
 
         self.activated_at = timestamp
 
@@ -158,4 +174,51 @@ class LiveInjectRecord:
 
         self.status = (
             LiveInjectStatus.WITHDRAWN
+        )
+    def hold(
+        self,
+    ):
+        if self.status not in (
+            LiveInjectStatus.PENDING,
+            LiveInjectStatus.READY,
+        ):
+            raise ValueError(
+                "Live inject can only be held "
+                "while it is Pending or Ready."
+            )
+
+        if (
+            self.control_condition
+            is LiveInjectControlCondition.HELD
+        ):
+            raise ValueError(
+                "Live inject is already Held."
+            )
+
+        self.control_condition = (
+            LiveInjectControlCondition.HELD
+        )
+    def release(
+        self,
+    ):
+        if (
+            self.control_condition
+            is not LiveInjectControlCondition.HELD
+        ):
+            raise ValueError(
+                "Live inject can only be released "
+                "while it is Held."
+            )
+
+        if self.status not in (
+            LiveInjectStatus.PENDING,
+            LiveInjectStatus.READY,
+        ):
+            raise ValueError(
+                "Held live inject can only be released "
+                "while it is Pending or Ready."
+            )
+
+        self.control_condition = (
+            LiveInjectControlCondition.NORMAL
         )
