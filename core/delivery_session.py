@@ -41,6 +41,9 @@ class DeliverySession:
     activities: list = field(
         default_factory=list
     )
+    live_inject_events: list = field(
+        default_factory=list
+    )
 
     def __post_init__(self):
         if not self.session_id:
@@ -57,7 +60,13 @@ class DeliverySession:
         self.activities.append(
             activity
         )
-        
+    def add_live_inject_event(
+        self,
+        event,
+    ):
+        self.live_inject_events.append(
+            event
+        )    
     def start(
         self,
         timestamp: str,

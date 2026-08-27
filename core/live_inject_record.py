@@ -8,6 +8,8 @@ class LiveInjectStatus(Enum):
     READY = "Ready"
     ACTIVE = "Active"
     CLOSED = "Closed"
+    SKIPPED = "Skipped"
+    WITHDRAWN = "Withdrawn"
 
 
 @dataclass
@@ -108,4 +110,52 @@ class LiveInjectRecord:
 
         self.status = (
             LiveInjectStatus.CLOSED
+        )
+    def skip(
+        self,
+        timestamp: str,
+        controlled_by: str = "",
+    ):
+        if self.status not in (
+            LiveInjectStatus.PENDING,
+            LiveInjectStatus.READY,
+        ):
+            raise ValueError(
+                "Live inject can only be skipped "
+                "while it is Pending or Ready."
+            )
+
+        self.closed_at = timestamp
+
+        if controlled_by.strip():
+            self.controlled_by = (
+                controlled_by.strip()
+            )
+
+        self.status = (
+            LiveInjectStatus.SKIPPED
+        )
+    def withdraw(
+        self,
+        timestamp: str,
+        controlled_by: str = "",
+    ):
+        if self.status not in (
+            LiveInjectStatus.PENDING,
+            LiveInjectStatus.READY,
+        ):
+            raise ValueError(
+                "Live inject can only be withdrawn "
+                "while it is Pending or Ready."
+            )
+
+        self.closed_at = timestamp
+
+        if controlled_by.strip():
+            self.controlled_by = (
+                controlled_by.strip()
+            )
+
+        self.status = (
+            LiveInjectStatus.WITHDRAWN
         )
