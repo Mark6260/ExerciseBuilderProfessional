@@ -153,6 +153,64 @@ class DeliverySession:
 
         self.add_live_inject_event(
             event
+        )
+    def delay_live_inject(
+        self,
+        inject_number: int,
+        timestamp: str,
+        recorded_by: str = "",
+        rationale: str = "",
+    ):
+        record = self.get_live_inject_record(
+            inject_number
+        )
+
+        if record is None:
+            raise ValueError(
+                f"Cannot delay Inject {inject_number}: "
+                "no live inject record exists."
+            )
+
+        event = LiveInjectEvent(
+            event_type=LiveInjectEventType.DELAYED,
+            inject_number=inject_number,
+            timestamp=timestamp,
+            recorded_by=recorded_by,
+            rationale=rationale,
+        )
+
+        self.add_live_inject_event(
+            event
+        )
+    def bring_forward_live_inject(
+        self,
+        inject_number: int,
+        timestamp: str,
+        recorded_by: str = "",
+        rationale: str = "",
+    ):
+        record = self.get_live_inject_record(
+            inject_number
+        )
+
+        if record is None:
+            raise ValueError(
+                f"Cannot bring forward Inject {inject_number}: "
+                "no live inject record exists."
+            )
+
+        event = LiveInjectEvent(
+            event_type=(
+                LiveInjectEventType.BROUGHT_FORWARD
+            ),
+            inject_number=inject_number,
+            timestamp=timestamp,
+            recorded_by=recorded_by,
+            rationale=rationale,
+        )
+
+        self.add_live_inject_event(
+            event
         )    
     def start(
         self,
