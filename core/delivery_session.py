@@ -38,6 +38,9 @@ class DeliverySession:
     events: list = field(
         default_factory=list
     )
+    activities: list = field(
+        default_factory=list
+    )
 
     def __post_init__(self):
         if not self.session_id:
@@ -47,6 +50,13 @@ class DeliverySession:
         event,
     ):
         self.events.append(event)
+    def add_activity(
+        self,
+        activity,
+    ):
+        self.activities.append(
+            activity
+        )
         
     def start(
         self,
