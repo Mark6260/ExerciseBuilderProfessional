@@ -4,6 +4,14 @@ from pathlib import Path
 from core import assessment
 from core.doctrine import DoctrineReference
 from core.inject import Inject, InjectStatus
+from core.delivery_session import (
+    DeliverySession,
+    DeliverySessionStatus,
+)
+from core.delivery_event import (
+    DeliveryEvent,
+    DeliveryEventType,
+)
 from core.objective import ExerciseObjective
 from core.exercise_design_opportunity import ExerciseDesignOpportunity
 from core.candidate_exercise_activity import CandidateExerciseActivity
@@ -93,6 +101,10 @@ class Project:
         self.apprentice_notebook = ApprenticeNotebook()
 
         self.injects: list[Inject] = []
+        self.delivery_sessions: list[
+            DeliverySession
+        ] = []
+        
         self.objectives: list[ExerciseObjective] = []
         self.design_trace_records: list[
             DesignTraceRecord
@@ -132,6 +144,14 @@ class Project:
 
     def add_inject(self, inject: Inject):
         self.injects.append(inject)
+        
+    def add_delivery_session(
+        self,
+        session: DeliverySession,
+    ):
+        self.delivery_sessions.append(
+            session
+        )
 
     def add_objective(self, objective: ExerciseObjective):
         self.objectives.append(objective)
@@ -1008,6 +1028,27 @@ class Project:
                     "status": inject.status.value,
                 }
                 for inject in self.injects
+            ],
+            
+            "delivery_sessions": [
+                {
+                    "session_id": session.session_id,
+                    "status": session.status.value,
+                    "started_at": session.started_at,
+                    "paused_at": session.paused_at,
+                    "resumed_at": session.resumed_at,
+                    "ended_at": session.ended_at,
+                    "events": [
+                        {
+                            "event_type": event.event_type.value,
+                            "timestamp": event.timestamp,
+                            "recorded_by": event.recorded_by,
+                            "rationale": event.rationale,
+                        }
+                        for event in session.events
+                    ],
+                }
+                for session in self.delivery_sessions
             ],
         }
 
@@ -2954,6 +2995,74 @@ class Project:
             )
             for item in saved_injects
         ]
+        saved_delivery_sessions = project_data.get(
+            "delivery_sessions",
+            [],
+        )
+
+        project.delivery_sessions = [
+            DeliverySession(
+                session_id=item.get(
+                    "session_id",
+                    str(uuid4()),
+                ),
+                status=cls._parse_delivery_session_status(
+                    item.get(
+                        "status",
+                        DeliverySessionStatus.NOT_STARTED.value,
+                    )
+                ),
+                started_at=item.get(
+                    "started_at",
+                    "",
+                ),
+                paused_at=item.get(
+                    "paused_at",
+                    "",
+                ),
+                resumed_at=item.get(
+                    "resumed_at",
+                    "",
+                ),
+                ended_at=item.get(
+                    "ended_at",
+                    "",
+                ),
+            )
+            for item in saved_delivery_sessions
+        ]
+        for session, item in zip(
+            project.delivery_sessions,
+            saved_delivery_sessions,
+        ):
+            saved_events = item.get(
+                "events",
+                [],
+            )
+
+            session.events = [
+                DeliveryEvent(
+                    event_type=cls._parse_delivery_event_type(
+                        event_item.get(
+                            "event_type",
+                            DeliveryEventType.SESSION_STARTED.value,
+                        )
+                    ),
+                    timestamp=event_item.get(
+                        "timestamp",
+                        "",
+                    ),
+                    recorded_by=event_item.get(
+                        "recorded_by",
+                        "",
+                    ),
+                    rationale=event_item.get(
+                        "rationale",
+                        "",
+                    ),
+                )
+                for event_item in saved_events
+            ]
 
         return project
 
@@ -2968,6 +3077,24 @@ class Project:
         # so this legacy lookup should stay out of the class-level parsing
         # section and is not required for the load method to return.
 
+    @staticmethod
+    def _parse_delivery_session_status(
+        value,
+    ):
+        for status in DeliverySessionStatus:
+            if status.value == value:
+                return status
+
+        return DeliverySessionStatus.NOT_STARTED
+    @staticmethod
+    def _parse_delivery_event_type(
+        value,
+    ):
+        for event_type in DeliveryEventType:
+            if event_type.value == value:
+                return event_type
+
+        return DeliveryEventType.SESSION_STARTED
     @staticmethod
     def _parse_assessment_outcome(value):
         for outcome in AssessmentOutcome:
