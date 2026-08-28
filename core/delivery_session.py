@@ -117,6 +117,27 @@ class DeliverySession:
         )
 
         return timeline_entries
+    def get_evidence_for_objective(
+        self,
+        objective_id: str,
+    ):
+        objective_id = objective_id.strip()
+
+        if not objective_id:
+            return []
+
+        evidence = [
+            activity
+            for activity in self.activities
+            if objective_id
+            in activity.related_objective_ids
+        ]
+
+        evidence.sort(
+            key=lambda activity: activity.timestamp
+        )
+
+        return evidence
     
     def __post_init__(self):
         if not self.session_id:

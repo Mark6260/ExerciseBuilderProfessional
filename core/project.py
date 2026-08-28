@@ -165,6 +165,32 @@ class Project:
         self.delivery_sessions.append(
             session
         )
+    def get_evidence_for_objective(
+        self,
+        objective_id: str,
+    ):
+        objective_id = objective_id.strip()
+
+        if not objective_id:
+            return []
+
+        evidence = []
+
+        for session in self.delivery_sessions:
+            for activity in (
+                session.get_evidence_for_objective(
+                    objective_id
+                )
+            ):
+                evidence.append(
+                    (session, activity)
+                )
+
+        evidence.sort(
+            key=lambda item: item[1].timestamp
+        )
+
+        return evidence
 
     def add_objective(self, objective: ExerciseObjective):
         self.objectives.append(objective)
