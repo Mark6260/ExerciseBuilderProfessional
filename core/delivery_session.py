@@ -10,6 +10,10 @@ from core.live_inject_event import (
     LiveInjectEvent,
     LiveInjectEventType,
 )
+from core.actual_timeline_entry import (
+    ActualTimelineEntry,
+    ActualTimelineEntryType,
+)
 
 
 class DeliverySessionStatus(Enum):
@@ -51,6 +55,68 @@ class DeliverySession:
     live_inject_records: list = field(
         default_factory=list
     )
+    def get_actual_timeline(self):
+        timeline_entries = []
+
+        for event in self.live_inject_events:
+            timeline_entries.append(
+                ActualTimelineEntry(
+                    timestamp=event.timestamp,
+                    entry_type=(
+                        ActualTimelineEntryType.INJECT_CONTROL
+                    ),
+                    summary=(
+                        f"Inject {event.inject_number} "
+                        f"{event.event_type.value}"
+                    ),
+                    source_id=event.event_id,
+                    inject_number=event.inject_number,
+                    actor=event.recorded_by,
+                    rationale=event.rationale,
+                )
+            )
+        for activity in self.activities:
+            timeline_entries.append(
+                ActualTimelineEntry(
+                    timestamp=activity.timestamp,
+                    entry_type=(
+                        ActualTimelineEntryType.DELIVERY_ACTIVITY
+                    ),
+                    summary=activity.activity_type.value,
+                    source_id=activity.activity_id,
+                    inject_number=(
+                        activity.related_inject_number
+                    ),
+                    actor=activity.recorded_by,
+                )
+            )
+        for event in self.events:
+            timeline_entries.append(
+                ActualTimelineEntry(
+                    timestamp=event.timestamp,
+                    entry_type=(
+                        ActualTimelineEntryType.SESSION_CONTROL
+                    ),
+                    summary=event.event_type.value,
+                    source_id=event.event_id,
+                    actor=event.recorded_by,
+                    rationale=event.rationale,
+                )
+            )
+        entry_type_priority = {
+            ActualTimelineEntryType.SESSION_CONTROL: 0,
+            ActualTimelineEntryType.INJECT_CONTROL: 1,
+            ActualTimelineEntryType.DELIVERY_ACTIVITY: 2,
+        }
+
+        timeline_entries.sort(
+            key=lambda entry: (
+                entry.timestamp,
+                entry_type_priority[entry.entry_type],
+            )
+        )
+
+        return timeline_entries
     
     def __post_init__(self):
         if not self.session_id:
