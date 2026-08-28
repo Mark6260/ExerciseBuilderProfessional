@@ -1075,6 +1075,9 @@ class Project:
                             "related_inject_number": (
                                 activity.related_inject_number
                             ),
+                            "related_objective_ids": list(
+                                activity.related_objective_ids
+                            ),
                         }
                         for activity in session.activities
                     ],
@@ -3174,6 +3177,12 @@ class Project:
                     ),
                     related_inject_number=activity_item.get(
                         "related_inject_number"
+                    ),
+                    related_objective_ids=list(
+                        activity_item.get(
+                            "related_objective_ids",
+                            [],
+                        )
                     ),
                 )
                 for activity_item in saved_activities

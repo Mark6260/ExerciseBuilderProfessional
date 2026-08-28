@@ -39,3 +39,6 @@ class DeliveryActivity:
     recorded_by: str = ""
 
     related_inject_number: int | None = None
+    related_objective_ids: list[str] = field(
+        default_factory=list
+    )
