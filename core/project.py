@@ -38,6 +38,9 @@ from core.collective_training_objective import (
     PerformanceMetric,
     EvidenceRequirement,
 )
+from core.objective_evaluation_criterion import (
+    ObjectiveEvaluationCriterion,
+)
 
 from core.design_trace import (
     DesignTraceEventType,
@@ -117,6 +120,9 @@ class Project:
         self.delivery_sessions: list[
             DeliverySession
         ] = []
+        self.objective_evaluation_criteria: list[
+            ObjectiveEvaluationCriterion
+            ] = []
         
         self.objectives: list[ExerciseObjective] = []
         self.design_trace_records: list[
@@ -165,6 +171,13 @@ class Project:
         self.delivery_sessions.append(
             session
         )
+    def add_objective_evaluation_criterion(
+        self,
+        criterion: ObjectiveEvaluationCriterion,
+    ):
+        self.objective_evaluation_criteria.append(
+            criterion
+        )   
     def get_evidence_for_objective(
         self,
         objective_id: str,
@@ -1068,7 +1081,19 @@ class Project:
                 }
                 for inject in self.injects
             ],
-            
+"objective_evaluation_criteria": [
+                {
+                    "criterion_id": criterion.criterion_id,
+                    "objective_id": criterion.objective_id,
+                    "description": criterion.description,
+                    "observable_evidence": (
+                        criterion.observable_evidence
+                    ),
+                }
+                for criterion
+                in self.objective_evaluation_criteria
+            ],
+
             "delivery_sessions": [
                 {
                     "session_id": session.session_id,
@@ -1890,6 +1915,7 @@ class Project:
                     "",
                 ),
             )
+            
             for item in saved_design_trace_records
         ]
         saved_mel_mil_promotions = project_data.get(
@@ -2090,7 +2116,28 @@ class Project:
         )
 
         project.collective_training_objectives = []
-
+        
+        for criterion_item in project_data.get(
+            "objective_evaluation_criteria",
+            [],
+        ):
+            project.add_objective_evaluation_criterion(
+                ObjectiveEvaluationCriterion(
+                    criterion_id=criterion_item[
+                        "criterion_id"
+                    ],
+                    objective_id=criterion_item[
+                        "objective_id"
+                    ],
+                    description=criterion_item[
+                        "description"
+                    ],
+                    observable_evidence=criterion_item[
+                        "observable_evidence"
+                    ],
+                )
+            )
+                    
         for cto_data in saved_ctos:
             cto = CollectiveTrainingObjective(
                 id=cto_data.get("id") or str(uuid4()),
@@ -3317,7 +3364,9 @@ class Project:
                 )
                 for event_item in saved_live_inject_events
             ]
-            return project
+            
+            
+        return project
 
         saved_evidence_records = project_data.get(
             "evidence_records",
