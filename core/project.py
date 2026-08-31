@@ -41,6 +41,14 @@ from core.collective_training_objective import (
 from core.objective_evaluation_criterion import (
     ObjectiveEvaluationCriterion,
 )
+from core.objective_assessment import (
+    ObjectiveAssessment,
+    ObjectiveAssessmentJudgement,
+)
+
+from core.objective_assessment_evidence_link import (
+    ObjectiveAssessmentEvidenceLink,
+)
 
 from core.design_trace import (
     DesignTraceEventType,
@@ -58,6 +66,9 @@ from core.improvement.recommendation import (
     Recommendation,
     RecommendationDisposition,
     RecommendationType,
+)
+from core.objective_evaluation_criterion import (
+    ObjectiveEvaluationCriterion,
 )
 from core.preparedness import (
     ConfidenceAssessment,
@@ -123,6 +134,9 @@ class Project:
         self.objective_evaluation_criteria: list[
             ObjectiveEvaluationCriterion
             ] = []
+        self.objective_assessments: list[
+             ObjectiveAssessment
+            ] = []
         
         self.objectives: list[ExerciseObjective] = []
         self.design_trace_records: list[
@@ -177,7 +191,15 @@ class Project:
     ):
         self.objective_evaluation_criteria.append(
             criterion
-        )   
+        )
+    def add_objective_assessment(
+        self,
+        assessment: ObjectiveAssessment,
+    ):
+        self.objective_assessments.append(
+            assessment
+        )
+
     def get_evidence_for_objective(
         self,
         objective_id: str,
@@ -1093,7 +1115,39 @@ class Project:
                 for criterion
                 in self.objective_evaluation_criteria
             ],
-
+"objective_assessments": [
+    {
+        "assessment_id": (
+            assessment.assessment_id
+        ),
+        "objective_id": (
+            assessment.objective_id
+        ),
+        "delivery_session_id": (
+            assessment.delivery_session_id
+        ),
+        "judgement": (
+            assessment.judgement.value
+        ),
+        "evidence_links": [
+            {
+                "link_id": link.link_id,
+                "criterion_id": (
+                    link.criterion_id
+                ),
+                "activity_id": (
+                    link.activity_id
+                ),
+            }
+            for link in assessment.evidence_links
+        ],
+        "rationale": assessment.rationale,
+        "limitations": assessment.limitations,
+        "assessed_by": assessment.assessed_by,
+        "assessed_at": assessment.assessed_at,
+    }
+    for assessment in self.objective_assessments
+],
             "delivery_sessions": [
                 {
                     "session_id": session.session_id,
@@ -2137,7 +2191,62 @@ class Project:
                     ],
                 )
             )
-                    
+        for assessment_item in project_data.get(
+            "objective_assessments",
+            [],
+        ):
+            assessment = ObjectiveAssessment(
+                assessment_id=assessment_item[
+                    "assessment_id"
+                ],
+                objective_id=assessment_item[
+                    "objective_id"
+                ],
+                delivery_session_id=assessment_item[
+                    "delivery_session_id"
+                ],
+                judgement=ObjectiveAssessmentJudgement(
+                    assessment_item["judgement"]
+                ),
+                rationale=assessment_item.get(
+                    "rationale",
+                    "",
+                ),
+                limitations=assessment_item.get(
+                    "limitations",
+                    "",
+                ),
+                assessed_by=assessment_item.get(
+                    "assessed_by",
+                    "",
+                ),
+                assessed_at=assessment_item.get(
+                    "assessed_at",
+                    "",
+                ),
+            )
+
+            for link_item in assessment_item.get(
+                "evidence_links",
+                [],
+            ):
+                assessment.evidence_links.append(
+                    ObjectiveAssessmentEvidenceLink(
+                        link_id=link_item[
+                            "link_id"
+                        ],
+                        criterion_id=link_item[
+                            "criterion_id"
+                        ],
+                        activity_id=link_item[
+                            "activity_id"
+                        ],
+                    )
+                )
+
+            project.add_objective_assessment(
+                assessment
+            )            
         for cto_data in saved_ctos:
             cto = CollectiveTrainingObjective(
                 id=cto_data.get("id") or str(uuid4()),
