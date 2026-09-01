@@ -126,6 +126,7 @@ class Project:
 
         self.operational_requirement = OperationalRequirement()
         self.apprentice_notebook = ApprenticeNotebook()
+        self.participants: str = ""
 
         self.injects: list[Inject] = []
         self.delivery_sessions: list[
@@ -387,6 +388,7 @@ class Project:
         project_data = {
         
             "name": self.name,
+            "participants": self.participants,
 
             "operational_requirement": {
                 "title": self.operational_requirement.title,
@@ -1449,7 +1451,10 @@ class Project:
                 ),
             ),
         )
-
+        project.participants = project_data.get(
+            "participants",
+            "",
+        )
         saved_doctrine_references = project_data.get(
             "doctrine_references",
             [],

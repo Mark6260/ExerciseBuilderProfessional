@@ -37,6 +37,9 @@ from gui.panels.apprentice_notebook_panel import (
 )
 from gui.panels.cto_builder_panel import CTOBuilderPanel
 from gui.panels.exercise_design_panel import ExerciseDesignPanel
+from gui.panels.exercise_lifecycle_panel import (
+    ExerciseLifecyclePanel,
+)
 from gui.panels.objectives_panel import ObjectivesPanel
 from gui.panels.project_panel import ProjectPanel
 from gui.panels.observer_panel import ObserverPanel
@@ -168,6 +171,9 @@ class MainWindow(QMainWindow):
         )
         self.cto_builder_panel = CTOBuilderPanel()
         self.exercise_design_panel = ExerciseDesignPanel()
+        self.exercise_lifecycle_panel = (
+            ExerciseLifecyclePanel()
+        )
         self.exercise_design_panel.inject_promoted.connect(
             self._handle_design_inject_promoted
         )
@@ -226,6 +232,11 @@ class MainWindow(QMainWindow):
         )
 
         self.tabs = QTabWidget()
+        
+        self.tabs.addTab(
+            self.exercise_lifecycle_panel,
+                "Exercise Director",
+        )
 
         self.tabs.addTab(
             self.assurance_panel,
@@ -586,6 +597,9 @@ class MainWindow(QMainWindow):
         requirement = (
             self.current_project.operational_requirement
         )
+        self.exercise_lifecycle_panel.set_project(
+            self.current_project
+        )
         self.designer_workspace_panel.set_project(
             self.current_project
         )
@@ -833,13 +847,12 @@ class MainWindow(QMainWindow):
         )
     def new_project(self):
         apprentice = ApprenticeDialog(self)
-
         if apprentice.exec() != QDialog.DialogCode.Accepted:
             self.statusBar().showMessage(
                 "The Apprentice is standing by"
             )
             return
-
+       
         dialog = ExerciseDefinitionDialog(self)
 
         if dialog.exec() != QDialog.DialogCode.Accepted:
@@ -847,11 +860,17 @@ class MainWindow(QMainWindow):
                 "Operational readiness analysis cancelled"
             )
             return
-
+        
         project = Project()
 
         requirement = project.operational_requirement
         readiness = requirement.readiness
+        requirement.description = (
+            apprentice.answer()
+        )
+        project.participants = (
+            dialog.training_audience()
+        )
 
         readiness.required_state = (
             dialog.target_readiness()
@@ -873,14 +892,10 @@ class MainWindow(QMainWindow):
             dialog.readiness_gap()
         )
 
-        requirement.description = (
-            dialog.training_audience()
-        )
-
         requirement.success_criteria = (
             dialog.learning_opportunities()
         )
-
+        
         self.current_project = project
         self.current_file = None
 

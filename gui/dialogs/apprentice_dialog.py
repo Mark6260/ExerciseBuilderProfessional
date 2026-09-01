@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 )
 
 from core.apprentice import ApprenticeCurriculum
-from core.language import BritishArmy
+from core.language import ExerciseDirector
 
 
 class ApprenticeDialog(QDialog):
@@ -26,7 +26,7 @@ class ApprenticeDialog(QDialog):
 
         self.curriculum = ApprenticeCurriculum()
         self.lesson = self.curriculum.current_lesson
-        self.profession = BritishArmy
+        self.profession = ExerciseDirector
 
         self.answer_text = ""
         self.answer_confirmed = False
@@ -71,8 +71,10 @@ class ApprenticeDialog(QDialog):
 
         self.answer_input = QPlainTextEdit()
         self.answer_input.setPlaceholderText(
-            "Describe the mission the unit is preparing to conduct..."
+            "Describe the required outcome, capability "
+            "or level of readiness..."
         )
+        
         self.answer_input.setMinimumHeight(160)
 
         self.lesson_explanation = QLabel(
@@ -88,7 +90,7 @@ class ApprenticeDialog(QDialog):
         self.acknowledgement_label.hide()
 
         self.continue_button = QPushButton(
-            "Record Mission"
+            "Record Requirement"
         )
         self.continue_button.clicked.connect(
             self.continue_conversation
@@ -141,10 +143,10 @@ class ApprenticeDialog(QDialog):
 
         self.acknowledgement_label.setText(
             "<b>Understood.</b><br><br>"
-            "Mission recorded:<br><br>"
+            "Requirement recorded:<br><br>"
             f"{self.answer_text}<br><br>"
             "Let's now examine the readiness required "
-            "to prepare the unit for that mission."
+            "to achieve this outcome."
         )
         self.acknowledgement_label.show()
 
