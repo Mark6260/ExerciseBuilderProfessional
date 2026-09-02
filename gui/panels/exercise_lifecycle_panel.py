@@ -1,14 +1,16 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 
 class ExerciseLifecyclePanel(QWidget):
+    commission_requested = Signal()
     """
     Exercise Director lifecycle overview.
 
@@ -119,19 +121,30 @@ class ExerciseLifecyclePanel(QWidget):
         ]
 
         for stage in stages:
-            label = QLabel(stage)
-            label.setAlignment(
-                Qt.AlignmentFlag.AlignCenter
-            )
-            label.setMinimumHeight(60)
-            label.setStyleSheet(
+            if stage == "COMMISSION":
+                stage_widget = QPushButton(stage)
+                stage_widget.clicked.connect(
+                    self.commission_requested.emit
+                )
+            else:
+                stage_widget = QLabel(stage)
+                stage_widget.setAlignment(
+                    Qt.AlignmentFlag.AlignCenter
+                )
+
+            stage_widget.setMinimumHeight(60)
+            stage_widget.setStyleSheet(
                 "font-weight: bold; "
                 "padding: 10px; "
                 "border: 1px solid palette(mid);"
             )
 
-            lifecycle_layout.addWidget(label)
-            self.lifecycle_labels.append(label)
+            lifecycle_layout.addWidget(
+                stage_widget
+            )
+            self.lifecycle_labels.append(
+                stage_widget
+            )
 
         main_layout.addLayout(
             lifecycle_layout

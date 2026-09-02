@@ -174,6 +174,9 @@ class MainWindow(QMainWindow):
         self.exercise_lifecycle_panel = (
             ExerciseLifecyclePanel()
         )
+        self.exercise_lifecycle_panel.commission_requested.connect(
+            self._handle_commission_requested
+        )
         self.exercise_design_panel.inject_promoted.connect(
             self._handle_design_inject_promoted
         )
@@ -539,6 +542,11 @@ class MainWindow(QMainWindow):
             f"{action.status.value}",
             3000,
         )
+    def _handle_commission_requested(self):
+        self.statusBar().showMessage(
+        "Opening commissioning workflow"
+        )
+        self.new_project()
 
     def _handle_readiness_decision_recorded(
         self,
@@ -900,6 +908,10 @@ class MainWindow(QMainWindow):
         self.current_file = None
 
         self.update_project_view()
+
+        self.tabs.setCurrentWidget(
+            self.exercise_lifecycle_panel
+        )
 
         self.statusBar().showMessage(
             "New operational readiness case created"
