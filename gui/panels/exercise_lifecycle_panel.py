@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 class ExerciseLifecyclePanel(QWidget):
     commission_requested = Signal()
+    scope_requested = Signal()
     """
     Exercise Director lifecycle overview.
 
@@ -125,6 +126,11 @@ class ExerciseLifecyclePanel(QWidget):
                 stage_widget = QPushButton(stage)
                 stage_widget.clicked.connect(
                     self.commission_requested.emit
+                )
+            elif stage == "SCOPE":
+                stage_widget = QPushButton(stage)
+                stage_widget.clicked.connect(
+                    self.scope_requested.emit
                 )
             else:
                 stage_widget = QLabel(stage)

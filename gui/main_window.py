@@ -40,6 +40,9 @@ from gui.panels.exercise_design_panel import ExerciseDesignPanel
 from gui.panels.exercise_lifecycle_panel import (
     ExerciseLifecyclePanel,
 )
+from gui.panels.exercise_scope_panel import (
+    ExerciseScopePanel,
+)
 from gui.panels.objectives_panel import ObjectivesPanel
 from gui.panels.project_panel import ProjectPanel
 from gui.panels.observer_panel import ObserverPanel
@@ -174,8 +177,20 @@ class MainWindow(QMainWindow):
         self.exercise_lifecycle_panel = (
             ExerciseLifecyclePanel()
         )
+        self.exercise_scope_panel = (
+        ExerciseScopePanel()
+        )
         self.exercise_lifecycle_panel.commission_requested.connect(
             self._handle_commission_requested
+        )
+        self.exercise_lifecycle_panel.scope_requested.connect(
+            self._handle_scope_requested
+        )
+        self.exercise_lifecycle_panel.scope_requested.connect(
+        self._handle_scope_requested
+        )
+        self.exercise_scope_panel = (
+            ExerciseScopePanel()
         )
         self.exercise_design_panel.inject_promoted.connect(
             self._handle_design_inject_promoted
@@ -239,6 +254,10 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(
             self.exercise_lifecycle_panel,
                 "Exercise Director",
+        )
+        self.tabs.addTab(
+            self.exercise_scope_panel,
+            "Scope",
         )
 
         self.tabs.addTab(
@@ -547,6 +566,19 @@ class MainWindow(QMainWindow):
         "Opening commissioning workflow"
         )
         self.new_project()
+        
+    def _handle_scope_requested(self):
+        self.exercise_scope_panel.set_project(
+            self.current_project
+        )
+
+        self.tabs.setCurrentWidget(
+            self.exercise_scope_panel
+        )
+
+        self.statusBar().showMessage(
+            "Scope stage selected"
+        )
 
     def _handle_readiness_decision_recorded(
         self,
@@ -606,6 +638,9 @@ class MainWindow(QMainWindow):
             self.current_project.operational_requirement
         )
         self.exercise_lifecycle_panel.set_project(
+            self.current_project
+        )
+        self.exercise_scope_panel.set_project(
             self.current_project
         )
         self.designer_workspace_panel.set_project(
@@ -896,7 +931,7 @@ class MainWindow(QMainWindow):
             dialog.required_standard()
         )
 
-        readiness.readiness_gap = (
+        readiness.readiness_gap.shortfall = (
             dialog.readiness_gap()
         )
 

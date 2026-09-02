@@ -55,6 +55,7 @@ from core.design_trace import (
     DesignTraceRecord,
 )
 from core.readiness import OperationalRequirement
+from core.exercise_scope import ExerciseScope
 from core.readiness.readiness import OperationalReadiness
 from core.readiness.readiness_gap import ReadinessGap
 from core.apprentice import ApprenticeNotebook
@@ -126,6 +127,7 @@ class Project:
 
         self.operational_requirement = OperationalRequirement()
         self.apprentice_notebook = ApprenticeNotebook()
+        self.exercise_scope = ExerciseScope()
         self.participants: str = ""
 
         self.injects: list[Inject] = []
@@ -1454,6 +1456,61 @@ class Project:
         project.participants = project_data.get(
             "participants",
             "",
+        )
+        scope_data = project_data.get(
+            "exercise_scope",
+            {},
+        )
+
+        project.exercise_scope = ExerciseScope(
+            purpose=scope_data.get(
+                "purpose",
+                "",
+            ),
+            aim=scope_data.get(
+                "aim",
+                "",
+            ),
+            in_scope=list(
+                scope_data.get(
+                    "in_scope",
+                    [],
+                )
+            ),
+            out_of_scope=list(
+                scope_data.get(
+                    "out_of_scope",
+                    [],
+                )
+            ),
+            constraints=list(
+                scope_data.get(
+                    "constraints",
+                    [],
+                )
+            ),
+            assumptions=list(
+                scope_data.get(
+                    "assumptions",
+                    [],
+                )
+            ),
+            exercise_type=scope_data.get(
+                "exercise_type",
+                "",
+            ),
+            proposed_approach=scope_data.get(
+                "proposed_approach",
+                "",
+            ),
+            scenario_proposition=scope_data.get(
+                "scenario_proposition",
+                "",
+            ),
+            intended_end_state=scope_data.get(
+                "intended_end_state",
+                "",
+            ),
         )
         saved_doctrine_references = project_data.get(
             "doctrine_references",
