@@ -391,6 +391,34 @@ class Project:
         
             "name": self.name,
             "participants": self.participants,
+            "exercise_scope": {
+                "purpose": self.exercise_scope.purpose,
+                "aim": self.exercise_scope.aim,
+                "in_scope": list(
+                    self.exercise_scope.in_scope
+                ),
+                "out_of_scope": list(
+                    self.exercise_scope.out_of_scope
+                ),
+                "constraints": list(
+                    self.exercise_scope.constraints
+                ),
+                "assumptions": list(
+                    self.exercise_scope.assumptions
+                ),
+                "exercise_type": (
+                    self.exercise_scope.exercise_type
+                ),
+                "proposed_approach": (
+                    self.exercise_scope.proposed_approach
+                ),
+                "scenario_proposition": (
+                    self.exercise_scope.scenario_proposition
+                ),
+                "intended_end_state": (
+                    self.exercise_scope.intended_end_state
+                ),
+            },
 
             "operational_requirement": {
                 "title": self.operational_requirement.title,
