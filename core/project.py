@@ -480,6 +480,7 @@ class Project:
                     "description": objective.description,
                     "success_criteria": objective.success_criteria,
                     "supporting_injects": objective.supporting_injects,
+                    "supporting_doctrine": objective.supporting_doctrine,
                     "achieved": objective.achieved,
                 }
                 for objective in self.objectives
@@ -1992,6 +1993,10 @@ class Project:
                     "supporting_injects",
                     [],
                 ),
+                supporting_doctrine=item.get(
+                "supporting_doctrine",
+                [],
+            ),
                 achieved=item.get("achieved"),
             )
             for item in saved_objectives
