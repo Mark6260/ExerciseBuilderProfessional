@@ -44,6 +44,9 @@ from gui.panels.exercise_scope_panel import (
     ExerciseScopePanel,
 )
 from gui.panels.objectives_panel import ObjectivesPanel
+from gui.panels.exercise_objectives_panel import (
+    ExerciseObjectivesPanel,
+)
 from gui.panels.project_panel import ProjectPanel
 from gui.panels.observer_panel import ObserverPanel
 from gui.panels.observation_review_panel import (
@@ -130,6 +133,12 @@ class MainWindow(QMainWindow):
         )
         self.design_trace_panel = DesignTracePanel()
         self.objectives_panel = ObjectivesPanel()
+        self.exercise_objectives_panel = (
+            ExerciseObjectivesPanel()
+        )
+        self.exercise_objectives_panel.objectives_changed.connect(
+            self._refresh_objectives_panels
+        )
         self.mel_panel = MasterEventsListPanel()
         self.inject_details_panel = InjectDetailsPanel()
         self.assurance_panel = AssurancePanel()
@@ -258,6 +267,10 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(
             self.exercise_scope_panel,
             "Scope",
+        )
+        self.tabs.addTab(
+            self.exercise_objectives_panel,
+            "Objectives",
         )
 
         self.tabs.addTab(
@@ -455,7 +468,20 @@ class MainWindow(QMainWindow):
             "Observation admitted as evidence",
             3000,
         )
+        
+    def _refresh_objectives_panels(self):
+        """
+        Refresh objective views after the authoritative
+        project objectives change.
+        """
 
+        if self.current_project is None:
+            return
+
+        self.objectives_panel.set_objectives(
+            self.current_project.objectives
+        )
+        
     def _handle_assessment_recorded(
         self,
         assessment,
@@ -571,6 +597,9 @@ class MainWindow(QMainWindow):
         self.exercise_scope_panel.set_project(
             self.current_project
         )
+        self.exercise_objectives_panel.set_project(
+            self.current_project
+        )
 
         self.tabs.setCurrentWidget(
             self.exercise_scope_panel
@@ -637,12 +666,19 @@ class MainWindow(QMainWindow):
         requirement = (
             self.current_project.operational_requirement
         )
+
         self.exercise_lifecycle_panel.set_project(
             self.current_project
         )
+
         self.exercise_scope_panel.set_project(
             self.current_project
         )
+
+        self.exercise_objectives_panel.set_project(
+            self.current_project
+        )
+
         self.designer_workspace_panel.set_project(
             self.current_project
         )
@@ -729,6 +765,9 @@ class MainWindow(QMainWindow):
 
         self.objectives_panel.set_objectives(
             self.current_project.objectives
+        )
+        self.exercise_objectives_panel.set_project(
+            self.current_project
         )
 
         self.update_assurance()
