@@ -476,6 +476,7 @@ class Project:
 
             "objectives": [
                 {
+                    "id": objective.id,
                     "title": objective.title,
                     "description": objective.description,
                     "success_criteria": objective.success_criteria,
@@ -485,6 +486,7 @@ class Project:
                 }
                 for objective in self.objectives
             ],
+            
             "mel_mil_promotions": [
                 {
                     "id": promotion.id,
@@ -580,6 +582,7 @@ class Project:
     {
         "id": cto.id,
         "title": cto.title,
+        "source_objective_ids": cto.source_objective_ids,
         "training_audience": cto.training_audience,
         "required_outcome": cto.required_outcome,
         "conditions": cto.conditions,
@@ -1994,10 +1997,14 @@ class Project:
                     [],
                 ),
                 supporting_doctrine=item.get(
-                "supporting_doctrine",
-                [],
-            ),
+                    "supporting_doctrine",
+                    [],
+                ),
                 achieved=item.get("achieved"),
+                id=item.get(
+                    "id",
+                    str(uuid4()),
+                ),
             )
             for item in saved_objectives
         ]
@@ -2346,6 +2353,10 @@ class Project:
             cto = CollectiveTrainingObjective(
                 id=cto_data.get("id") or str(uuid4()),
                 title=cto_data.get("title", ""),
+                source_objective_ids=cto_data.get(
+                    "source_objective_ids",
+                    [],
+                ),
                 training_audience=cto_data.get(
                     "training_audience",
                     "",

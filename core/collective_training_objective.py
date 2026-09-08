@@ -105,6 +105,10 @@ class CollectiveTrainingObjective:
 
     title: str
 
+    source_objective_ids: list[str] = field(
+        default_factory=list
+    )
+    
     training_audience: str = ""
     required_outcome: str = ""
     conditions: str = ""

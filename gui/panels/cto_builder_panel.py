@@ -115,6 +115,9 @@ class CTOBuilderPanel(QWidget):
         self.add_evidence_requirement_button.clicked.connect(
             self._add_evidence_requirement
         )
+        self.source_objectives_list.currentRowChanged.connect(
+            self._update_source_objective
+        )
         
     def set_project(
         self,
@@ -130,7 +133,8 @@ class CTOBuilderPanel(QWidget):
 
         if project is None:
             return
-
+        self.project = project
+        
         if project.collective_training_objectives:
             self.cto = project.collective_training_objectives[0]
         else:
@@ -148,7 +152,36 @@ class CTOBuilderPanel(QWidget):
         """
         Refresh all CTO Builder controls from the currently bound CTO.
         """
+        self.source_objectives_list.clear()
 
+        if hasattr(self, "project"):
+            for objective in self.project.objectives:
+                self.source_objectives_list.addItem(
+                    objective.title
+                )
+        self.source_objectives_list.blockSignals(True)
+
+        selected_row = -1
+
+        if (
+            hasattr(self, "project")
+            and self.cto.source_objective_ids
+        ):
+            source_id = self.cto.source_objective_ids[0]
+
+            for index, objective in enumerate(
+                self.project.objectives
+            ):
+                if objective.id == source_id:
+                    selected_row = index
+                    break
+
+        self.source_objectives_list.setCurrentRow(
+            selected_row
+        )
+
+        self.source_objectives_list.blockSignals(False)
+                
         self.training_audience_input.setText(
             self.cto.training_audience or ""
         )
@@ -307,7 +340,23 @@ class CTOBuilderPanel(QWidget):
         audience_layout.addWidget(
             self.training_audience_input
         )
+        source_objectives_label = QLabel(
+            "SOURCE EXERCISE OBJECTIVES"
+        )
 
+        self.source_objectives_list = QListWidget()
+        self.source_objectives_list.setSelectionMode(
+            QListWidget.SelectionMode.SingleSelection
+        )
+        
+        audience_layout.addWidget(
+            source_objectives_label
+        )
+
+        audience_layout.addWidget(
+            self.source_objectives_list
+        )
+        
         audience_layout.addStretch()
 
         self.page_stack.addWidget(
@@ -2156,6 +2205,20 @@ class CTOBuilderPanel(QWidget):
         self._refresh_observable_metrics_summary()
         self._refresh_evidence_task_selector()
         self._update_add_collective_task_button()
+        
+    def _update_source_objective(self, row: int):
+        if not hasattr(self, "project"):
+            return
+
+        if row < 0 or row >= len(self.project.objectives):
+            self.cto.source_objective_ids = []
+            return
+
+        objective = self.project.objectives[row]
+
+        self.cto.source_objective_ids = [
+            objective.id
+        ]
     def _refresh_current_task_summary(self):
         task = self.current_collective_task
 
