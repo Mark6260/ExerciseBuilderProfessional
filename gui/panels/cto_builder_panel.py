@@ -115,7 +115,7 @@ class CTOBuilderPanel(QWidget):
         self.add_evidence_requirement_button.clicked.connect(
             self._add_evidence_requirement
         )
-        self.source_objectives_list.currentRowChanged.connect(
+        self.source_objectives_list.itemSelectionChanged.connect(
             self._update_source_objective
         )
         
@@ -161,27 +161,26 @@ class CTOBuilderPanel(QWidget):
                 )
         self.source_objectives_list.blockSignals(True)
 
-        selected_row = -1
+        self.source_objectives_list.clearSelection()
 
-        if (
-            hasattr(self, "project")
-            and self.cto.source_objective_ids
-        ):
-            source_id = self.cto.source_objective_ids[0]
+        if hasattr(self, "project"):
+            source_ids = set(
+                self.cto.source_objective_ids
+            )
 
             for index, objective in enumerate(
                 self.project.objectives
             ):
-                if objective.id == source_id:
-                    selected_row = index
-                    break
-
-        self.source_objectives_list.setCurrentRow(
-            selected_row
-        )
+                if objective.id in source_ids:
+                    item = self.source_objectives_list.item(
+                        index
+                    )
+                    item.setSelected(
+                        True
+                    )
 
         self.source_objectives_list.blockSignals(False)
-                
+                    
         self.training_audience_input.setText(
             self.cto.training_audience or ""
         )
@@ -346,7 +345,7 @@ class CTOBuilderPanel(QWidget):
 
         self.source_objectives_list = QListWidget()
         self.source_objectives_list.setSelectionMode(
-            QListWidget.SelectionMode.SingleSelection
+            QListWidget.SelectionMode.MultiSelection
         )
         
         audience_layout.addWidget(
@@ -2206,19 +2205,29 @@ class CTOBuilderPanel(QWidget):
         self._refresh_evidence_task_selector()
         self._update_add_collective_task_button()
         
-    def _update_source_objective(self, row: int):
+    def _update_source_objective(self):
         if not hasattr(self, "project"):
             return
 
-        if row < 0 or row >= len(self.project.objectives):
-            self.cto.source_objective_ids = []
-            return
+        selected_ids = []
 
-        objective = self.project.objectives[row]
+        for item in self.source_objectives_list.selectedItems():
+            item_row = self.source_objectives_list.row(
+                item
+            )
 
-        self.cto.source_objective_ids = [
-            objective.id
-        ]
+            if 0 <= item_row < len(
+                self.project.objectives
+            ):
+                selected_ids.append(
+                    self.project.objectives[
+                        item_row
+                    ].id
+                )
+
+        self.cto.source_objective_ids = (
+            selected_ids
+        )
     def _refresh_current_task_summary(self):
         task = self.current_collective_task
 

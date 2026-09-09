@@ -126,6 +126,59 @@ class ExerciseDesignPanel(QWidget):
         layout.addWidget(
             status_frame
         )
+        lineage_frame = QFrame()
+        lineage_frame.setFrameShape(
+            QFrame.Shape.StyledPanel
+        )
+
+        lineage_layout = QVBoxLayout(
+            lineage_frame
+        )
+
+        lineage_title = QLabel(
+            "DESIGN SOURCE"
+        )
+        lineage_title.setStyleSheet(
+            "font-size: 16px; font-weight: bold;"
+        )
+
+        self.lineage_objective_label = QLabel(
+            "Exercise Objective: None"
+        )
+        self.lineage_objective_label.setWordWrap(
+            True
+        )
+
+        self.lineage_success_criteria_label = QLabel(
+            "Success Criteria: None"
+        )
+        self.lineage_success_criteria_label.setWordWrap(
+            True
+        )
+
+        self.lineage_cto_label = QLabel(
+            "Assured CTO: None"
+        )
+        self.lineage_cto_label.setWordWrap(
+            True
+        )
+
+        lineage_layout.addWidget(
+            lineage_title
+        )
+        lineage_layout.addWidget(
+            self.lineage_objective_label
+        )
+        lineage_layout.addWidget(
+            self.lineage_success_criteria_label
+        )
+        lineage_layout.addWidget(
+            self.lineage_cto_label
+        )
+
+        layout.addWidget(
+            lineage_frame
+        )
 
         self.design_tree = QTreeWidget()
         self.design_tree.setColumnCount(3)
@@ -974,8 +1027,77 @@ class ExerciseDesignPanel(QWidget):
     ):
         self.project = project
         self.refresh_view()
+    def _refresh_design_source(self):
+        """
+        Show the authoritative Exercise Objective lineage
+        for the CTO used by Exercise Design.
+        """
 
+        self.lineage_objective_label.setText(
+            "Exercise Objective: None"
+        )
+        self.lineage_success_criteria_label.setText(
+            "Success Criteria: None"
+        )
+        self.lineage_cto_label.setText(
+            "Assured CTO: None"
+        )
+
+        if self.project is None:
+            return
+
+        if not self.project.collective_training_objectives:
+            return
+
+        cto = self.project.collective_training_objectives[0]
+
+        self.lineage_cto_label.setText(
+            f"Assured CTO: {cto.title}"
+        )
+
+        if not cto.source_objective_ids:
+            return
+
+        source_ids = set(
+            cto.source_objective_ids
+        )
+
+        objective_lines = []
+        criteria_lines = []
+
+        for objective in self.project.objectives:
+            if objective.id not in source_ids:
+                continue
+
+            objective_lines.append(
+                f"• {objective.title}"
+            )
+
+            if objective.success_criteria:
+                criteria_lines.append(
+                    objective.title
+                )
+
+                for criterion in objective.success_criteria:
+                    criteria_lines.append(
+                        f"  • {criterion}"
+                    )
+
+        if objective_lines:
+            self.lineage_objective_label.setText(
+                "Exercise Objectives:\n"
+                + "\n".join(objective_lines)
+            )
+
+        if criteria_lines:
+            self.lineage_success_criteria_label.setText(
+                "Success Criteria:\n"
+                + "\n".join(criteria_lines)
+            )
+            
     def refresh_view(self):
+        self._refresh_design_source()
+        
         self.design_tree.clear()
         self.opportunity_tree.clear()
         self.candidate_activity_tree.clear()
