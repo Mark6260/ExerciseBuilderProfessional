@@ -207,6 +207,9 @@ class MainWindow(QMainWindow):
         self.exercise_design_panel.inject_updated.connect(
             self._handle_design_inject_updated
         )
+        self.cto_builder_panel.exercise_design_requested.connect(
+            self._open_exercise_design
+        )
         self.observation_review_panel.set_project(
             self.current_project
         )
@@ -214,14 +217,15 @@ class MainWindow(QMainWindow):
         self.observer_panel.set_project(
             self.current_project
         )
+
         self.observer_panel.observation_recorded.connect(
-        self._handle_observation_recorded
-    )
+            self._handle_observation_recorded
+        )
 
         self.mel_panel.inject_selected.connect(
             self.show_inject_details
         )
-        
+
         self.inject_details_panel.advance_button.clicked.connect(
             self.advance_selected_inject
         )
@@ -626,6 +630,19 @@ class MainWindow(QMainWindow):
             "Readiness decision recorded",
             3000,
         )
+    def _open_exercise_design(self):
+        """
+        Open the existing Exercise Design lifecycle workspace
+        following successful CTO assurance.
+        """
+
+        self.exercise_design_panel.set_project(
+            self.current_project
+        )
+
+        self.tabs.setCurrentWidget(
+            self.exercise_design_panel
+)
     def _open_designer_supporting_activity(
         self,
         inject_number: int,

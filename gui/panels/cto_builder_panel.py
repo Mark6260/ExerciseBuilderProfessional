@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QSpinBox,
 )
+from PySide6.QtCore import Qt, Signal
 
 from core.collective_training_objective import (
     CollectiveTask,
@@ -31,6 +32,7 @@ class CTOBuilderPanel(QWidget):
     CollectiveTrainingObjective and provides design feedback
     from the domain model.
     """
+    exercise_design_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -83,7 +85,9 @@ class CTOBuilderPanel(QWidget):
         self.add_critical_error_button.clicked.connect(
             self._add_critical_error
         )
-
+        self.continue_to_exercise_design_button.clicked.connect(
+            self.exercise_design_requested.emit
+        )
         self.metric_task_selector.currentIndexChanged.connect(
             self._refresh_metric_success_factor_selector
         )
@@ -1015,7 +1019,17 @@ class CTOBuilderPanel(QWidget):
         review_layout.addWidget(
             self.design_review_text
         )
+        self.continue_to_exercise_design_button = QPushButton(
+            "Continue to Exercise Design"
+        )
 
+        self.continue_to_exercise_design_button.setEnabled(
+            False
+        )
+
+        review_layout.addWidget(
+            self.continue_to_exercise_design_button
+        )
         self.page_stack.addWidget(
             review_page
         )
@@ -1950,6 +1964,9 @@ class CTOBuilderPanel(QWidget):
             structure_complete
             and success_complete
             and critical_complete
+        )
+        self.continue_to_exercise_design_button.setEnabled(
+            ready
         )
 
         lines = [
