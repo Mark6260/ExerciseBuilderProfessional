@@ -1,4 +1,5 @@
 ﻿import json
+import shutil
 from pathlib import Path
 
 from core import assessment
@@ -131,6 +132,7 @@ class Project:
         self.participants: str = ""
 
         self.injects: list[Inject] = []
+        self.presentation_assets: list[dict] = []
         self.delivery_sessions: list[
             DeliverySession
         ] = []
@@ -375,7 +377,42 @@ class Project:
         activity: PlannedActivity,
     ):
         self.planned_activities.append(activity)
+        
+    def register_presentation(self, project_filename, source_filename):
+        """Copy a PowerPoint into the exercise's presentation folder."""
 
+        source = Path(source_filename)
+        if not source.is_file():
+            raise FileNotFoundError(f"Presentation not found: {source}")
+
+        if source.suffix.lower() != ".pptx":
+            raise ValueError("Only .pptx presentations are supported")
+
+        project_folder = Path(project_filename).parent
+        destination_folder = project_folder / "assets" / "presentations"
+        destination_folder.mkdir(parents=True, exist_ok=True)
+
+        destination = destination_folder / source.name
+
+        if destination.exists():
+            raise FileExistsError(
+                f"Presentation already exists: {destination.name}"
+            )
+
+        shutil.copy2(source, destination)
+
+        relative_path = destination.relative_to(project_folder).as_posix()
+
+        asset = {
+            "id": f"PRES-{len(self.presentation_assets) + 1:03d}",
+            "filename": source.name,
+            "relative_path": relative_path,
+        }
+
+        self.presentation_assets.append(asset)
+
+        return asset
+    
     def save(self, filename):
         readiness_gap = self.operational_requirement.readiness.readiness_gap
 
@@ -391,6 +428,7 @@ class Project:
         
             "name": self.name,
             "participants": self.participants,
+            "presentation_assets": self.presentation_assets,
             "exercise_scope": {
                 "purpose": self.exercise_scope.purpose,
                 "aim": self.exercise_scope.aim,
@@ -1260,7 +1298,11 @@ class Project:
                 for session in self.delivery_sessions
             ],
         }
-
+        
+        # Ensure each project has a folder for its presentations.
+        presentation_folder = Path(filename).parent / "assets" / "presentations"
+        presentation_folder.mkdir(parents=True, exist_ok=True)
+        
         with open(filename, "w", encoding="utf-8") as file:
             json.dump(project_data, file, indent=4)
 
@@ -1489,6 +1531,12 @@ class Project:
             "participants",
             "",
         )
+        
+        project.presentation_assets = project_data.get(
+            "presentation_assets",
+            [],
+        )
+        
         scope_data = project_data.get(
             "exercise_scope",
             {},
