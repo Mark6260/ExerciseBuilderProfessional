@@ -1,4 +1,6 @@
 from PySide6.QtCore import Signal
+import os
+from pathlib import Path
 from PySide6.QtWidgets import (
     QFileDialog,
     QLabel,
@@ -7,7 +9,10 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
     QWidget,
+    
 )
+
+
 class PresentationPanel(QWidget):
     """Workspace for managing exercise presentations."""
 
@@ -44,13 +49,63 @@ class PresentationPanel(QWidget):
 
         self.presentation_list = QListWidget()
         self.presentation_list.setMinimumHeight(180)
+        self.open_button = QPushButton("Open Selected PowerPoint")
+        self.open_button.setEnabled(False)
+        self.open_button.clicked.connect(
+            self.open_selected_presentation
+        )
+        self.presentation_list.itemSelectionChanged.connect(
+            self.update_open_button
+        )
 
         layout.addWidget(heading)
         layout.addWidget(introduction)
         layout.addWidget(self.project_label)
         layout.addWidget(self.attach_button)
         layout.addWidget(self.presentation_list)
+        layout.addWidget(self.open_button)
         layout.addStretch()
+        
+    def open_selected_presentation(self):
+        """Identify the PowerPoint selected by the user."""
+
+        if self.project is None:
+            return
+
+        selected_row = self.presentation_list.currentRow()
+
+        if selected_row < 0:
+            return
+
+        assets = self.project.presentation_assets
+
+        if selected_row >= len(assets):
+            return
+
+        asset = assets[selected_row]
+
+        presentation_path = (
+            Path(self.project_filename).resolve().parent
+            / asset["relative_path"]
+        )
+
+        if not presentation_path.is_file():
+            QMessageBox.warning(
+                self,
+                "PowerPoint Not Found",
+                f"The presentation could not be found:\n\n"
+                f"{presentation_path}",
+            )
+            return
+
+        try:
+            os.startfile(str(presentation_path))
+        except OSError as error:
+            QMessageBox.critical(
+                self,
+                "Cannot Open PowerPoint",
+                str(error),
+            )
 
     def set_project(self, project):
         self.project = project
@@ -78,6 +133,17 @@ class PresentationPanel(QWidget):
             self.presentation_list.addItem(
                 asset.get("filename", "Unnamed Presentation")
             )
+    def update_open_button(self):
+        """Enable opening when a presentation is selected."""
+
+        has_selection = (
+            self.presentation_list.currentItem() is not None
+        )
+
+        self.open_button.setEnabled(
+            self.project is not None
+            and has_selection
+        )
 
     def set_project_filename(self, filename):
         self.project_filename = filename
