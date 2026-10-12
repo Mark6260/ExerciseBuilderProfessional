@@ -48,6 +48,7 @@ from gui.panels.exercise_objectives_panel import (
     ExerciseObjectivesPanel,
 )
 from gui.panels.project_panel import ProjectPanel
+from gui.panels.presentation_panel import PresentationPanel
 from gui.panels.observer_panel import ObserverPanel
 from gui.panels.observation_review_panel import (
     ObservationReviewPanel,
@@ -175,6 +176,10 @@ class MainWindow(QMainWindow):
         self.readiness_decision_panel.readiness_decision_recorded.connect(
             self._handle_readiness_decision_recorded
         )
+        self.presentation_panel = PresentationPanel()
+        self.presentation_panel.save_requested.connect(
+            self.save_project
+        )
 
         self.observer_panel = ObserverPanel()
         self.observation_review_panel = ObservationReviewPanel()
@@ -285,6 +290,11 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(
             workspace,
             "Exercise Workspace",
+        )
+
+        self.tabs.addTab(
+            self.presentation_panel,
+            "Presentations",
         )
         self.tabs.addTab(
             self.observer_panel,
@@ -704,6 +714,12 @@ class MainWindow(QMainWindow):
         )
         self.cto_builder_panel.set_project(
             self.current_project
+        )
+        self.presentation_panel.set_project(
+            self.current_project
+        )
+        self.presentation_panel.set_project_filename(
+            self.current_file
         )
 
         self.exercise_design_panel.set_project(
